@@ -15,12 +15,14 @@ import {
   Banknote,
   ShieldAlert,
   Sparkles,
+  Shield,
 } from "lucide-react";
 import type {
   ClubTeamDTO,
   ContractRosterItemDTO,
   FinancialTransactionDTO,
 } from "@/lib/master-league-data";
+import { formatEscudos } from "@/lib/master-league-data";
 import {
   updateContractSalaryAction,
   listAthleteOnAuctionAction,
@@ -35,18 +37,6 @@ interface DashboardClientProps {
   initialClubId: string;
 }
 
-function formatCurrency(val: number) {
-  const abs = Math.abs(val);
-  const sign = val < 0 ? "-" : "";
-  if (abs >= 1000000) {
-    return `${sign}$ ${(abs / 1000000).toFixed(2)}M`;
-  }
-  if (abs >= 1000) {
-    return `${sign}$ ${(abs / 1000).toFixed(0)}K`;
-  }
-  return `${sign}$ ${abs}`;
-}
-
 export function DashboardClient({
   clubs,
   contracts,
@@ -59,11 +49,11 @@ export function DashboardClient({
   const [editingContractId, setEditingContractId] = useState<string | null>(
     null
   );
-  const [salaryInput, setSalaryInput] = useState<number>(500000);
+  const [salaryInput, setSalaryInput] = useState<number>(35);
   const [auctionContractId, setAuctionContractId] = useState<string | null>(
     null
   );
-  const [startingBidInput, setStartingBidInput] = useState<number>(3000000);
+  const [startingBidInput, setStartingBidInput] = useState<number>(100);
   const [feedback, setFeedback] = useState<{
     ok: boolean;
     text: string;
@@ -142,14 +132,14 @@ export function DashboardClient({
 
   return (
     <div className="space-y-6">
-      {/* Top Bar: Seletor de Clube (Simulador de Treinador) + Ações Financeiras */}
+      {/* Top Bar: Seletor de Clube (Simulador de Treinador) + Ações Financeiras em Escudos */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <ClubCrest clubName={activeClub.name} size="lg" />
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312]">
-                MASTER LIGA PRO
+                MEU CLUBE • MASTER LIGA
               </span>
               <span className="text-xs text-[#78849e]">
                 Treinador:{" "}
@@ -178,7 +168,7 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* Seletor rápido de Clube + Botão de Rodar Folha Salarial */}
+        {/* Seletor rápido de Clube + Botões de Ação */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 py-1.5">
             <span className="text-[11px] text-[#78849e] uppercase font-semibold">
@@ -207,15 +197,23 @@ export function DashboardClient({
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-semibold text-[#f4f6fb] transition-colors cursor-pointer disabled:opacity-50"
           >
             <Banknote className="w-3.5 h-3.5 text-[#ffdc2b]" />
-            <span>Debitar Folha Salarial (Fim de Temporada)</span>
+            <span>Debitar Folha Salarial</span>
           </button>
 
           <Link
-            href="/market"
+            href="/store/escudos"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/40 text-[#4ade80] text-xs font-bold transition-colors"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>+ Recarregar Escudos</span>
+          </Link>
+
+          <Link
+            href="/auctions"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-bold transition-colors"
           >
             <Gavel className="w-3.5 h-3.5" />
-            <span>Ir ao Mercado & Leilões</span>
+            <span>Central de Leilões</span>
           </Link>
         </div>
       </div>
@@ -240,12 +238,12 @@ export function DashboardClient({
         </div>
       )}
 
-      {/* 3 KPI Financial Cards */}
+      {/* 3 KPI Financial Cards in Escudos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4">
           <div className="flex items-center justify-between text-xs text-[#78849e]">
             <span className="uppercase tracking-wider font-semibold">
-              1. Saldo Disponível em Caixa
+              1. Saldo Disponível (Moeda Oficial)
             </span>
             <Wallet className="w-4 h-4 text-[#4ade80]" />
           </div>
@@ -254,10 +252,10 @@ export function DashboardClient({
               activeClub.balance < 0 ? "text-[#f87171]" : "text-[#4ade80]"
             }`}
           >
-            {formatCurrency(activeClub.balance)}
+            {formatEscudos(activeClub.balance)}
           </div>
           <p className="text-[11px] text-[#78849e] mt-1">
-            Livre para Multas Rescisórias à vista e Lances de Leilão
+            Livre para Lances em Leilões (5 em 5 Escudos) e Multas Rescisórias
           </p>
         </div>
 
@@ -269,10 +267,10 @@ export function DashboardClient({
             <Users className="w-4 h-4 text-[#ffdc2b]" />
           </div>
           <div className="text-2xl font-bold text-[#ffdc2b] mt-2 tabular-nums">
-            {formatCurrency(payrollTotal)}
+            {formatEscudos(payrollTotal)}
           </div>
           <p className="text-[11px] text-[#78849e] mt-1">
-            {clubRoster.length} atletas sob contrato • Projeção pós-folha:{" "}
+            {clubRoster.length} atletas • Saldo pós-folha:{" "}
             <strong
               className={
                 activeClub.balance - payrollTotal < 0
@@ -280,7 +278,7 @@ export function DashboardClient({
                   : "text-[#f4f6fb]"
               }
             >
-              {formatCurrency(activeClub.balance - payrollTotal)}
+              {formatEscudos(activeClub.balance - payrollTotal)}
             </strong>
           </p>
         </div>
@@ -293,10 +291,10 @@ export function DashboardClient({
             <TrendingUp className="w-4 h-4 text-[#60a5fa]" />
           </div>
           <div className="text-2xl font-bold text-[#f4f6fb] mt-2 tabular-nums">
-            {formatCurrency(squadEstimatedValue)}
+            {formatEscudos(squadEstimatedValue)}
           </div>
           <p className="text-[11px] text-[#78849e] mt-1">
-            Soma de todas as Multas Rescisórias (10× Salário)
+            Soma de todas as Multas Rescisórias (10× Salário em Escudos)
           </p>
         </div>
       </div>
@@ -309,11 +307,11 @@ export function DashboardClient({
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#ffdc2b]" />
-                <span>Elenco Profissional & Gestão de Contratos</span>
+                <span>Elenco do Clube & Gestão de Salários / Multas</span>
               </h2>
               <p className="text-xs text-[#78849e] mt-0.5">
-                Aumente o salário para blindar seu craque contra roubo por multa
-                rescisória (Multa = 10× Salário).
+                Ajuste o salário em Escudos para blindar seu craque contra roubo
+                por multa rescisória (Multa = 10× Salário).
               </p>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 rounded-[4px] bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]">
@@ -328,7 +326,7 @@ export function DashboardClient({
                   <th className="py-3 px-4">Jogador</th>
                   <th className="py-3 px-3 text-center">Posição</th>
                   <th className="py-3 px-3 text-center">Overall</th>
-                  <th className="py-3 px-3 text-right">Salário Atual</th>
+                  <th className="py-3 px-3 text-right">Salário (Escudos)</th>
                   <th className="py-3 px-3 text-right">Multa Rescisória</th>
                   <th className="py-3 px-4 text-right">Ações de Gestão</th>
                 </tr>
@@ -352,8 +350,14 @@ export function DashboardClient({
                             className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
                           />
                           <div>
-                            <div className="font-bold text-[#f4f6fb]">
-                              {item.athleteName}
+                            <div className="font-bold text-[#f4f6fb] flex items-center gap-1.5">
+                              <span>{item.athleteName}</span>
+                              {item.ballType === "BOLA_PRETA" && (
+                                <span
+                                  title="Craque Bola Preta"
+                                  className="w-2.5 h-2.5 rounded-full bg-black border border-[#ffdc2b] inline-block"
+                                />
+                              )}
                             </div>
                             <div className="text-[11px] text-[#78849e]">
                               {item.age} anos • Origem: {item.defaultTeam}
@@ -373,7 +377,7 @@ export function DashboardClient({
                           className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs tabular-nums ${
                             item.overall >= 90
                               ? "bg-[#ffdc2b] text-[#0e1312]"
-                              : item.overall >= 87
+                              : item.overall >= 85
                               ? "bg-[#15a34a]/25 text-[#4ade80] border border-[#15a34a]/40"
                               : "bg-[#1d2639] text-[#f4f6fb]"
                           }`}
@@ -383,12 +387,12 @@ export function DashboardClient({
                       </td>
 
                       <td className="py-3 px-3 text-right font-semibold text-[#f4f6fb] tabular-nums">
-                        {formatCurrency(item.salary)}
+                        {formatEscudos(item.salary)}
                       </td>
 
                       <td className="py-3 px-3 text-right">
                         <span className="font-bold text-[#ffdc2b] tabular-nums">
-                          {formatCurrency(item.buyoutClause)}
+                          {formatEscudos(item.buyoutClause)}
                         </span>
                         <div className="text-[10px] text-[#78849e]">
                           Proteção 10×
@@ -400,13 +404,13 @@ export function DashboardClient({
                           <div className="flex items-center justify-end gap-1.5">
                             <input
                               type="number"
-                              step={50000}
-                              min={50000}
+                              step={5}
+                              min={10}
                               value={salaryInput}
                               onChange={(e) =>
                                 setSalaryInput(Number(e.target.value))
                               }
-                              className="w-28 px-2 py-1 rounded-[4px] bg-[#090c12] border border-[#ffdc2b] text-xs text-[#f4f6fb] text-right"
+                              className="w-24 px-2 py-1 rounded-[4px] bg-[#090c12] border border-[#ffdc2b] text-xs text-[#f4f6fb] text-right"
                             />
                             <button
                               type="button"
@@ -428,13 +432,13 @@ export function DashboardClient({
                           <div className="flex items-center justify-end gap-1.5">
                             <input
                               type="number"
-                              step={250000}
-                              min={500000}
+                              step={5}
+                              min={50}
                               value={startingBidInput}
                               onChange={(e) =>
                                 setStartingBidInput(Number(e.target.value))
                               }
-                              className="w-28 px-2 py-1 rounded-[4px] bg-[#090c12] border border-[#60a5fa] text-xs text-[#f4f6fb] text-right"
+                              className="w-24 px-2 py-1 rounded-[4px] bg-[#090c12] border border-[#60a5fa] text-xs text-[#f4f6fb] text-right"
                             />
                             <button
                               type="button"
@@ -472,13 +476,13 @@ export function DashboardClient({
                                 setAuctionContractId(item.id);
                                 setEditingContractId(null);
                                 setStartingBidInput(
-                                  Math.round(item.buyoutClause * 0.6)
+                                  Math.max(100, Math.round(item.buyoutClause * 0.4))
                                 );
                               }}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-[#133865]/50 hover:bg-[#133865] border border-[#1c4d8a] text-[11px] font-medium text-[#f4f6fb] transition-colors cursor-pointer"
                             >
                               <Gavel className="w-3 h-3 text-[#60a5fa]" />
-                              <span>Listar no Mercado</span>
+                              <span>Leiloar</span>
                             </button>
                           </div>
                         )}
@@ -491,15 +495,15 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* Extrato Financeiro (Fluxo de Caixa) */}
+        {/* Extrato Financeiro em Escudos */}
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] flex flex-col">
           <div className="p-4 border-b border-[#222c40] flex items-center justify-between">
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
-                Fluxo de Caixa do Clube
+                Extrato de Escudos do Clube
               </h2>
               <p className="text-xs text-[#78849e] mt-0.5">
-                Prêmios, Gols, Multas e Folha Salarial
+                Recargas, Lances (Escrow), Prêmios, Multas e Salários
               </p>
             </div>
             <ShieldAlert className="w-4 h-4 text-[#ffdc2b]" />
@@ -508,7 +512,7 @@ export function DashboardClient({
           <div className="p-4 space-y-3 flex-1 overflow-y-auto max-h-[480px]">
             {clubTransactions.length === 0 ? (
               <div className="text-xs text-[#78849e] py-8 text-center">
-                Nenhuma movimentação financeira registrada para este clube ainda.
+                Nenhuma movimentação de Escudos registrada para este clube.
               </div>
             ) : (
               clubTransactions.map((tx) => {
@@ -534,7 +538,7 @@ export function DashboardClient({
                       </div>
                       <div>
                         <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-[2px] bg-[#161d2c] text-[#9aa5b8] mb-1">
-                          {tx.type.replace("_", " ")}
+                          {tx.type.replace(/_/g, " ")}
                         </span>
                         <p className="text-xs text-[#f4f6fb] leading-snug">
                           {tx.description}
@@ -547,7 +551,7 @@ export function DashboardClient({
                       }`}
                     >
                       {isPositive ? "+" : ""}
-                      {formatCurrency(tx.amount)}
+                      {formatEscudos(tx.amount)}
                     </div>
                   </div>
                 );

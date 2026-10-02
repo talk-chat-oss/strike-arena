@@ -88,20 +88,28 @@ export default async function HomePage() {
 
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
-                  href="/dashboard"
+                  href="/auctions"
                   className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
                 >
-                  <Swords className="w-4 h-4" />
-                  <span>Painel Master Liga (Elenco & Finanças)</span>
+                  <Zap className="w-4 h-4" />
+                  <span>Leilões Bola Preta & Calendário</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
                 <Link
-                  href="/market"
+                  href="/store/escudos"
                   className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
                 >
-                  <Zap className="w-4 h-4 text-[#ffdc2b]" />
-                  <span>Mercado, Leilões & Multa Rescisória</span>
+                  <Shield className="w-4 h-4 text-[#ffdc2b]" />
+                  <span>Loja de Escudos (200 / 500 / 1000)</span>
+                </Link>
+
+                <Link
+                  href="/players"
+                  className="min-h-11 px-4 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                >
+                  <Swords className="w-4 h-4 text-[#ffdc2b]" />
+                  <span>Database de Jogadores</span>
                 </Link>
 
                 {!currentUser && (
@@ -165,41 +173,60 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Módulos da Master Liga Online (Economia Fechada & Gestão de Clubes) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-10">
+          {/* Módulos da Master Liga Online (Economia Fechada em Escudos & Gestão de Clubes) */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-10">
             <Link
-              href="/dashboard"
+              href="/auctions"
               className="group p-4 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] hover:border-[#ffdc2b]/50 transition-all flex items-start justify-between gap-3"
             >
               <div>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#ffdc2b]/20 text-[#ffdc2b]">
-                  GESTÃO DO CLUBE
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#dc2626]/20 text-[#f87171]">
+                  LEILÕES & BOLA PRETA
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
-                  Painel Geral do Treinador & Folha Salarial
+                  Leilões Agendados, Ao Vivo & Anti-Sniper
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
-                  Saldo em caixa, ajuste de salários, blindagem de multa (10×) e
-                  extrato financeiro completo.
+                  Calendário de craques Bola Preta, lances de 5 em 5 Escudos com
+                  Escrow e +2 min Anti-Sniper.
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-[#78849e] group-hover:text-[#ffdc2b] shrink-0 mt-1" />
             </Link>
 
             <Link
-              href="/market"
+              href="/players"
               className="group p-4 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] hover:border-[#ffdc2b]/50 transition-all flex items-start justify-between gap-3"
             >
               <div>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#dc2626]/20 text-[#f87171]">
-                  MERCADO DA BOLA
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-black text-[#ffdc2b] border border-[#ffdc2b]/40">
+                  DATABASE GLOBAL
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
-                  Central de Leilões (Anti-Sniper) & Multa Rescisória
+                  Catálogo de Jogadores & Filtros OVR
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
-                  Cronômetro em tempo real (+2 min Anti-Sniper), roubo de
-                  jogador à vista e propostas de troca.
+                  Todos os atletas oficiais com filtro Bola Preta, posição,
+                  busca e ordenação A-Z / Overall.
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#78849e] group-hover:text-[#ffdc2b] shrink-0 mt-1" />
+            </Link>
+
+            <Link
+              href="/store/escudos"
+              className="group p-4 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] hover:border-[#ffdc2b]/50 transition-all flex items-start justify-between gap-3"
+            >
+              <div>
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#ffdc2b]/20 text-[#ffdc2b]">
+                  MOEDA OFICIAL
+                </span>
+                <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
+                  Loja de Escudos & Pacotes Promocionais
+                </h3>
+                <p className="text-xs text-[#78849e] mt-1">
+                  Pacotes de 200 (R$ 20), 500 (R$ 30) e 1.000 Escudos (R$ 50)
+                  com crédito instantâneo.
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-[#78849e] group-hover:text-[#ffdc2b] shrink-0 mt-1" />
@@ -214,11 +241,11 @@ export default async function HomePage() {
                   RIVALIDADES & SÚMULA
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
-                  Freguesômetro H2H & Súmula com Bônus de Gol
+                  Freguesômetro H2H & Súmula com Bônus
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
                   Confronto histórico direto entre treinadores, registro de
-                  artilheiros e premiação automática.
+                  artilheiros e bônus em Escudos.
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-[#78849e] group-hover:text-[#ffdc2b] shrink-0 mt-1" />

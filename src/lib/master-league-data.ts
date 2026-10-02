@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { SPOOKY_SUPER_ADMIN_ID } from "@/db/mock-data";
 
 // ============================================================================
-// INTERFACES & DTOs (MASTER LIGA ONLINE)
+// INTERFACES & DTOs (MASTER LIGA ONLINE — ECONOMIA EM ESCUDOS)
 // ============================================================================
 
 export type FinancialTxType =
@@ -12,7 +12,13 @@ export type FinancialTxType =
   | "TITULO"
   | "SALARIO_PAGO"
   | "TRANSFERENCIA"
-  | "MULTA_PAGA";
+  | "MULTA_PAGA"
+  | "RECARGA_ESCUDOS"
+  | "BLOQUEIO_LANCE"
+  | "ESTORNO_LANCE"
+  | "ARREMATE_LEILAO";
+
+export type BallCategory = "BOLA_PRETA" | "BOLA_OURO" | "BOLA_PRATA";
 
 export interface AthleteDTO {
   id: string;
@@ -22,6 +28,7 @@ export interface AthleteDTO {
   age: number;
   photoUrl: string;
   defaultTeam: string;
+  ballType: BallCategory;
 }
 
 export interface ClubTeamDTO {
@@ -32,10 +39,10 @@ export interface ClubTeamDTO {
   name: string;
   acronym: string;
   badgeUrl: string;
-  balance: number;
+  balance: number; // Em Escudos
   isDelinquent: boolean;
-  payrollTotal: number;
-  estimatedSquadValue: number;
+  payrollTotal: number; // Em Escudos
+  estimatedSquadValue: number; // Em Escudos
   rosterCount: number;
 }
 
@@ -52,8 +59,9 @@ export interface ContractRosterItemDTO {
   age: number;
   photoUrl: string;
   defaultTeam: string;
-  salary: number;
-  buyoutClause: number;
+  ballType: BallCategory;
+  salary: number; // Em Escudos
+  buyoutClause: number; // Em Escudos
   acquiredAt: string;
 }
 
@@ -62,7 +70,7 @@ export interface FinancialTransactionDTO {
   clubTeamId: string;
   clubName: string;
   type: FinancialTxType;
-  amount: number;
+  amount: number; // Em Escudos
   description: string;
   createdAt: string;
 }
@@ -73,7 +81,7 @@ export interface AuctionBidDTO {
   clubTeamId: string;
   clubName: string;
   clubAcronym: string;
-  bidAmount: number;
+  bidAmount: number; // Em Escudos
   createdAt: string;
 }
 
@@ -86,15 +94,18 @@ export interface AuctionDTO {
   age: number;
   photoUrl: string;
   defaultTeam: string;
+  ballType: BallCategory;
   sellerClubId: string | null;
   sellerClubName: string;
-  currentBid: number;
+  startingBid: number; // Em Escudos (ex: 100 Escudos)
+  currentBid: number; // Em Escudos
+  minIncrement: number; // Passo mínimo (ex: 5 em 5 Escudos)
   currentWinningClubId: string | null;
   currentWinningClubName: string | null;
   currentWinningClubAcronym: string | null;
   startsAt: string;
   endsAt: string;
-  status: "ATIVO" | "ENCERRADO" | "CANCELADO";
+  status: "AGENDADO" | "ATIVO" | "ENCERRADO" | "CANCELADO";
   bids: AuctionBidDTO[];
 }
 
@@ -106,10 +117,34 @@ export interface TransferProposalDTO {
   toClubId: string;
   toClubName: string;
   toClubAcronym: string;
-  cashAmount: number;
+  cashAmount: number; // Em Escudos
   offeredAthletes: AthleteDTO[];
   requestedAthletes: AthleteDTO[];
   status: "PENDENTE" | "ACEITA" | "RECUSADA" | "CANCELADA";
+  createdAt: string;
+}
+
+export interface EscudoPackageDTO {
+  id: string;
+  name: string;
+  escudosAmount: number;
+  priceBrlCents: number;
+  badgeLabel: string | null;
+  isFeatured: boolean;
+  active: boolean;
+}
+
+export interface EscudoPurchaseDTO {
+  id: string;
+  clubTeamId: string;
+  clubName: string;
+  packageId: string;
+  packageName: string;
+  escudosCredited: number;
+  amountPaidBrlCents: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  externalReference: string | null;
   createdAt: string;
 }
 
@@ -167,9 +202,51 @@ export interface HeadToHeadResultDTO {
   }[];
 }
 
+export function formatEscudos(value: number, withLabel = true): string {
+  const formatted = new Intl.NumberFormat("pt-BR").format(Math.round(value));
+  return withLabel ? `${formatted} Escudos` : formatted;
+}
+
+export function formatBrlFromCents(cents: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(cents / 100);
+}
+
 // ============================================================================
-// MOCK DATA COMPLETO (FALLBACK + SEED BASE)
+// MOCK DATA COMPLETO (FALLBACK + SEED BASE EM ESCUDOS)
 // ============================================================================
+
+export const MOCK_ESCUDO_PACKAGES: EscudoPackageDTO[] = [
+  {
+    id: "e0000000-0000-4000-8000-000000000001",
+    name: "Pacote Tático 200 Escudos",
+    escudosAmount: 200,
+    priceBrlCents: 2000,
+    badgeLabel: "ENTRADA RÁPIDA",
+    isFeatured: false,
+    active: true,
+  },
+  {
+    id: "e0000000-0000-4000-8000-000000000002",
+    name: "Pacote Craque 500 Escudos",
+    escudosAmount: 500,
+    priceBrlCents: 3000,
+    badgeLabel: "MAIS VENDIDO • +25% BÔNUS",
+    isFeatured: true,
+    active: true,
+  },
+  {
+    id: "e0000000-0000-4000-8000-000000000003",
+    name: "Cofre Galáctico 1000 Escudos",
+    escudosAmount: 1000,
+    priceBrlCents: 5000,
+    badgeLabel: "MELHOR CUSTO-BENEFÍCIO • 2X",
+    isFeatured: false,
+    active: true,
+  },
+];
 
 export const MOCK_ATHLETES: AthleteDTO[] = [
   {
@@ -180,6 +257,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 26,
     photoUrl: "/players/mbappe.png",
     defaultTeam: "Real Madrid",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000002",
@@ -189,6 +267,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 25,
     photoUrl: "/players/haaland.png",
     defaultTeam: "Manchester City",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000003",
@@ -198,15 +277,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 25,
     photoUrl: "/players/vinijr.png",
     defaultTeam: "Real Madrid",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000004",
-    name: "Jude Bellingham",
-    overall: 90,
-    position: "MEI",
-    age: 22,
-    photoUrl: "/players/bellingham.png",
-    defaultTeam: "Real Madrid",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000005",
@@ -216,15 +287,27 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 29,
     photoUrl: "/players/rodri.png",
     defaultTeam: "Manchester City",
+    ballType: "BOLA_PRETA",
   },
   {
-    id: "a0000000-0000-4000-8000-000000000006",
-    name: "Lamine Yamal",
-    overall: 88,
-    position: "PD",
-    age: 18,
-    photoUrl: "/players/yamal.png",
-    defaultTeam: "FC Barcelona",
+    id: "a0000000-0000-4000-8000-000000000021",
+    name: "Lionel Messi",
+    overall: 90,
+    position: "ATA",
+    age: 38,
+    photoUrl: "/players/messi.png",
+    defaultTeam: "Inter Miami",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000004",
+    name: "Jude Bellingham",
+    overall: 90,
+    position: "MEI",
+    age: 22,
+    photoUrl: "/players/bellingham.png",
+    defaultTeam: "Real Madrid",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000007",
@@ -234,51 +317,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 32,
     photoUrl: "/players/kane.png",
     defaultTeam: "Bayern München",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000008",
-    name: "Mohamed Salah",
-    overall: 89,
-    position: "PD",
-    age: 33,
-    photoUrl: "/players/salah.png",
-    defaultTeam: "Liverpool",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000009",
-    name: "Bukayo Saka",
-    overall: 88,
-    position: "PD",
-    age: 24,
-    photoUrl: "/players/saka.png",
-    defaultTeam: "Arsenal",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000010",
-    name: "Federico Valverde",
-    overall: 89,
-    position: "MC",
-    age: 27,
-    photoUrl: "/players/valverde.png",
-    defaultTeam: "Real Madrid",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000011",
-    name: "Virgil van Dijk",
-    overall: 89,
-    position: "ZAG",
-    age: 34,
-    photoUrl: "/players/vandijk.png",
-    defaultTeam: "Liverpool",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000012",
-    name: "William Saliba",
-    overall: 88,
-    position: "ZAG",
-    age: 24,
-    photoUrl: "/players/saliba.png",
-    defaultTeam: "Arsenal",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000013",
@@ -288,6 +327,57 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 33,
     photoUrl: "/players/courtois.png",
     defaultTeam: "Real Madrid",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000022",
+    name: "Cristiano Ronaldo",
+    overall: 89,
+    position: "ATA",
+    age: 40,
+    photoUrl: "/players/ronaldo.png",
+    defaultTeam: "Al-Nassr",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000023",
+    name: "Robert Lewandowski",
+    overall: 89,
+    position: "ATA",
+    age: 37,
+    photoUrl: "/players/lewandowski.png",
+    defaultTeam: "FC Barcelona",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000008",
+    name: "Mohamed Salah",
+    overall: 89,
+    position: "PD",
+    age: 33,
+    photoUrl: "/players/salah.png",
+    defaultTeam: "Liverpool",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000010",
+    name: "Federico Valverde",
+    overall: 89,
+    position: "MC",
+    age: 27,
+    photoUrl: "/players/valverde.png",
+    defaultTeam: "Real Madrid",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000011",
+    name: "Virgil van Dijk",
+    overall: 89,
+    position: "ZAG",
+    age: 34,
+    photoUrl: "/players/vandijk.png",
+    defaultTeam: "Liverpool",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000014",
@@ -297,15 +387,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 32,
     photoUrl: "/players/alisson.png",
     defaultTeam: "Liverpool",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000015",
-    name: "Pedri González",
-    overall: 88,
-    position: "MC",
-    age: 22,
-    photoUrl: "/players/pedri.png",
-    defaultTeam: "FC Barcelona",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000016",
@@ -315,33 +397,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 22,
     photoUrl: "/players/musiala.png",
     defaultTeam: "Bayern München",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000017",
-    name: "Cole Palmer",
-    overall: 87,
-    position: "MEI",
-    age: 23,
-    photoUrl: "/players/palmer.png",
-    defaultTeam: "Chelsea",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000018",
-    name: "Pedro Guilherme",
-    overall: 84,
-    position: "ATA",
-    age: 28,
-    photoUrl: "/players/pedro.png",
-    defaultTeam: "Flamengo",
-  },
-  {
-    id: "a0000000-0000-4000-8000-000000000019",
-    name: "Estêvão Willian",
-    overall: 83,
-    position: "PD",
-    age: 18,
-    photoUrl: "/players/estevao.png",
-    defaultTeam: "Palmeiras",
+    ballType: "BOLA_PRETA",
   },
   {
     id: "a0000000-0000-4000-8000-000000000020",
@@ -351,6 +407,87 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     age: 22,
     photoUrl: "/players/wirtz.png",
     defaultTeam: "Bayern München",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000006",
+    name: "Lamine Yamal",
+    overall: 88,
+    position: "PD",
+    age: 18,
+    photoUrl: "/players/yamal.png",
+    defaultTeam: "FC Barcelona",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000009",
+    name: "Bukayo Saka",
+    overall: 88,
+    position: "PD",
+    age: 24,
+    photoUrl: "/players/saka.png",
+    defaultTeam: "Arsenal",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000012",
+    name: "William Saliba",
+    overall: 88,
+    position: "ZAG",
+    age: 24,
+    photoUrl: "/players/saliba.png",
+    defaultTeam: "Arsenal",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000015",
+    name: "Pedri González",
+    overall: 88,
+    position: "MC",
+    age: 22,
+    photoUrl: "/players/pedri.png",
+    defaultTeam: "FC Barcelona",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000024",
+    name: "Raphinha",
+    overall: 87,
+    position: "PE",
+    age: 28,
+    photoUrl: "/players/raphinha.png",
+    defaultTeam: "FC Barcelona",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000017",
+    name: "Cole Palmer",
+    overall: 87,
+    position: "MEI",
+    age: 23,
+    photoUrl: "/players/palmer.png",
+    defaultTeam: "Chelsea",
+    ballType: "BOLA_PRETA",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000018",
+    name: "Pedro Guilherme",
+    overall: 84,
+    position: "ATA",
+    age: 28,
+    photoUrl: "/players/pedro.png",
+    defaultTeam: "Flamengo",
+    ballType: "BOLA_OURO",
+  },
+  {
+    id: "a0000000-0000-4000-8000-000000000019",
+    name: "Estêvão Willian",
+    overall: 83,
+    position: "PD",
+    age: 18,
+    photoUrl: "/players/estevao.png",
+    defaultTeam: "Palmeiras",
+    ballType: "BOLA_OURO",
   },
 ];
 
@@ -363,10 +500,10 @@ export const MOCK_CLUB_TEAMS: ClubTeamDTO[] = [
     name: "Real Madrid",
     acronym: "RMA",
     badgeUrl: "Real Madrid",
-    balance: 34500000,
+    balance: 1250,
     isDelinquent: false,
-    payrollTotal: 3210000,
-    estimatedSquadValue: 32100000,
+    payrollTotal: 185,
+    estimatedSquadValue: 1850,
     rosterCount: 4,
   },
   {
@@ -377,10 +514,10 @@ export const MOCK_CLUB_TEAMS: ClubTeamDTO[] = [
     name: "Manchester City",
     acronym: "MCI",
     badgeUrl: "Manchester City",
-    balance: 28900000,
+    balance: 980,
     isDelinquent: false,
-    payrollTotal: 3090000,
-    estimatedSquadValue: 30900000,
+    payrollTotal: 170,
+    estimatedSquadValue: 1700,
     rosterCount: 4,
   },
   {
@@ -391,10 +528,10 @@ export const MOCK_CLUB_TEAMS: ClubTeamDTO[] = [
     name: "FC Barcelona",
     acronym: "BAR",
     badgeUrl: "FC Barcelona",
-    balance: 21400000,
+    balance: 760,
     isDelinquent: false,
-    payrollTotal: 1940000,
-    estimatedSquadValue: 19400000,
+    payrollTotal: 115,
+    estimatedSquadValue: 1150,
     rosterCount: 3,
   },
   {
@@ -405,20 +542,23 @@ export const MOCK_CLUB_TEAMS: ClubTeamDTO[] = [
     name: "Bayern München",
     acronym: "BAY",
     badgeUrl: "Bayern München",
-    balance: 48000000,
+    balance: 2400,
     isDelinquent: false,
-    payrollTotal: 3120000,
-    estimatedSquadValue: 31200000,
+    payrollTotal: 158,
+    estimatedSquadValue: 1580,
     rosterCount: 4,
   },
 ];
 
 // ============================================================================
-// SERVIÇOS DE LEITURA (SUPABASE + FALLBACK MOCK)
+// SERVIÇOS DE LEITURA (COM AUTO-TRANSIÇÃO DE LEILÕES + FALLBACK)
 // ============================================================================
 
 export async function getMasterLeagueOverviewData() {
   try {
+    // Dispara transição automática de leilões agendados (UPCOMING -> ACTIVE) e expirados (ACTIVE -> ENCERRADO)
+    await supabaseAdmin.rpc("rpc_sync_auction_statuses");
+
     const [
       { data: dbAthletes },
       { data: dbClubs },
@@ -428,6 +568,8 @@ export async function getMasterLeagueOverviewData() {
       { data: dbBids },
       { data: dbProposals },
       { data: dbH2H },
+      { data: dbPackages },
+      { data: dbPurchases },
     ] = await Promise.all([
       supabaseAdmin
         .from("athletes")
@@ -439,25 +581,43 @@ export async function getMasterLeagueOverviewData() {
         .order("balance", { ascending: false }),
       supabaseAdmin
         .from("contracts")
-        .select("*, athlete:athletes!athlete_id(*), club:club_teams!club_team_id(id, name, acronym, user:profiles!user_id(nickname))"),
+        .select(
+          "*, athlete:athletes!athlete_id(*), club:club_teams!club_team_id(id, name, acronym, user:profiles!user_id(nickname))"
+        ),
       supabaseAdmin
         .from("financial_transactions")
         .select("*, club:club_teams!club_team_id(name)")
         .order("created_at", { ascending: false })
-        .limit(40),
+        .limit(50),
       supabaseAdmin
         .from("auctions")
-        .select("*, athlete:athletes!athlete_id(*), seller:club_teams!seller_club_id(name), winner:club_teams!current_winning_club_id(name, acronym)")
-        .order("ends_at", { ascending: true }),
+        .select(
+          "*, athlete:athletes!athlete_id(*), seller:club_teams!seller_club_id(name), winner:club_teams!current_winning_club_id(name, acronym)"
+        )
+        .order("starts_at", { ascending: true }),
       supabaseAdmin
         .from("auction_bids")
         .select("*, club:club_teams!club_team_id(name, acronym)")
         .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("transfer_proposals")
-        .select("*, fromClub:club_teams!from_club_id(name, acronym), toClub:club_teams!to_club_id(name, acronym)")
+        .select(
+          "*, fromClub:club_teams!from_club_id(name, acronym), toClub:club_teams!to_club_id(name, acronym)"
+        )
         .order("created_at", { ascending: false }),
       supabaseAdmin.from("head_to_head_cache").select("*"),
+      supabaseAdmin
+        .from("escudo_packages")
+        .select("*")
+        .eq("active", true)
+        .order("escudos_amount", { ascending: true }),
+      supabaseAdmin
+        .from("escudo_purchases")
+        .select(
+          "*, club:club_teams!club_team_id(name), pkg:escudo_packages!package_id(name)"
+        )
+        .order("created_at", { ascending: false })
+        .limit(25),
     ]);
 
     const athletesList: AthleteDTO[] =
@@ -468,10 +628,10 @@ export async function getMasterLeagueOverviewData() {
             overall: a.overall,
             position: a.position,
             age: a.age,
-            photoUrl:
-              a.photo_url ||
-              `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(a.name)}`,
+            photoUrl: a.photo_url || "/players/mbappe.png",
             defaultTeam: a.default_team,
+            ballType: (a.ball_type ||
+              (a.overall >= 85 ? "BOLA_PRETA" : "BOLA_OURO")) as BallCategory,
           }))
         : MOCK_ATHLETES;
 
@@ -487,6 +647,7 @@ export async function getMasterLeagueOverviewData() {
                 ? clb.user[0]
                 : clb.user
               : null;
+            const ovr = ath?.overall ?? 80;
             return {
               id: c.id,
               clubTeamId: c.club_team_id,
@@ -495,13 +656,13 @@ export async function getMasterLeagueOverviewData() {
               ownerNickname: usr?.nickname ?? "Treinador",
               athleteId: c.athlete_id,
               athleteName: ath?.name ?? "Atleta",
-              overall: ath?.overall ?? 80,
+              overall: ovr,
               position: ath?.position ?? "MEI",
               age: ath?.age ?? 24,
-              photoUrl:
-                ath?.photo_url ||
-                `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(ath?.name || "Player")}`,
+              photoUrl: ath?.photo_url || "/players/mbappe.png",
               defaultTeam: ath?.default_team ?? "Livre",
+              ballType: (ath?.ball_type ||
+                (ovr >= 85 ? "BOLA_PRETA" : "BOLA_OURO")) as BallCategory,
               salary: c.salary,
               buyoutClause: c.buyout_clause,
               acquiredAt: c.acquired_at,
@@ -561,20 +722,23 @@ export async function getMasterLeagueOverviewData() {
       const ath = Array.isArray(auc.athlete) ? auc.athlete[0] : auc.athlete;
       const seller = Array.isArray(auc.seller) ? auc.seller[0] : auc.seller;
       const winner = Array.isArray(auc.winner) ? auc.winner[0] : auc.winner;
+      const ovr = ath?.overall ?? 85;
       return {
         id: auc.id,
         athleteId: auc.athlete_id,
         athleteName: ath?.name ?? "Atleta",
-        overall: ath?.overall ?? 85,
+        overall: ovr,
         position: ath?.position ?? "ATA",
         age: ath?.age ?? 25,
-        photoUrl:
-          ath?.photo_url ||
-          `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(ath?.name || "Star")}`,
+        photoUrl: ath?.photo_url || "/players/mbappe.png",
         defaultTeam: ath?.default_team ?? "Europa",
+        ballType: (ath?.ball_type ||
+          (ovr >= 85 ? "BOLA_PRETA" : "BOLA_OURO")) as BallCategory,
         sellerClubId: auc.seller_club_id,
         sellerClubName: seller?.name ?? "Banco da Liga (Federação)",
-        currentBid: auc.current_bid,
+        startingBid: auc.starting_bid ?? 100,
+        currentBid: auc.current_bid ?? 100,
+        minIncrement: auc.min_increment ?? 5,
         currentWinningClubId: auc.current_winning_club_id,
         currentWinningClubName: winner?.name ?? null,
         currentWinningClubAcronym: winner?.acronym ?? null,
@@ -643,6 +807,37 @@ export async function getMasterLeagueOverviewData() {
       goalsB: h.goals_b,
     }));
 
+    const packagesList: EscudoPackageDTO[] =
+      dbPackages && dbPackages.length > 0
+        ? dbPackages.map((p) => ({
+            id: p.id,
+            name: p.name,
+            escudosAmount: p.escudos_amount,
+            priceBrlCents: p.price_brl_cents,
+            badgeLabel: p.badge_label,
+            isFeatured: Boolean(p.is_featured),
+            active: Boolean(p.active),
+          }))
+        : MOCK_ESCUDO_PACKAGES;
+
+    const purchasesList: EscudoPurchaseDTO[] = (dbPurchases ?? []).map((p) => {
+      const clb = Array.isArray(p.club) ? p.club[0] : p.club;
+      const pkg = Array.isArray(p.pkg) ? p.pkg[0] : p.pkg;
+      return {
+        id: p.id,
+        clubTeamId: p.club_team_id,
+        clubName: clb?.name ?? "Clube",
+        packageId: p.package_id,
+        packageName: pkg?.name ?? "Pacote de Escudos",
+        escudosCredited: p.escudos_credited,
+        amountPaidBrlCents: p.amount_paid_brl_cents,
+        paymentMethod: p.payment_method,
+        paymentStatus: p.payment_status,
+        externalReference: p.external_reference,
+        createdAt: p.created_at,
+      };
+    });
+
     return {
       athletes: athletesList,
       clubs: clubsList,
@@ -651,6 +846,8 @@ export async function getMasterLeagueOverviewData() {
       transactions: transactionsList,
       proposals: proposalsList,
       h2hRecords,
+      escudoPackages: packagesList,
+      escudoPurchases: purchasesList,
     };
   } catch {
     return {
@@ -661,6 +858,8 @@ export async function getMasterLeagueOverviewData() {
       transactions: [],
       proposals: [],
       h2hRecords: [],
+      escudoPackages: MOCK_ESCUDO_PACKAGES,
+      escudoPurchases: [],
     };
   }
 }
@@ -708,7 +907,6 @@ export function computeHeadToHeadBetweenClubs(
       goalsB = direct.goalsA;
     }
   } else {
-    // Fallback determinístico caso ainda não haja registro no cache para o par selecionado
     winsA = 4;
     winsB = 2;
     draws = 1;

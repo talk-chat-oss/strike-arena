@@ -5,14 +5,21 @@ import { supabaseAdmin } from "@/lib/supabase";
 import {
   getMasterLeagueOverviewData,
   computeHeadToHeadBetweenClubs,
+  formatEscudos,
   type MasterGoalScorerDTO,
 } from "@/lib/master-league-data";
 
+function revalidateMasterLeaguePaths() {
+  revalidatePath("/market");
+  revalidatePath("/auctions");
+  revalidatePath("/transfers");
+  revalidatePath("/dashboard");
+  revalidatePath("/players");
+  revalidatePath("/store/escudos");
+}
+
 /**
- * 1. MULTA RESCISÓRIA ("ROUBO DE JOGADOR")
- * Executa de forma atômica via RPC transacional PostgreSQL (com SELECT ... FOR UPDATE)
- * para garantir controle de concorrência, débito à vista, crédito no vendedor,
- * transferência do contrato e registro no fluxo de caixa.
+ * 1. MULTA RESCISÓRIA ("ROUBO DE JOGADOR") EM ESCUDOS
  */
 export async function payBuyoutClauseAction(input: {
   contractId: string;
@@ -35,8 +42,7 @@ export async function payBuyoutClauseAction(input: {
       throw new Error(error.message);
     }
 
-    revalidatePath("/market");
-    revalidatePath("/dashboard");
+    revalidateMasterLeaguePaths();
 
     const res = data as {
       athleteName: string;
@@ -47,9 +53,9 @@ export async function payBuyoutClauseAction(input: {
 
     return {
       ok: true,
-      message: `🚨 ROUBO DE ELENCO CONFIRMADO! Multa rescisória de $ ${(
-        res.buyoutPaid / 1000000
-      ).toFixed(2)}M paga à vista ao ${res.sellerName}. ${
+      message: `🚨 ROUBO DE ELENCO CONFIRMADO! Multa rescisória de ${formatEscudos(
+        res.buyoutPaid
+      )} paga à vista ao ${res.sellerName}. ${
         res.athleteName
       } agora faz parte do seu elenco!`,
       data: res,
@@ -66,12 +72,7 @@ export async function payBuyoutClauseAction(input: {
 }
 
 /**
- * 2. SISTEMA DE LEILÃO COM ESCROW E ANTI-SNIPER (+2 MINUTOS)
- * Executa de forma atômica via RPC transacional PostgreSQL (SELECT ... FOR UPDATE):
- * - Valida bid > current_bid e leilão ATIVO
- * - Estorna o valor bloqueado (escrow) do líder anterior derrotado
- * - Bloqueia (escrow) o valor do novo líder
- * - Se faltarem <= 2 minutos, estende ends_at em +2 minutos (Anti-Sniper)
+ * 2. SISTEMA DE LEILÃO COM INCREMENTO DE 5 EM 5 ESCUDOS, ESCROW E ANTI-SNIPER (+2 MINUTOS)
  */
 export async function placeAuctionBidAction(input: {
   auctionId: string;
@@ -79,7 +80,7 @@ export async function placeAuctionBidAction(input: {
   bidAmount: number;
 }) {
   if (!input.auctionId || !input.bidderClubId || input.bidAmount <= 0) {
-    return { ok: false, error: "Informe um valor de lance válido." };
+    return { ok: false, error: "Informe um valor de lance válido em Escudos." };
   }
 
   try {
@@ -93,8 +94,7 @@ export async function placeAuctionBidAction(input: {
       throw new Error(error.message);
     }
 
-    revalidatePath("/market");
-    revalidatePath("/dashboard");
+    revalidateMasterLeaguePaths();
 
     const res = data as {
       athleteName: string;
@@ -109,14 +109,14 @@ export async function placeAuctionBidAction(input: {
       antiSniperTriggered: res.antiSniperTriggered,
       endsAt: res.endsAt,
       message: res.antiSniperTriggered
-        ? `⚡ LANCE REGISTRADO + ANTI-SNIPER ATIVADO! Lance de $ ${(
-            res.newBid / 1000000
-          ).toFixed(2)}M em ${
+        ? `⚡ LANCE REGISTRADO + ANTI-SNIPER ATIVADO! Lance de ${formatEscudos(
+            res.newBid
+          )} em ${
             res.athleteName
-          } nos últimos 2 minutos estendeu o cronômetro em +02:00!`
-        : `✅ Lance de $ ${(res.newBid / 1000000).toFixed(2)}M registrado em ${
+          } nos últimos 2 minutos prorrogou o término em +02:00!`
+        : `✅ Lance de ${formatEscudos(res.newBid)} registrado em ${
             res.athleteName
-          }! Valor bloqueado em Escrow e lance anterior estornado.`,
+          }! Escudos reservados em Custódia (Escrow) e competidor anterior estornado.`,
     };
   } catch (err) {
     return {
@@ -130,9 +130,139 @@ export async function placeAuctionBidAction(input: {
 }
 
 /**
- * 3. FOLHA SALARIAL E ENCERRAMENTO DE TEMPORADA
- * Debita a soma total dos salários do elenco de cada clube (ou de um clube específico)
- * e registra status de inadimplência/punição caso o saldo fique negativo.
+ * 3. AGENDAMENTO PRÉVIO DE LEILÃO PELO ORGANIZADOR (DATA E HORA MARCADAS)
+ */
+export async function scheduleAuctionAction(input: {
+  athleteId: string;
+  startingBid: number;
+  minIncrement?: number;
+  startsAtIso: string;
+  endsAtIso: string;
+  sellerClubId?: string | null;
+}) {
+  if (!input.athleteId) {
+    return { ok: false, error: "Selecione um atleta para o leilão." };
+  }
+
+  const startsMs = new Date(input.startsAtIso).getTime();
+  const endsMs = new Date(input.endsAtIso).getTime();
+
+  if (isNaN(startsMs) || isNaN(endsMs) || endsMs <= startsMs) {
+    return {
+      ok: false,
+      error: "A data/hora de término deve ser posterior ao início do leilão.",
+    };
+  }
+
+  const startingBid = Math.max(10, Math.round(input.startingBid || 100));
+  const minIncrement = Math.max(5, Math.round(input.minIncrement || 5));
+  const isUpcoming = startsMs > Date.now() + 15000;
+
+  try {
+    const { data: ath } = await supabaseAdmin
+      .from("athletes")
+      .select("name")
+      .eq("id", input.athleteId)
+      .maybeSingle();
+
+    const { error } = await supabaseAdmin.from("auctions").insert({
+      athlete_id: input.athleteId,
+      seller_club_id: input.sellerClubId ?? null,
+      starting_bid: startingBid,
+      current_bid: startingBid,
+      min_increment: minIncrement,
+      current_winning_club_id: null,
+      starts_at: new Date(startsMs).toISOString(),
+      ends_at: new Date(endsMs).toISOString(),
+      status: isUpcoming ? "AGENDADO" : "ATIVO",
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidateMasterLeaguePaths();
+
+    return {
+      ok: true,
+      message: isUpcoming
+        ? `📅 Leilão agendado com sucesso para ${
+            ath?.name ?? "Atleta"
+          }! Lance mínimo: ${formatEscudos(
+            startingBid
+          )} (incremento de ${minIncrement} em ${minIncrement} Escudos).`
+        : `🔥 Leilão de ${
+            ath?.name ?? "Atleta"
+          } iniciado imediatamente com lance mínimo de ${formatEscudos(
+            startingBid
+          )}!`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Erro ao agendar evento de leilão.",
+    };
+  }
+}
+
+/**
+ * 4. COMPRA / RECARGA DE PACOTE DE ESCUDOS (CONFIRMAÇÃO INSTANTÂNEA AUDITÁVEL)
+ */
+export async function purchaseEscudosPackageAction(input: {
+  clubTeamId: string;
+  packageId: string;
+  paymentMethod?: "PIX" | "CARTAO";
+}) {
+  if (!input.clubTeamId || !input.packageId) {
+    return {
+      ok: false,
+      error: "Selecione o clube destinatário e o pacote de Escudos.",
+    };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc(
+      "rpc_purchase_escudos_package",
+      {
+        p_club_team_id: input.clubTeamId,
+        p_package_id: input.packageId,
+        p_payment_method: input.paymentMethod ?? "PIX",
+        p_external_ref: `STRIKE-${Date.now().toString(36).toUpperCase()}`,
+      }
+    );
+
+    if (error) throw new Error(error.message);
+
+    revalidateMasterLeaguePaths();
+
+    const res = data as {
+      clubName: string;
+      packageName: string;
+      escudosCredited: number;
+      newBalance: number;
+    };
+
+    return {
+      ok: true,
+      message: `🛡️ PAGAMENTO CONFIRMADO! +${formatEscudos(
+        res.escudosCredited
+      )} creditados instantaneamente na carteira do ${
+        res.clubName
+      }. Novo saldo: ${formatEscudos(res.newBalance)}!`,
+      data: res,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao processar recarga de Escudos.",
+    };
+  }
+}
+
+/**
+ * 5. FOLHA SALARIAL E ENCERRAMENTO DE TEMPORADA EM ESCUDOS
  */
 export async function processSeasonPayrollAction(input?: {
   clubTeamId?: string;
@@ -147,8 +277,7 @@ export async function processSeasonPayrollAction(input?: {
 
     if (error) throw new Error(error.message);
 
-    revalidatePath("/dashboard");
-    revalidatePath("/market");
+    revalidateMasterLeaguePaths();
 
     const res = data as {
       processedClubs: number;
@@ -159,8 +288,8 @@ export async function processSeasonPayrollAction(input?: {
       ok: true,
       message:
         res.delinquentClubs > 0
-          ? `Folha salarial debitada em ${res.processedClubs} clube(s). ⚠️ ${res.delinquentClubs} clube(s) entraram em INADIMPLÊNCIA (saldo negativo)!`
-          : `Folha salarial de fim de temporada processada com sucesso para ${res.processedClubs} clube(s)! Todos os clubes estão regulares.`,
+          ? `Folha salarial debitada em ${res.processedClubs} clube(s). ⚠️ ${res.delinquentClubs} clube(s) entraram em INADIMPLÊNCIA (saldo negativo em Escudos)!`
+          : `Folha salarial de fim de temporada processada em Escudos para ${res.processedClubs} clube(s)! Todos os clubes estão regulares.`,
     };
   } catch (err) {
     return {
@@ -174,21 +303,21 @@ export async function processSeasonPayrollAction(input?: {
 }
 
 /**
- * 4. AJUSTAR SALÁRIO E MULTA RESCISÓRIA PROPORCIONAL (10x SALÁRIO)
+ * 6. AJUSTAR SALÁRIO E MULTA RESCISÓRIA PROPORCIONAL (10x SALÁRIO) EM ESCUDOS
  */
 export async function updateContractSalaryAction(input: {
   contractId: string;
   newSalary: number;
 }) {
-  if (!input.contractId || input.newSalary < 50000) {
+  if (!input.contractId || input.newSalary < 10) {
     return {
       ok: false,
-      error: "O salário mínimo permitido na Master Liga é $ 50.000.",
+      error: "O salário mínimo permitido na Master Liga é de 10 Escudos.",
     };
   }
 
   const salary = Math.round(input.newSalary);
-  const buyoutClause = salary * 10; // Multa rescisória calculada proporcionalmente (10x o salário)
+  const buyoutClause = salary * 10;
 
   try {
     const { error } = await supabaseAdmin
@@ -201,28 +330,27 @@ export async function updateContractSalaryAction(input: {
 
     if (error) throw new Error(error.message);
 
-    revalidatePath("/dashboard");
-    revalidatePath("/market");
+    revalidateMasterLeaguePaths();
 
     return {
       ok: true,
-      message: `Salário atualizado para $ ${(salary / 1000).toFixed(
-        0
-      )}K e Multa Rescisória recalculada para $ ${(
-        buyoutClause / 1000000
-      ).toFixed(2)}M!`,
+      message: `Salário atualizado para ${formatEscudos(
+        salary
+      )} e Multa Rescisória recalculada para ${formatEscudos(buyoutClause)}!`,
     };
   } catch (err) {
     return {
       ok: false,
       error:
-        err instanceof Error ? err.message : "Erro ao ajustar salário do atleta.",
+        err instanceof Error
+          ? err.message
+          : "Erro ao ajustar salário do atleta.",
     };
   }
 }
 
 /**
- * 5. LISTAR JOGADOR DO ELENCO NO LEILÃO ABERTO
+ * 7. LISTAR JOGADOR DO ELENCO NO LEILÃO ABERTO (EM ESCUDOS)
  */
 export async function listAthleteOnAuctionAction(input: {
   contractId: string;
@@ -242,11 +370,14 @@ export async function listAthleteOnAuctionAction(input: {
 
     const mins = input.durationMinutes ?? 30;
     const endsAt = new Date(Date.now() + mins * 60 * 1000).toISOString();
+    const minBid = Math.max(50, Math.round(input.startingBid));
 
     const { error: insErr } = await supabaseAdmin.from("auctions").insert({
       athlete_id: contract.athlete_id,
       seller_club_id: contract.club_team_id,
-      current_bid: Math.max(500000, Math.round(input.startingBid)),
+      starting_bid: minBid,
+      current_bid: minBid,
+      min_increment: 5,
       current_winning_club_id: null,
       starts_at: new Date().toISOString(),
       ends_at: endsAt,
@@ -255,8 +386,7 @@ export async function listAthleteOnAuctionAction(input: {
 
     if (insErr) throw new Error(insErr.message);
 
-    revalidatePath("/dashboard");
-    revalidatePath("/market");
+    revalidateMasterLeaguePaths();
 
     const ath = Array.isArray(contract.athlete)
       ? contract.athlete[0]
@@ -266,9 +396,9 @@ export async function listAthleteOnAuctionAction(input: {
       ok: true,
       message: `${
         ath?.name ?? "Atleta"
-      } listado na Central de Leilões com lance inicial de $ ${(
-        input.startingBid / 1000000
-      ).toFixed(2)}M!`,
+      } listado na Central de Leilões com lance inicial de ${formatEscudos(
+        minBid
+      )} (incremento de 5 em 5 Escudos)!`,
     };
   } catch (err) {
     return {
@@ -280,7 +410,7 @@ export async function listAthleteOnAuctionAction(input: {
 }
 
 /**
- * 6. RESPONDER OU CRIAR PROPOSTA DE TROCA / NEGOCIAÇÃO DIRETA
+ * 8. RESPONDER OU CRIAR PROPOSTA DE TROCA / NEGOCIAÇÃO DIRETA EM ESCUDOS
  */
 export async function respondTransferProposalAction(input: {
   proposalId: string;
@@ -320,11 +450,10 @@ export async function respondTransferProposalAction(input: {
       if (proposal.cash_amount > 0 && fromClub.balance < proposal.cash_amount) {
         return {
           ok: false,
-          error: `O clube proponente (${fromClub.name}) não possui saldo suficiente para a volta em dinheiro.`,
+          error: `O clube proponente (${fromClub.name}) não possui Escudos suficientes para a volta financeira.`,
         };
       }
 
-      // Transferir saldo em dinheiro se houver
       if (proposal.cash_amount > 0) {
         await supabaseAdmin
           .from("club_teams")
@@ -341,18 +470,17 @@ export async function respondTransferProposalAction(input: {
             club_team_id: fromClub.id,
             type: "TRANSFERENCIA",
             amount: -proposal.cash_amount,
-            description: `Volta financeira paga em troca de atletas com ${toClub.name}`,
+            description: `Volta financeira em Escudos paga em troca de atletas com ${toClub.name}`,
           },
           {
             club_team_id: toClub.id,
             type: "TRANSFERENCIA",
             amount: proposal.cash_amount,
-            description: `Volta financeira recebida em troca de atletas com ${fromClub.name}`,
+            description: `Volta financeira em Escudos recebida em troca de atletas com ${fromClub.name}`,
           },
         ]);
       }
 
-      // Trocar titularidade dos contratos dos atletas oferecidos e solicitados
       const offeredIds: string[] = Array.isArray(proposal.offered_athlete_ids)
         ? proposal.offered_athlete_ids
         : [];
@@ -390,14 +518,13 @@ export async function respondTransferProposalAction(input: {
 
     if (updErr) throw new Error(updErr.message);
 
-    revalidatePath("/market");
-    revalidatePath("/dashboard");
+    revalidateMasterLeaguePaths();
 
     return {
       ok: true,
       message:
         input.decision === "ACEITA"
-          ? "🤝 Troca de atletas e compensação financeira concluídas com sucesso!"
+          ? "🤝 Troca de atletas e compensação em Escudos concluídas com sucesso!"
           : `Proposta marcada como ${input.decision}.`,
     };
   } catch (err) {
@@ -439,7 +566,7 @@ export async function createTransferProposalAction(input: {
 
     if (error) throw new Error(error.message);
 
-    revalidatePath("/market");
+    revalidateMasterLeaguePaths();
     return {
       ok: true,
       message: "Proposta de negociação enviada ao treinador adversário!",
@@ -453,11 +580,10 @@ export async function createTransferProposalAction(input: {
 }
 
 /**
- * 7. DISTRIBUIÇÃO DE FINANÇAS POR DESEMPENHO EM PARTIDA + ATUALIZAÇÃO DO FREGUESÔMETRO
- * - Vitória: + $ 1.500.000 (PREMIO_VITORIA)
- * - Empate: + $ 600.000 para cada clube (PREMIO_VITORIA)
- * - Gols marcados: + $ 150.000 por gol na súmula (GOL_MARCADO)
- * - Atualiza o cache de confrontos diretos (head_to_head_cache)
+ * 9. DISTRIBUIÇÃO DE ESCUDOS POR DESEMPENHO EM PARTIDA + ATUALIZAÇÃO DO FREGUESÔMETRO
+ * - Vitória: +40 Escudos (PREMIO_VITORIA)
+ * - Empate: +15 Escudos para cada clube (PREMIO_VITORIA)
+ * - Gols marcados: +5 Escudos por gol na súmula (GOL_MARCADO)
  */
 export async function submitMasterMatchWithRewardsAction(input: {
   homeTeamId: string;
@@ -478,9 +604,9 @@ export async function submitMasterMatchWithRewardsAction(input: {
     };
   }
 
-  const winReward = input.winReward ?? 1500000;
-  const drawReward = input.drawReward ?? 600000;
-  const goalReward = input.goalReward ?? 150000;
+  const winReward = input.winReward ?? 40;
+  const drawReward = input.drawReward ?? 15;
+  const goalReward = input.goalReward ?? 5;
 
   try {
     const [{ data: homeClub }, { data: awayClub }] = await Promise.all([
@@ -576,7 +702,6 @@ export async function submitMasterMatchWithRewardsAction(input: {
       });
     }
 
-    // Creditar saldos nos dois clubes
     await Promise.all([
       supabaseAdmin
         .from("club_teams")
@@ -595,7 +720,6 @@ export async function submitMasterMatchWithRewardsAction(input: {
       supabaseAdmin.from("financial_transactions").insert(txsToInsert),
     ]);
 
-    // Atualizar HeadToHeadCache (Freguesômetro)
     const { data: existingH2H } = await supabaseAdmin
       .from("head_to_head_cache")
       .select("*")
@@ -664,11 +788,11 @@ export async function submitMasterMatchWithRewardsAction(input: {
       awayPrize,
       message: `Partida homologada (${homeClub.name} ${input.homeScore}×${
         input.awayScore
-      } ${awayClub.name})! Premiações creditadas: ${homeClub.acronym} +$ ${(
-        homePrize / 1000
-      ).toFixed(0)}K | ${awayClub.acronym} +$ ${(awayPrize / 1000).toFixed(
-        0
-      )}K. Freguesômetro atualizado!`,
+      } ${awayClub.name})! Premiações creditadas: ${
+        homeClub.acronym
+      } +${formatEscudos(homePrize)} | ${awayClub.acronym} +${formatEscudos(
+        awayPrize
+      )}. Freguesômetro atualizado!`,
     };
   } catch (err) {
     return {
@@ -682,7 +806,7 @@ export async function submitMasterMatchWithRewardsAction(input: {
 }
 
 /**
- * 8. MOTOR DO FREGUESÔMETRO (ENDPOINT / SERVER ACTION)
+ * 10. MOTOR DO FREGUESÔMETRO (ENDPOINT / SERVER ACTION)
  */
 export async function getHeadToHeadStatsAction(input: {
   teamAId: string;
@@ -690,11 +814,13 @@ export async function getHeadToHeadStatsAction(input: {
 }) {
   const data = await getMasterLeagueOverviewData();
   const teamA =
-    data.clubs.find((c) => c.id === input.teamAId || c.userId === input.teamAId) ??
-    data.clubs[0];
+    data.clubs.find(
+      (c) => c.id === input.teamAId || c.userId === input.teamAId
+    ) ?? data.clubs[0];
   const teamB =
-    data.clubs.find((c) => c.id === input.teamBId || c.userId === input.teamBId) ??
-    data.clubs[1];
+    data.clubs.find(
+      (c) => c.id === input.teamBId || c.userId === input.teamBId
+    ) ?? data.clubs[1];
 
   return computeHeadToHeadBetweenClubs(teamA, teamB, data.h2hRecords);
 }

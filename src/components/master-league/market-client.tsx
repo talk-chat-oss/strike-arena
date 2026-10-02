@@ -14,6 +14,11 @@ import {
   X,
   Send,
   Zap,
+  Calendar,
+  Sparkles,
+  Trophy,
+  PlusCircle,
+  Shield,
 } from "lucide-react";
 import type {
   AthleteDTO,
@@ -22,9 +27,11 @@ import type {
   AuctionDTO,
   TransferProposalDTO,
 } from "@/lib/master-league-data";
+import { formatEscudos } from "@/lib/master-league-data";
 import {
   payBuyoutClauseAction,
   placeAuctionBidAction,
+  scheduleAuctionAction,
   respondTransferProposalAction,
   createTransferProposalAction,
 } from "@/app/actions/master-league-actions";
@@ -37,18 +44,13 @@ interface MarketClientProps {
   auctions: AuctionDTO[];
   proposals: TransferProposalDTO[];
   initialClubId: string;
+  defaultSection?: "auctions" | "buyout" | "proposals";
 }
 
-function formatMoney(val: number) {
-  if (val >= 1000000) return `$ ${(val / 1000000).toFixed(2)}M`;
-  if (val >= 1000) return `$ ${(val / 1000).toFixed(0)}K`;
-  return `$ ${val}`;
-}
-
-function formatCountdown(endsAtIso: string, nowMs: number) {
+function formatCountdown(targetIso: string, nowMs: number) {
   const diffSec = Math.max(
     0,
-    Math.floor((new Date(endsAtIso).getTime() - nowMs) / 1000)
+    Math.floor((new Date(targetIso).getTime() - nowMs) / 1000)
   );
   const hrs = Math.floor(diffSec / 3600);
   const mins = Math.floor((diffSec % 3600) / 60);
@@ -66,16 +68,36 @@ function formatCountdown(endsAtIso: string, nowMs: number) {
   return { diffSec, formatted, isAntiSniperWindow };
 }
 
+function formatDateTimePtBr(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 export function MarketClient({
+  athletes,
   clubs,
   contracts,
   auctions,
   proposals,
   initialClubId,
+  defaultSection = "auctions",
 }: MarketClientProps) {
   const [activeTab, setActiveTab] = useState<
     "auctions" | "buyout" | "proposals"
-  >("auctions");
+  >(defaultSection);
+  const [auctionSubTab, setAuctionSubTab] = useState<
+    "active" | "upcoming" | "finished"
+  >("active");
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+
   const [activeClubId, setActiveClubId] = useState(
     initialClubId || clubs[0]?.id || ""
   );
@@ -85,13 +107,22 @@ export function MarketClient({
   const [minOverall, setMinOverall] = useState<number>(80);
   const [posFilter, setPosFilter] = useState<string>("ALL");
 
+  // Formulário de Agendamento Prévio de Leilão (Organizador)
+  const [schedAthleteId, setSchedAthleteId] = useState<string>(
+    athletes.find((a) => a.name.includes("Messi"))?.id ?? athletes[0]?.id ?? ""
+  );
+  const [schedStartBid, setSchedStartBid] = useState<number>(100);
+  const [schedMinIncrement, setSchedMinIncrement] = useState<number>(5);
+  const [schedStartsInMinutes, setSchedStartsInMinutes] = useState<number>(60);
+  const [schedDurationMinutes, setSchedDurationMinutes] = useState<number>(120);
+
   // Formulário Nova Proposta de Troca
   const [targetClubId, setTargetClubId] = useState<string>(
     clubs.find((c) => c.id !== initialClubId)?.id ?? clubs[1]?.id ?? ""
   );
   const [offeredAthleteId, setOfferedAthleteId] = useState<string>("");
   const [requestedAthleteId, setRequestedAthleteId] = useState<string>("");
-  const [cashOffer, setCashOffer] = useState<number>(1500000);
+  const [cashOffer, setCashOffer] = useState<number>(45);
 
   const [feedback, setFeedback] = useState<{
     ok: boolean;
@@ -109,6 +140,26 @@ export function MarketClient({
 
   const currentClub =
     clubs.find((c) => c.id === activeClubId) ?? clubs[0] ?? null;
+
+  // Classificação dinâmica de leilões (com transição automática no cliente quando startsAt <= nowMs)
+  const upcomingAuctions = auctions.filter(
+    (a) =>
+      a.status === "AGENDADO" && new Date(a.startsAt).getTime() > nowMs
+  );
+
+  const activeAuctions = auctions.filter(
+    (a) =>
+      (a.status === "ATIVO" && new Date(a.endsAt).getTime() > nowMs) ||
+      (a.status === "AGENDADO" &&
+        new Date(a.startsAt).getTime() <= nowMs &&
+        new Date(a.endsAt).getTime() > nowMs)
+  );
+
+  const finishedAuctions = auctions.filter(
+    (a) =>
+      a.status === "ENCERRADO" ||
+      (a.status !== "CANCELADO" && new Date(a.endsAt).getTime() <= nowMs)
+  );
 
   const filteredContracts = contracts
     .filter((c) => {
@@ -130,9 +181,17 @@ export function MarketClient({
     (c) => c.clubTeamId === targetClubId
   );
 
-  function handleQuickBid(auction: AuctionDTO) {
+  function getMinimumValidBid(auction: AuctionDTO) {
+    if (!auction.currentWinningClubId) {
+      return auction.startingBid;
+    }
+    return auction.currentBid + (auction.minIncrement || 5);
+  }
+
+  function handleQuickBid(auction: AuctionDTO, customAmount?: number) {
     if (!currentClub) return;
-    const amount = bidAmounts[auction.id] ?? auction.currentBid + 250000;
+    const minValid = getMinimumValidBid(auction);
+    const amount = customAmount ?? bidAmounts[auction.id] ?? minValid;
     setFeedback(null);
     startTransition(async () => {
       const res = await placeAuctionBidAction({
@@ -144,6 +203,35 @@ export function MarketClient({
         ok: res.ok,
         text: res.ok ? res.message! : res.error!,
       });
+    });
+  }
+
+  function handleScheduleAuction(e: React.FormEvent) {
+    e.preventDefault();
+    setFeedback(null);
+    const startsAtMs = Date.now() + schedStartsInMinutes * 60 * 1000;
+    const endsAtMs = startsAtMs + schedDurationMinutes * 60 * 1000;
+
+    startTransition(async () => {
+      const res = await scheduleAuctionAction({
+        athleteId: schedAthleteId,
+        startingBid: schedStartBid,
+        minIncrement: schedMinIncrement,
+        startsAtIso: new Date(startsAtMs).toISOString(),
+        endsAtIso: new Date(endsAtMs).toISOString(),
+      });
+      setFeedback({
+        ok: res.ok,
+        text: res.ok ? res.message! : res.error!,
+      });
+      if (res.ok) {
+        setShowScheduleForm(false);
+        if (schedStartsInMinutes > 0) {
+          setAuctionSubTab("upcoming");
+        } else {
+          setAuctionSubTab("active");
+        }
+      }
     });
   }
 
@@ -202,19 +290,21 @@ export function MarketClient({
 
   return (
     <div className="space-y-6">
-      {/* Header do Mercado com Saldo do Clube Comprador Ativo */}
+      {/* Header do Mercado com Saldo do Clube Comprador em Escudos */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
-              JANELA ABERTA
+              ECONOMIA EM ESCUDOS
             </span>
             <span className="text-xs text-[#78849e]">
-              Leilões Oficiais • Proteção Anti-Sniper (+2 min) • Multa Rescisória à Vista
+              Lances de 5 em 5 Escudos • Custódia Escrow • Anti-Sniper (+2 min)
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1">
-            Central de Transferências & Leilões da Master Liga
+            {activeTab === "auctions"
+              ? "Central de Leilões & Vitrine Bola Preta"
+              : "Central de Transferências & Multas Rescisórias"}
           </h1>
         </div>
 
@@ -224,7 +314,7 @@ export function MarketClient({
               <ClubCrest clubName={currentClub.name} size="sm" />
               <div>
                 <div className="text-[10px] text-[#78849e] uppercase font-bold">
-                  Operando no Mercado como:
+                  Operando como:
                 </div>
                 <select
                   value={activeClubId}
@@ -247,19 +337,20 @@ export function MarketClient({
               <Wallet className="w-4 h-4 text-[#4ade80]" />
               <div>
                 <div className="text-[10px] text-[#9aa5b8] uppercase font-bold">
-                  Saldo Livre p/ Lances & Multas
+                  Saldo Disponível
                 </div>
                 <div className="text-sm font-extrabold text-[#4ade80] tabular-nums">
-                  {formatMoney(currentClub.balance)}
+                  {formatEscudos(currentClub.balance)}
                 </div>
               </div>
             </div>
 
             <Link
-              href="/dashboard"
-              className="px-3 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-semibold text-[#f4f6fb]"
+              href="/store/escudos"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold transition-colors"
             >
-              Ver Meu Elenco
+              <Shield className="w-3.5 h-3.5" />
+              <span>+ Comprar Escudos</span>
             </Link>
           </div>
         )}
@@ -285,239 +376,682 @@ export function MarketClient({
         </div>
       )}
 
-      {/* 3 Abas do Mercado */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#222c40] pb-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab("auctions")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === "auctions"
-              ? "bg-[#ffdc2b] text-[#0e1312]"
-              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
-          }`}
-        >
-          <Gavel className="w-3.5 h-3.5" />
-          <span>1. Leilões Ativos (Anti-Sniper)</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
-            {auctions.length}
-          </span>
-        </button>
+      {/* Navegação Principal do Mercado / Leilões / Transferências */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#222c40] pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab("auctions")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+              activeTab === "auctions"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+            }`}
+          >
+            <Gavel className="w-3.5 h-3.5" />
+            <span>1. Central de Leilões (Agendados & Ao Vivo)</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
+              {auctions.length}
+            </span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("buyout")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === "buyout"
-              ? "bg-[#ffdc2b] text-[#0e1312]"
-              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
-          }`}
-        >
-          <Flame className="w-3.5 h-3.5" />
-          <span>2. Multa Rescisória ("Roubar Jogador")</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
-            {contracts.length}
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("buyout")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+              activeTab === "buyout"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span>2. Multa Rescisória ("Roubar Jogador")</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
+              {contracts.length}
+            </span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("proposals")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === "proposals"
-              ? "bg-[#ffdc2b] text-[#0e1312]"
-              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
-          }`}
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5" />
-          <span>3. Propostas de Troca & Negociações</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
-            {proposals.length}
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("proposals")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+              activeTab === "proposals"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+            }`}
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span>3. Propostas Diretas & Trocas</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
+              {proposals.length}
+            </span>
+          </button>
+        </div>
+
+        {activeTab === "auctions" && (
+          <button
+            type="button"
+            onClick={() => setShowScheduleForm((v) => !v)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#2b6cb0] text-xs font-bold text-[#f4f6fb] cursor-pointer"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-[#ffdc2b]" />
+            <span>
+              {showScheduleForm
+                ? "Fechar Agendador"
+                : "+ Agendar Novo Leilão (Organizador)"}
+            </span>
+          </button>
+        )}
       </div>
 
-      {/* ABA 1: LEILÕES ATIVOS COM CRONÔMETRO E ANTI-SNIPER */}
+      {/* ==================================================================== */}
+      {/* MÓDULO 1: CENTRAL DE LEILÕES (VITRINE BOLA PRETA + 3 SUB-ABAS)        */}
+      {/* ==================================================================== */}
       {activeTab === "auctions" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {auctions.map((auc) => {
-            const { diffSec, formatted, isAntiSniperWindow } = formatCountdown(
-              auc.endsAt,
-              nowMs
-            );
-            const suggestedNextBid = auc.currentBid + 250000;
-            const currentInputBid = bidAmounts[auc.id] ?? suggestedNextBid;
-            const isWinning = auc.currentWinningClubId === currentClub?.id;
-
-            return (
-              <div
-                key={auc.id}
-                className={`bg-[#111622] border rounded-[4px] p-4 flex flex-col justify-between gap-4 ${
-                  isAntiSniperWindow
-                    ? "border-[#ffdc2b] shadow-[0_0_20px_rgba(255,220,43,0.12)]"
-                    : "border-[#222c40]"
-                }`}
-              >
+        <div className="space-y-6">
+          {/* Formulário de Agendamento Prévio de Leilão (Data e Hora Marcadas) */}
+          {showScheduleForm && (
+            <form
+              onSubmit={handleScheduleAuction}
+              className="bg-[#111622] border-2 border-[#ffdc2b]/60 rounded-[4px] p-5 space-y-4"
+            >
+              <div className="flex items-center justify-between">
                 <div>
-                  {/* Topo do Card de Leilão */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#ffdc2b] flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span>
+                      Agendamento Prévio de Leilão Oficial (Data e Hora Marcadas)
+                    </span>
+                  </h3>
+                  <p className="text-xs text-[#9aa5b8] mt-0.5">
+                    Configure um evento futuro (visível na aba Próximos Leilões
+                    com countdown) ou inicie imediatamente.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="lg:col-span-2">
+                  <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
+                    Craque para Leiloar (Catálogo Oficial)
+                  </label>
+                  <select
+                    value={schedAthleteId}
+                    onChange={(e) => setSchedAthleteId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                  >
+                    {athletes.map((a) => (
+                      <option key={a.id} value={a.id} className="bg-[#111622]">
+                        {a.ballType === "BOLA_PRETA" ? "⚫ " : "🟡 "}
+                        {a.name} (OVR {a.overall} • {a.position} •{" "}
+                        {a.defaultTeam})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
+                    Lance Mínimo (Escudos)
+                  </label>
+                  <input
+                    type="number"
+                    step={5}
+                    min={10}
+                    value={schedStartBid}
+                    onChange={(e) => setSchedStartBid(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
+                    Incremento Mínimo
+                  </label>
+                  <select
+                    value={schedMinIncrement}
+                    onChange={(e) =>
+                      setSchedMinIncrement(Number(e.target.value))
+                    }
+                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
+                  >
+                    <option value={5} className="bg-[#111622]">
+                      5 em 5 Escudos (Padrão)
+                    </option>
+                    <option value={10} className="bg-[#111622]">
+                      10 em 10 Escudos
+                    </option>
+                    <option value={20} className="bg-[#111622]">
+                      20 em 20 Escudos
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
+                    Horário de Abertura
+                  </label>
+                  <select
+                    value={schedStartsInMinutes}
+                    onChange={(e) =>
+                      setSchedStartsInMinutes(Number(e.target.value))
+                    }
+                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                  >
+                    <option value={0} className="bg-[#111622]">
+                      Iniciar Agora (ATIVO)
+                    </option>
+                    <option value={30} className="bg-[#111622]">
+                      Daqui a 30 min (AGENDADO)
+                    </option>
+                    <option value={60} className="bg-[#111622]">
+                      Daqui a 1 hora (AGENDADO)
+                    </option>
+                    <option value={180} className="bg-[#111622]">
+                      Daqui a 3 horas (AGENDADO)
+                    </option>
+                    <option value={1440} className="bg-[#111622]">
+                      Amanhã no mesmo horário
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[11px] text-[#78849e]">
+                  Duração da janela de lances após abrir:{" "}
+                  <strong className="text-[#f4f6fb]">
+                    {schedDurationMinutes} minutos
+                  </strong>{" "}
+                  (com prorrogação automática Anti-Sniper +2 min).
+                </span>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs cursor-pointer disabled:opacity-50"
+                >
+                  Confirmar Publicação no Calendário
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Vitrine e Divulgação Antecipada de Craques "Bola Preta" */}
+          <div className="bg-gradient-to-r from-[#111622] via-[#151e32] to-[#111622] border border-[#ffdc2b]/35 rounded-[4px] p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-black text-[#ffdc2b] border border-[#ffdc2b] text-[11px] font-extrabold uppercase">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#ffdc2b]" />
+                  <span>VITRINE BOLA PRETA • CALENDÁRIO OFICIAL</span>
+                </span>
+                <span className="text-xs text-[#b6c0d4]">
+                  Programação pública de craques de elite com dia e hora
+                  marcados
+                </span>
+              </div>
+              <Link
+                href="/players"
+                className="text-xs font-bold text-[#ffdc2b] hover:underline"
+              >
+                Ver Database Completo de Jogadores →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {[...upcomingAuctions, ...activeAuctions]
+                .slice(0, 5)
+                .map((item) => {
+                  const isUpcoming =
+                    item.status === "AGENDADO" &&
+                    new Date(item.startsAt).getTime() > nowMs;
+                  const timer = formatCountdown(
+                    isUpcoming ? item.startsAt : item.endsAt,
+                    nowMs
+                  );
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() =>
+                        setAuctionSubTab(isUpcoming ? "upcoming" : "active")
+                      }
+                      className="p-3 rounded-[4px] bg-[#090c12] border border-[#222c40] hover:border-[#ffdc2b] transition-colors cursor-pointer flex items-center gap-3"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={auc.photoUrl}
-                        alt={auc.athleteName}
-                        className="w-16 h-16 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom shrink-0 pt-1"
+                        src={item.photoUrl}
+                        alt={item.athleteName}
+                        className="w-12 h-12 rounded-[4px] bg-[#111622] border border-[#ffdc2b]/40 object-contain object-bottom shrink-0 pt-0.5"
                       />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] font-extrabold text-xs">
-                            OVR {auc.overall}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-1.5 py-0.2 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-extrabold">
+                            {item.overall}
                           </span>
-                          <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
-                            {auc.position}
-                          </span>
-                          <span className="text-[11px] text-[#78849e]">
-                            {auc.age} anos
+                          <span className="text-[10px] font-bold text-[#60a5fa]">
+                            {item.position}
                           </span>
                         </div>
-                        <h3 className="text-base font-bold text-[#f4f6fb] mt-1">
-                          {auc.athleteName}
-                        </h3>
-                        <p className="text-[11px] text-[#78849e]">
-                          Origem: {auc.defaultTeam} • Vendedor:{" "}
-                          {auc.sellerClubName}
-                        </p>
+                        <div className="text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
+                          {item.athleteName}
+                        </div>
+                        <div className="text-[10px] text-[#9aa5b8] truncate">
+                          {isUpcoming
+                            ? `Abre em ${timer.formatted}`
+                            : `Ao Vivo • ${formatEscudos(item.currentBid)}`}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+            </div>
+          </div>
 
-                    {/* Cronômetro Regressivo em Tempo Real */}
-                    <div
-                      className={`px-3 py-1.5 rounded-[4px] border text-right ${
-                        isAntiSniperWindow
-                          ? "bg-[#dc2626]/20 border-[#dc2626] text-[#f87171]"
-                          : "bg-[#090c12] border-[#222c40] text-[#f4f6fb]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-end gap-1 text-[10px] uppercase font-bold">
-                        <Clock className="w-3 h-3" />
-                        <span>
-                          {isAntiSniperWindow
-                            ? "ZONA ANTI-SNIPER"
-                            : "ENCERRA EM"}
-                        </span>
-                      </div>
-                      <div className="text-base font-mono font-extrabold tabular-nums">
-                        {diffSec > 0 ? formatted : "ENCERRADO"}
-                      </div>
-                    </div>
-                  </div>
+          {/* 3 Sub-Abas de Leilões: Em Andamento | Próximos Leilões (Agendados) | Finalizados */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAuctionSubTab("active")}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
+                auctionSubTab === "active"
+                  ? "bg-[#15a34a] text-[#090c12]"
+                  : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Em Andamento (Ao Vivo)</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/25">
+                {activeAuctions.length}
+              </span>
+            </button>
 
-                  {isAntiSniperWindow && (
-                    <div className="mt-3 px-3 py-1.5 rounded-[4px] bg-[#ffdc2b]/15 border border-[#ffdc2b]/40 text-[#ffdc2b] text-[11px] font-bold flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 shrink-0" />
-                      <span>
-                        Regra Anti-Sniper Ativa: Qualquer lance feito agora
-                        adiciona +02:00 ao relógio!
-                      </span>
-                    </div>
-                  )}
+            <button
+              type="button"
+              onClick={() => setAuctionSubTab("upcoming")}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
+                auctionSubTab === "upcoming"
+                  ? "bg-[#ffdc2b] text-[#0e1312]"
+                  : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Próximos Leilões (Agendados)</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/25">
+                {upcomingAuctions.length}
+              </span>
+            </button>
 
-                  {/* Maior Lance Atual e Líder */}
-                  <div className="mt-4 p-3 rounded-[4px] bg-[#0c1018] border border-[#1c2436] flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setAuctionSubTab("finished")}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
+                auctionSubTab === "finished"
+                  ? "bg-[#60a5fa] text-[#090c12]"
+                  : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>Finalizados (Histórico de Arremates)</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/25">
+                {finishedAuctions.length}
+              </span>
+            </button>
+          </div>
+
+          {/* SUB-ABA A: EM ANDAMENTO (LANCES DE 5 EM 5 ESCUDOS + ESCROW + ANTI-SNIPER) */}
+          {auctionSubTab === "active" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {activeAuctions.map((auc) => {
+                const { diffSec, formatted, isAntiSniperWindow } =
+                  formatCountdown(auc.endsAt, nowMs);
+                const step = auc.minIncrement || 5;
+                const minNextBid = getMinimumValidBid(auc);
+                const currentInputBid = bidAmounts[auc.id] ?? minNextBid;
+                const isWinning =
+                  auc.currentWinningClubId === currentClub?.id;
+
+                return (
+                  <div
+                    key={auc.id}
+                    className={`bg-[#111622] border rounded-[4px] p-4 flex flex-col justify-between gap-4 ${
+                      isAntiSniperWindow
+                        ? "border-[#ffdc2b] shadow-[0_0_20px_rgba(255,220,43,0.14)]"
+                        : "border-[#222c40]"
+                    }`}
+                  >
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-[#78849e]">
-                        Maior Lance Atual
-                      </div>
-                      <div className="text-lg font-extrabold text-[#4ade80] tabular-nums">
-                        {formatMoney(auc.currentBid)}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase font-bold text-[#78849e]">
-                        Clube Vencendo
-                      </div>
-                      {auc.currentWinningClubName ? (
-                        <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                          <ClubCrest
-                            clubName={auc.currentWinningClubName}
-                            size="sm"
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={auc.photoUrl}
+                            alt={auc.athleteName}
+                            className="w-16 h-16 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom shrink-0 pt-1"
                           />
-                          <span className="text-xs font-bold text-[#f4f6fb]">
-                            {auc.currentWinningClubName}
+                          <div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] font-extrabold text-xs">
+                                OVR {auc.overall}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
+                                {auc.position}
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-black text-[#ffdc2b] border border-[#ffdc2b]/40 text-[10px] font-extrabold">
+                                <span className="w-2 h-2 rounded-full bg-[#111] border border-[#ffdc2b]" />
+                                Bola Preta
+                              </span>
+                            </div>
+                            <h3 className="text-base font-bold text-[#f4f6fb] mt-1">
+                              {auc.athleteName}
+                            </h3>
+                            <p className="text-[11px] text-[#78849e]">
+                              Origem: {auc.defaultTeam} • Lance Inicial:{" "}
+                              {formatEscudos(auc.startingBid)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Cronômetro Regressivo */}
+                        <div
+                          className={`px-3 py-1.5 rounded-[4px] border text-right ${
+                            isAntiSniperWindow
+                              ? "bg-[#dc2626]/20 border-[#dc2626] text-[#f87171]"
+                              : "bg-[#090c12] border-[#222c40] text-[#f4f6fb]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-end gap-1 text-[10px] uppercase font-bold">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {isAntiSniperWindow
+                                ? "ZONA ANTI-SNIPER"
+                                : "ENCERRA EM"}
+                            </span>
+                          </div>
+                          <div className="text-base font-mono font-extrabold tabular-nums">
+                            {diffSec > 0 ? formatted : "ENCERRADO"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isAntiSniperWindow && (
+                        <div className="mt-3 px-3 py-1.5 rounded-[4px] bg-[#ffdc2b]/15 border border-[#ffdc2b]/40 text-[#ffdc2b] text-[11px] font-bold flex items-center gap-1.5">
+                          <Zap className="w-3.5 h-3.5 shrink-0" />
+                          <span>
+                            Anti-Sniper Ativo: Qualquer lance nos últimos 2
+                            minutos prorroga o término em +02:00!
                           </span>
-                          {isWinning && (
-                            <span className="px-1.5 py-0.2 rounded-full bg-[#15a34a]/25 text-[#4ade80] text-[10px] font-bold">
-                              SEU CLUBE
+                        </div>
+                      )}
+
+                      {/* Maior Lance Atual e Clube Vencendo */}
+                      <div className="mt-4 p-3 rounded-[4px] bg-[#0c1018] border border-[#1c2436] flex items-center justify-between">
+                        <div>
+                          <div className="text-[10px] uppercase font-bold text-[#78849e]">
+                            Lance Atual (Escrow Reservado)
+                          </div>
+                          <div className="text-lg font-extrabold text-[#4ade80] tabular-nums">
+                            {formatEscudos(auc.currentBid)}
+                          </div>
+                          <div className="text-[10px] text-[#78849e]">
+                            Incremento mínimo: de {step} em {step} Escudos
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase font-bold text-[#78849e]">
+                            Líder Atual
+                          </div>
+                          {auc.currentWinningClubName ? (
+                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                              <ClubCrest
+                                clubName={auc.currentWinningClubName}
+                                size="sm"
+                              />
+                              <span className="text-xs font-bold text-[#f4f6fb]">
+                                {auc.currentWinningClubName}
+                              </span>
+                              {isWinning && (
+                                <span className="px-1.5 py-0.2 rounded-full bg-[#15a34a]/25 text-[#4ade80] text-[10px] font-bold">
+                                  SEU CLUBE
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-[#78849e]">
+                              Aguardando 1º lance ({formatEscudos(auc.startingBid)})
                             </span>
                           )}
                         </div>
-                      ) : (
-                        <span className="text-xs text-[#78849e]">
-                          Sem lances
+                      </div>
+                    </div>
+
+                    {/* Controles de Licitação de 5 em 5 Escudos */}
+                    <div className="pt-2 border-t border-[#1c2436] space-y-2.5">
+                      {/* Botões Rápidos (+5, +10, +15 Escudos) */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase text-[#78849e] mr-1">
+                          Atalhos (+{step} em +{step}):
                         </span>
+                        {[minNextBid, minNextBid + step, minNextBid + step * 2].map(
+                          (quickVal) => (
+                            <button
+                              key={quickVal}
+                              type="button"
+                              disabled={isPending || diffSec === 0}
+                              onClick={() => {
+                                setBidAmounts((prev) => ({
+                                  ...prev,
+                                  [auc.id]: quickVal,
+                                }));
+                                handleQuickBid(auc, quickVal);
+                              }}
+                              className="px-2.5 py-1 rounded-[4px] bg-[#161d2c] hover:bg-[#ffdc2b] text-[#ffdc2b] hover:text-[#0e1312] border border-[#ffdc2b]/40 text-[11px] font-extrabold transition-colors cursor-pointer tabular-nums"
+                            >
+                              {formatEscudos(quickVal)}
+                            </button>
+                          )
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
+                            Seu Lance em Escudos (Mínimo: {formatEscudos(minNextBid)})
+                          </label>
+                          <input
+                            type="number"
+                            step={step}
+                            min={minNextBid}
+                            value={currentInputBid}
+                            onChange={(e) =>
+                              setBidAmounts((prev) => ({
+                                ...prev,
+                                [auc.id]: Number(e.target.value),
+                              }))
+                            }
+                            className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] tabular-nums focus:border-[#ffdc2b] focus:outline-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          disabled={isPending || diffSec === 0}
+                          onClick={() => handleQuickBid(auc)}
+                          className="mt-4 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Confirmar Lance
+                        </button>
+                      </div>
+
+                      {auc.bids.length > 0 && (
+                        <div className="text-[11px] text-[#78849e] flex items-center justify-between pt-1">
+                          <span>
+                            Histórico:{" "}
+                            {auc.bids
+                              .slice(0, 3)
+                              .map(
+                                (b) =>
+                                  `${b.clubAcronym} (${formatEscudos(
+                                    b.bidAmount
+                                  )})`
+                              )
+                              .join(" → ")}
+                          </span>
+                          <span>{auc.bids.length} lance(s)</span>
+                        </div>
                       )}
                     </div>
                   </div>
-                </div>
+                );
+              })}
+            </div>
+          )}
 
-                {/* Formulário de Lance Rápido */}
-                <div className="pt-2 border-t border-[#1c2436] space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
-                        Seu Lance ($ — Mínimo {formatMoney(suggestedNextBid)})
-                      </label>
-                      <input
-                        type="number"
-                        step={250000}
-                        min={auc.currentBid + 50000}
-                        value={currentInputBid}
-                        onChange={(e) =>
-                          setBidAmounts((prev) => ({
-                            ...prev,
-                            [auc.id]: Number(e.target.value),
-                          }))
-                        }
-                        className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] tabular-nums focus:border-[#ffdc2b] focus:outline-none"
-                      />
+          {/* SUB-ABA B: PRÓXIMOS LEILÕES (AGENDADOS COM COUNTDOWN) */}
+          {auctionSubTab === "upcoming" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {upcomingAuctions.map((auc) => {
+                const startTimer = formatCountdown(auc.startsAt, nowMs);
+
+                return (
+                  <div
+                    key={auc.id}
+                    className="bg-[#111622] border border-[#ffdc2b]/40 rounded-[4px] p-4 flex flex-col justify-between gap-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/40 text-[10px] font-extrabold uppercase">
+                          <Calendar className="w-3 h-3" />
+                          <span>AGENDADO • UPCOMING</span>
+                        </span>
+                        <span className="text-[11px] font-bold text-[#9aa5b8]">
+                          Início: {formatDateTimePtBr(auc.startsAt)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={auc.photoUrl}
+                          alt={auc.athleteName}
+                          className="w-18 h-18 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#ffdc2b]/50 object-contain object-bottom shrink-0 pt-1"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] font-extrabold text-xs">
+                              OVR {auc.overall}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[10px]">
+                              {auc.position}
+                            </span>
+                          </div>
+                          <h3 className="text-base font-extrabold text-[#f4f6fb] mt-1">
+                            {auc.athleteName}
+                          </h3>
+                          <p className="text-xs text-[#9aa5b8]">
+                            Clube Base: {auc.defaultTeam}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-3 rounded-[4px] bg-[#090c12] border border-[#1c2436] space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#78849e]">
+                            Lance Mínimo Inicial:
+                          </span>
+                          <span className="font-extrabold text-[#4ade80]">
+                            {formatEscudos(auc.startingBid)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#78849e]">
+                            Incremento por Lance:
+                          </span>
+                          <span className="font-bold text-[#f4f6fb]">
+                            De {auc.minIncrement} em {auc.minIncrement} Escudos
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#78849e]">Encerramento:</span>
+                          <span className="font-semibold text-[#b6c0d4]">
+                            {formatDateTimePtBr(auc.endsAt)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      disabled={isPending || diffSec === 0}
-                      onClick={() => handleQuickBid(auc)}
-                      className="mt-4 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      Dar Lance Rápido
-                    </button>
+
+                    <div className="p-3 rounded-[4px] bg-[#ffdc2b]/10 border border-[#ffdc2b]/30 flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase text-[#ffdc2b]">
+                        Abre automaticamente em:
+                      </span>
+                      <span className="text-sm font-mono font-extrabold text-[#f4f6fb] tabular-nums">
+                        {startTimer.formatted}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* SUB-ABA C: FINALIZADOS (HISTÓRICO DE ARREMATES E VENCEDORES) */}
+          {auctionSubTab === "finished" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {finishedAuctions.map((auc) => (
+                <div
+                  key={auc.id}
+                  className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-3.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={auc.photoUrl}
+                      alt={auc.athleteName}
+                      className="w-16 h-16 rounded-[6px] bg-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-1"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-extrabold">
+                          OVR {auc.overall} • {auc.position}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-[2px] bg-[#15a34a]/20 text-[#4ade80] text-[10px] font-extrabold uppercase">
+                          ARREMATADO
+                        </span>
+                      </div>
+                      <h3 className="text-base font-bold text-[#f4f6fb] mt-1">
+                        {auc.athleteName}
+                      </h3>
+                      <p className="text-xs text-[#78849e]">
+                        Vencedor:{" "}
+                        <strong className="text-[#f4f6fb]">
+                          {auc.currentWinningClubName ?? "Banco da Liga"}
+                        </strong>
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Últimos lances do histórico */}
-                  {auc.bids.length > 0 && (
-                    <div className="text-[11px] text-[#78849e] flex items-center justify-between pt-1">
-                      <span>
-                        Últimos lances:{" "}
-                        {auc.bids
-                          .slice(0, 2)
-                          .map(
-                            (b) =>
-                              `${b.clubAcronym} (${formatMoney(b.bidAmount)})`
-                          )
-                          .join(" • ")}
-                      </span>
-                      <span>{auc.bids.length} lance(s)</span>
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase font-bold text-[#78849e]">
+                      Valor Final do Arremate
                     </div>
-                  )}
+                    <div className="text-lg font-extrabold text-[#ffdc2b] tabular-nums">
+                      {formatEscudos(auc.currentBid)}
+                    </div>
+                    <div className="text-[10px] text-[#78849e]">
+                      {auc.bids.length} lance(s) registrados
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ABA 2: MULTA RESCISÓRIA ("ROUBO DE JOGADOR") */}
+      {/* ==================================================================== */}
+      {/* MÓDULO 2: MULTA RESCISÓRIA ("ROUBO DE JOGADOR") EM ESCUDOS            */}
+      {/* ==================================================================== */}
       {activeTab === "buyout" && (
         <div className="space-y-4">
-          {/* Barra de Filtros */}
           <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 flex-1">
               <div className="relative flex-1 min-w-[220px]">
@@ -544,10 +1078,10 @@ export function MarketClient({
                     80+ OVR (Todos)
                   </option>
                   <option value={85} className="bg-[#111622]">
-                    85+ OVR (Craques)
+                    85+ OVR (Bola Preta)
                   </option>
-                  <option value={88} className="bg-[#111622]">
-                    88+ OVR (World Class)
+                  <option value={89} className="bg-[#111622]">
+                    89+ OVR (World Class)
                   </option>
                   <option value={90} className="bg-[#111622]">
                     90+ OVR (Lendas)
@@ -571,13 +1105,16 @@ export function MarketClient({
                     ATA (Atacante)
                   </option>
                   <option value="PE" className="bg-[#111622]">
-                    PE / PD (Pontas)
+                    PE (Ponta Esq.)
+                  </option>
+                  <option value="PD" className="bg-[#111622]">
+                    PD (Ponta Dir.)
                   </option>
                   <option value="MEI" className="bg-[#111622]">
-                    MEI (Meia Atacante)
+                    MEI (Meia)
                   </option>
                   <option value="MC" className="bg-[#111622]">
-                    MC / VOL (Meio-Campo)
+                    MC / VOL
                   </option>
                   <option value="ZAG" className="bg-[#111622]">
                     ZAG (Defensor)
@@ -592,12 +1129,11 @@ export function MarketClient({
             <div className="flex items-center gap-1.5 text-xs text-[#ffdc2b]">
               <ShieldAlert className="w-4 h-4" />
               <span>
-                Pagamento integral à vista transfere o atleta imediatamente!
+                Pagamento à vista em Escudos transfere o atleta na hora!
               </span>
             </div>
           </div>
 
-          {/* Tabela de Multas Rescisórias */}
           <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -675,12 +1211,12 @@ export function MarketClient({
                         </td>
 
                         <td className="py-3 px-3 text-right tabular-nums text-[#b6c0d4]">
-                          {formatMoney(c.salary)}
+                          {formatEscudos(c.salary)}
                         </td>
 
                         <td className="py-3 px-3 text-right">
                           <span className="font-extrabold text-[#ffdc2b] tabular-nums">
-                            {formatMoney(c.buyoutClause)}
+                            {formatEscudos(c.buyoutClause)}
                           </span>
                         </td>
 
@@ -694,11 +1230,6 @@ export function MarketClient({
                               type="button"
                               disabled={isPending || !canAfford}
                               onClick={() => handlePayBuyout(c)}
-                              title={
-                                canAfford
-                                  ? "Pagar multa integral à vista e contratar imediatamente"
-                                  : "Saldo insuficiente para cobrir a multa rescisória"
-                              }
                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
                                 canAfford
                                   ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
@@ -709,7 +1240,7 @@ export function MarketClient({
                               <span>
                                 {canAfford
                                   ? "Pagar Multa Rescisória"
-                                  : "Saldo Insuficiente"}
+                                  : "Escudos Insuficientes"}
                               </span>
                             </button>
                           )}
@@ -724,10 +1255,11 @@ export function MarketClient({
         </div>
       )}
 
-      {/* ABA 3: PAINEL DE PROPOSTAS DE TROCA RECEBIDAS E ENVIADAS */}
+      {/* ==================================================================== */}
+      {/* MÓDULO 3: PROPOSTAS DE TROCA & NEGOCIAÇÕES DIRETAS EM ESCUDOS         */}
+      {/* ==================================================================== */}
       {activeTab === "proposals" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Lista de Propostas */}
           <div className="lg:col-span-2 space-y-3">
             <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
               Negociações Diretas & Trocas entre Clubes
@@ -774,11 +1306,11 @@ export function MarketClient({
                       </div>
                       <span className="px-2 py-0.5 rounded-[4px] bg-[#161d2c] text-[#ffdc2b] font-bold">
                         {p.offeredAthletes.map((a) => a.name).join(", ") ||
-                          "Apenas Dinheiro"}
+                          "Apenas Escudos"}
                       </span>
                       {p.cashAmount > 0 && (
                         <span className="px-2 py-0.5 rounded-[4px] bg-[#15a34a]/20 text-[#4ade80] font-bold">
-                          + {formatMoney(p.cashAmount)} em caixa
+                          + {formatEscudos(p.cashAmount)}
                         </span>
                       )}
                     </div>
@@ -801,7 +1333,7 @@ export function MarketClient({
                         type="button"
                         disabled={isPending}
                         onClick={() => handleRespondProposal(p.id, "ACEITA")}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#15a34a] hover:bg-[#15803d] text-white text-xs font-bold cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-white font-bold text-xs cursor-pointer"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>Aceitar Troca</span>
@@ -810,7 +1342,7 @@ export function MarketClient({
                         type="button"
                         disabled={isPending}
                         onClick={() => handleRespondProposal(p.id, "RECUSADA")}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#dc2626]/20 hover:bg-[#dc2626]/30 border border-[#dc2626]/40 text-[#f87171] text-xs font-bold cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#dc2626]/20 hover:bg-[#dc2626]/30 border border-[#dc2626]/40 text-[#f87171] font-bold text-xs cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>Recusar</span>
@@ -822,15 +1354,19 @@ export function MarketClient({
             })}
           </div>
 
-          {/* Formulário: Propor Nova Troca */}
+          {/* Formulário: Enviar Nova Proposta de Troca */}
           <form
             onSubmit={handleCreateProposal}
             className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 space-y-4 h-fit"
           >
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb] flex items-center gap-2">
-              <Send className="w-4 h-4 text-[#ffdc2b]" />
-              <span>Enviar Nova Proposta de Troca</span>
-            </h3>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
+                Enviar Nova Proposta de Troca
+              </h3>
+              <p className="text-xs text-[#78849e] mt-0.5">
+                Proponha troca de jogadores + compensação em Escudos
+              </p>
+            </div>
 
             <div>
               <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
@@ -842,7 +1378,7 @@ export function MarketClient({
                   setTargetClubId(e.target.value);
                   setRequestedAthleteId("");
                 }}
-                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
               >
                 {clubs
                   .filter((c) => c.id !== currentClub?.id)
@@ -856,7 +1392,7 @@ export function MarketClient({
 
             <div>
               <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
-                Atleta Oferecido ({currentClub?.acronym})
+                Jogador Oferecido (Do Seu Elenco)
               </label>
               <select
                 value={offeredAthleteId}
@@ -869,7 +1405,7 @@ export function MarketClient({
                     value={c.athleteId}
                     className="bg-[#111622]"
                   >
-                    {c.athleteName} (OVR {c.overall})
+                    {c.athleteName} (OVR {c.overall} • {c.position})
                   </option>
                 ))}
               </select>
@@ -877,7 +1413,7 @@ export function MarketClient({
 
             <div>
               <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
-                Atleta Solicitado do Adversário
+                Jogador Solicitado (Do Adversário)
               </label>
               <select
                 value={requestedAthleteId}
@@ -890,7 +1426,7 @@ export function MarketClient({
                     value={c.athleteId}
                     className="bg-[#111622]"
                   >
-                    {c.athleteName} (OVR {c.overall})
+                    {c.athleteName} (OVR {c.overall} • {c.position})
                   </option>
                 ))}
               </select>
@@ -898,11 +1434,11 @@ export function MarketClient({
 
             <div>
               <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
-                Volta Financeira em Dinheiro ($)
+                Volta em Escudos (+ Compensação)
               </label>
               <input
                 type="number"
-                step={250000}
+                step={5}
                 min={0}
                 value={cashOffer}
                 onChange={(e) => setCashOffer(Number(e.target.value))}
@@ -913,9 +1449,10 @@ export function MarketClient({
             <button
               type="submit"
               disabled={isPending}
-              className="w-full py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              Enviar Proposta Oficial
+              <Send className="w-3.5 h-3.5" />
+              <span>Enviar Proposta Oficial</span>
             </button>
           </form>
         </div>

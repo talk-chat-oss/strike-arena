@@ -3,12 +3,13 @@ import {
   Trophy,
   ShieldCheck,
   Swords,
-  LayoutDashboard,
-  Database,
   UserPlus,
   UserCheck,
   Gavel,
   Briefcase,
+  Users,
+  Shield,
+  ArrowLeftRight,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -18,7 +19,7 @@ export async function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#090c12]/95 backdrop-blur-md border-b border-[#222c40]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* Brand Logo (Official Strike Arena Shield SVG) */}
         <div className="flex items-center gap-5">
           <Link
@@ -40,7 +41,7 @@ export async function Navbar() {
           {/* Navigation Links with Kinetic 2px Keycaps */}
           <nav
             aria-label="Navegação principal"
-            className="hidden md:flex items-center gap-1"
+            className="hidden xl:flex items-center gap-1"
           >
             <Link
               href="/"
@@ -50,7 +51,40 @@ export async function Navbar() {
                 1
               </span>
               <Trophy className="w-3.5 h-3.5" />
-              <span>Ligas</span>
+              <span>Torneios</span>
+            </Link>
+
+            <Link
+              href="/players"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
+            >
+              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
+                2
+              </span>
+              <Users className="w-3.5 h-3.5" />
+              <span>Jogadores</span>
+            </Link>
+
+            <Link
+              href="/auctions"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
+            >
+              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
+                3
+              </span>
+              <Gavel className="w-3.5 h-3.5" />
+              <span>Leilões</span>
+            </Link>
+
+            <Link
+              href="/transfers"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
+            >
+              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
+                4
+              </span>
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+              <span>Transferências</span>
             </Link>
 
             <Link
@@ -58,43 +92,26 @@ export async function Navbar() {
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
             >
               <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
-                2
+                5
               </span>
               <Briefcase className="w-3.5 h-3.5" />
-              <span>Meu Clube (Elenco)</span>
+              <span>Meu Clube</span>
             </Link>
 
             <Link
-              href="/market"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
+              href="/store/escudos"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-bold text-[#ffdc2b] bg-[#ffdc2b]/10 hover:bg-[#ffdc2b]/20 border border-[#ffdc2b]/30 transition-colors"
             >
-              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
-                3
-              </span>
-              <Gavel className="w-3.5 h-3.5" />
-              <span>Mercado & Leilões</span>
+              <Shield className="w-3.5 h-3.5" />
+              <span>Loja de Escudos</span>
             </Link>
 
             <Link
               href="/freguesometro"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
             >
-              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
-                4
-              </span>
               <Swords className="w-3.5 h-3.5" />
-              <span>Freguesômetro & Súmula</span>
-            </Link>
-
-            <Link
-              href="/organizer"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
-            >
-              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
-                5
-              </span>
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Organizador</span>
+              <span>Freguesômetro</span>
             </Link>
           </nav>
         </div>

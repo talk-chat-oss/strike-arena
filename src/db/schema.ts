@@ -78,6 +78,10 @@ export const financialTxTypeEnum = pgEnum("financial_tx_type", [
   "SALARIO_PAGO",
   "TRANSFERENCIA",
   "MULTA_PAGA",
+  "RECARGA_ESCUDOS",
+  "BLOQUEIO_LANCE",
+  "ESTORNO_LANCE",
+  "ARREMATE_LEILAO",
 ]);
 
 export const transferProposalStatusEnum = pgEnum("transfer_proposal_status", [
@@ -88,6 +92,7 @@ export const transferProposalStatusEnum = pgEnum("transfer_proposal_status", [
 ]);
 
 export const auctionStatusEnum = pgEnum("auction_status", [
+  "AGENDADO",
   "ATIVO",
   "ENCERRADO",
   "CANCELADO",
@@ -383,6 +388,9 @@ export const athletes = pgTable(
     age: integer("age").default(24).notNull(),
     photoUrl: text("photo_url"),
     defaultTeam: varchar("default_team", { length: 100 }).notNull(),
+    ballType: varchar("ball_type", { length: 24 })
+      .default("BOLA_PRETA")
+      .notNull(), // BOLA_PRETA, BOLA_OURO, BOLA_PRATA
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -410,7 +418,7 @@ export const clubTeams = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     acronym: varchar("acronym", { length: 8 }).notNull(),
     badgeUrl: text("badge_url"),
-    balance: integer("balance").default(25000000).notNull(), // Moeda virtual da liga ($ / R$)
+    balance: integer("balance").default(1000).notNull(), // Moeda interna oficial: Escudos
     isDelinquent: boolean("is_delinquent").default(false).notNull(), // Status de inadimplência/punição
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -436,8 +444,8 @@ export const contracts = pgTable(
     athleteId: uuid("athlete_id")
       .notNull()
       .references(() => athletes.id, { onDelete: "cascade" }),
-    salary: integer("salary").default(250000).notNull(), // Definido pelo treinador
-    buyoutClause: integer("buyout_clause").default(2500000).notNull(), // Multa rescisória proporcional (ex: 10x salário)
+    salary: integer("salary").default(25).notNull(), // Em Escudos (definido pelo treinador)
+    buyoutClause: integer("buyout_clause").default(250).notNull(), // Em Escudos (10x salário)
     acquiredAt: timestamp("acquired_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -460,7 +468,7 @@ export const financialTransactions = pgTable(
       .notNull()
       .references(() => clubTeams.id, { onDelete: "cascade" }),
     type: financialTxTypeEnum("type").notNull(),
-    amount: integer("amount").notNull(), // Positivo (entrada) ou Negativo (saída)
+    amount: integer("amount").notNull(), // Em Escudos: Positivo (entrada) ou Negativo (saída)
     description: text("description").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -507,7 +515,7 @@ export const transferProposals = pgTable(
 );
 
 // ============================================================================
-// 13. MASTER LIGA ONLINE: AUCTIONS & BIDS (Leilões Abertos com Anti-Sniper)
+// 13. MASTER LIGA ONLINE: AUCTIONS & BIDS (Leilões Agendados e Ativos)
 // ============================================================================
 
 export const auctions = pgTable(
@@ -520,7 +528,9 @@ export const auctions = pgTable(
     sellerClubId: uuid("seller_club_id").references(() => clubTeams.id, {
       onDelete: "set null",
     }),
-    currentBid: integer("current_bid").default(1000000).notNull(),
+    startingBid: integer("starting_bid").default(100).notNull(),
+    currentBid: integer("current_bid").default(100).notNull(),
+    minIncrement: integer("min_increment").default(5).notNull(),
     currentWinningClubId: uuid("current_winning_club_id").references(
       () => clubTeams.id,
       { onDelete: "set null" }
@@ -584,6 +594,49 @@ export const headToHeadCache = pgTable(
   (table) => [
     uniqueIndex("h2h_teams_unique_idx").on(table.teamAId, table.teamBId),
   ]
+);
+
+// ============================================================================
+// 15. LOJA DE ESCUDOS (PACOTES PROMOCIONAIS & COMPRAS AUDITÁVEIS)
+// ============================================================================
+
+export const escudoPackages = pgTable("escudo_packages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  escudosAmount: integer("escudos_amount").notNull(),
+  priceBrlCents: integer("price_brl_cents").notNull(), // ex: 2000 = R$ 20,00
+  badgeLabel: varchar("badge_label", { length: 64 }),
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const escudoPurchases = pgTable(
+  "escudo_purchases",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clubTeamId: uuid("club_team_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    packageId: uuid("package_id")
+      .notNull()
+      .references(() => escudoPackages.id, { onDelete: "restrict" }),
+    escudosCredited: integer("escudos_credited").notNull(),
+    amountPaidBrlCents: integer("amount_paid_brl_cents").notNull(),
+    paymentMethod: varchar("payment_method", { length: 32 })
+      .default("PIX")
+      .notNull(),
+    paymentStatus: varchar("payment_status", { length: 32 })
+      .default("CONFIRMED")
+      .notNull(),
+    externalReference: varchar("external_reference", { length: 120 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("escudo_purchases_club_idx").on(table.clubTeamId)]
 );
 
 // ============================================================================

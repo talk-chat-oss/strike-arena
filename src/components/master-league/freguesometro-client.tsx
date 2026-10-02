@@ -76,10 +76,10 @@ export function FreguesometroClient({
   const teamARoster = contracts.filter((c) => c.clubTeamId === teamA?.id);
   const teamBRoster = contracts.filter((c) => c.clubTeamId === teamB?.id);
 
-  // Cálculo em tempo real da Premiação Financeira por Desempenho
-  const winReward = 1500000;
-  const drawReward = 600000;
-  const goalReward = 150000;
+  // Cálculo em tempo real da Premiação Financeira por Desempenho em Escudos
+  const winReward = 40;
+  const drawReward = 15;
+  const goalReward = 5;
 
   const previewHomePrize =
     (homeScore > awayScore
@@ -375,14 +375,14 @@ export function FreguesometroClient({
             </h2>
             <p className="text-xs text-[#78849e] mt-0.5">
               Regras de Caixa da Liga: Vitória{" "}
-              <strong className="text-[#4ade80]">+$ 1.50M</strong> • Empate{" "}
-              <strong className="text-[#ffdc2b]">+$ 600K</strong> • Bônus por
-              Gol Marcado <strong className="text-[#60a5fa]">+$ 150K/gol</strong>
+              <strong className="text-[#4ade80]">+40 Escudos</strong> • Empate{" "}
+              <strong className="text-[#ffdc2b]">+15 Escudos</strong> • Bônus por
+              Gol Marcado <strong className="text-[#60a5fa]">+5 Escudos/gol</strong>
             </p>
           </div>
           {defaultMode === "matches" && (
             <span className="px-2.5 py-1 rounded-[4px] bg-[#15a34a]/15 text-[#4ade80] border border-[#15a34a]/30 text-xs font-bold">
-              Crédito Automático no Caixa dos Clubes
+              Crédito Automático de Escudos no Caixa
             </span>
           )}
         </div>
@@ -417,7 +417,7 @@ export function FreguesometroClient({
               <div className="mt-2 text-[11px] text-[#4ade80] font-semibold flex items-center gap-1">
                 <Coins className="w-3.5 h-3.5" />
                 <span>
-                  Prêmio Previsto: +$ {(previewHomePrize / 1000).toFixed(0)}K
+                  Prêmio Previsto: +{previewHomePrize} Escudos
                 </span>
               </div>
             </div>
@@ -437,7 +437,7 @@ export function FreguesometroClient({
               <div className="mt-2 text-[11px] text-[#4ade80] font-semibold flex items-center gap-1">
                 <Coins className="w-3.5 h-3.5" />
                 <span>
-                  Prêmio Previsto: +$ {(previewAwayPrize / 1000).toFixed(0)}K
+                  Prêmio Previsto: +{previewAwayPrize} Escudos
                 </span>
               </div>
             </div>

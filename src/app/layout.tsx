@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
+import { Sidebar } from "@/components/layout/sidebar";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -10,9 +11,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Strike Arena — Plataforma de Torneios EA FC & eFootball",
+  title: "Strike Arena — Plataforma de Torneios & Master Liga Online",
   description:
-    "Gerenciamento profissional de campeonatos, ligas de pontos corridos, fase de grupos e playoffs para EA FC e eFootball.",
+    "Gerenciamento profissional de campeonatos, Master Liga Online com economia em Escudos, Leilões com Anti-Sniper e Freguesômetro.",
 };
 
 export default function RootLayout({
@@ -24,23 +25,28 @@ export default function RootLayout({
     <html lang="pt-BR" className={`dark ${jetbrainsMono.variable}`}>
       <body className="min-h-screen flex flex-col bg-[#090c12] text-[#b6c0d4] antialiased">
         <Navbar />
-        <main className="flex-1">{children}</main>
-        <footer className="border-t border-[#222c40] bg-[#090c12] py-8 mt-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#78849e]">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-[11px] inline-flex items-center justify-center">
-                S
-              </span>
-              <span className="font-semibold text-[#f4f6fb]">
-                STRIKE ARENA
-              </span>
-              <span>· Plataforma Oficial de Ligas & Master Liga Online</span>
-            </div>
-            <div>
-              © 2026 Strike Arena · EA Sports FC & eFootball Competitive Hub
-            </div>
+        <div className="flex flex-1 min-w-0">
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1">{children}</main>
+            <footer className="border-t border-[#222c40] bg-[#090c12] py-8 mt-16">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#78849e]">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-[11px] inline-flex items-center justify-center">
+                    S
+                  </span>
+                  <span className="font-semibold text-[#f4f6fb]">
+                    STRIKE ARENA
+                  </span>
+                  <span>· Plataforma Oficial de Ligas & Master Liga Online</span>
+                </div>
+                <div>
+                  © 2026 Strike Arena · EA Sports FC & eFootball Competitive Hub
+                </div>
+              </div>
+            </footer>
           </div>
-        </footer>
+        </div>
       </body>
     </html>
   );
