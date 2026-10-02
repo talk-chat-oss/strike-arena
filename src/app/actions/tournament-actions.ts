@@ -10,17 +10,17 @@ import {
 } from "@/lib/validations/tournament";
 
 /**
- * Recalcula automaticamente a tabela de classificação (sa_standings) do torneio
- * no Supabase Local (deathstar-server via HTTPS) com base nas partidas concluídas/W.O.
+ * Recalcula automaticamente a tabela de classificação (standings) do torneio
+ * na instância isolada do Strike Arena (strike-arena-db).
  */
 async function recalculateGroupStandings(tournamentId: string) {
   const [{ data: allParticipants }, { data: allMatches }] = await Promise.all([
     supabaseAdmin
-      .from("sa_participants")
+      .from("participants")
       .select("id, group_id")
       .eq("tournament_id", tournamentId),
     supabaseAdmin
-      .from("sa_matches")
+      .from("matches")
       .select("*")
       .eq("tournament_id", tournamentId),
   ]);
@@ -100,7 +100,7 @@ async function recalculateGroupStandings(tournamentId: string) {
 
   for (const [participantId, st] of statsMap.entries()) {
     await supabaseAdmin
-      .from("sa_standings")
+      .from("standings")
       .update({
         points: st.points,
         matches_played: st.matchesPlayed,
@@ -146,7 +146,7 @@ export async function submitMatchScoreAction(rawInput: {
 
   try {
     const { data: existingMatch, error: findErr } = await supabaseAdmin
-      .from("sa_matches")
+      .from("matches")
       .select("*")
       .eq("id", matchId)
       .maybeSingle();
@@ -170,7 +170,7 @@ export async function submitMatchScoreAction(rawInput: {
       : "awaiting_confirmation";
 
     const { error: updErr } = await supabaseAdmin
-      .from("sa_matches")
+      .from("matches")
       .update({
         home_score: homeScore,
         away_score: awayScore,
@@ -209,7 +209,7 @@ export async function submitMatchScoreAction(rawInput: {
       error:
         err instanceof Error
           ? err.message
-          : "Erro ao salvar resultado no Supabase Local.",
+          : "Erro ao salvar resultado no banco do Strike Arena.",
     };
   }
 }
@@ -227,7 +227,7 @@ export async function mediateMatchAction(rawInput: {
 
   try {
     const { data: existingMatch, error: findErr } = await supabaseAdmin
-      .from("sa_matches")
+      .from("matches")
       .select("*")
       .eq("id", parsed.data.matchId)
       .maybeSingle();
@@ -269,7 +269,7 @@ export async function mediateMatchAction(rawInput: {
         : null;
 
     const { error: updErr } = await supabaseAdmin
-      .from("sa_matches")
+      .from("matches")
       .update({
         home_score: homeScore,
         away_score: awayScore,
@@ -326,7 +326,7 @@ export async function createTournamentAction(rawInput: {
 
   try {
     const { data: inserted, error } = await supabaseAdmin
-      .from("sa_tournaments")
+      .from("tournaments")
       .insert({
         name: parsed.data.name,
         slug: parsed.data.slug,

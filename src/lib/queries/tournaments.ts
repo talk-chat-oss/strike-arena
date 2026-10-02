@@ -27,8 +27,8 @@ export async function getAllTournaments(): Promise<{
 }> {
   try {
     const { data: rows, error } = await supabase
-      .from("sa_tournaments")
-      .select("*, organizer:sa_profiles!organizer_id(nickname)")
+      .from("tournaments")
+      .select("*, organizer:profiles!organizer_id(nickname)")
       .order("created_at", { ascending: false });
 
     if (error || !rows || rows.length === 0) {
@@ -36,7 +36,7 @@ export async function getAllTournaments(): Promise<{
     }
 
     const { data: allParticipants } = await supabase
-      .from("sa_participants")
+      .from("participants")
       .select("id, tournament_id");
 
     const mapped: MockTournament[] = rows.map((r) => {
@@ -76,8 +76,8 @@ export async function getTournamentBySlug(
 ): Promise<TournamentHubData | null> {
   try {
     const { data: tRow, error: tErr } = await supabase
-      .from("sa_tournaments")
-      .select("*, organizer:sa_profiles!organizer_id(nickname)")
+      .from("tournaments")
+      .select("*, organizer:profiles!organizer_id(nickname)")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -105,26 +105,26 @@ export async function getTournamentBySlug(
       { data: matchRows },
     ] = await Promise.all([
       supabase
-        .from("sa_tournament_groups")
+        .from("tournament_groups")
         .select("*")
         .eq("tournament_id", tRow.id)
         .order("display_order", { ascending: true }),
       supabase
-        .from("sa_participants")
+        .from("participants")
         .select(
-          "*, profile:sa_profiles!user_id(nickname, psn_id, xbox_gamertag, ea_id)"
+          "*, profile:profiles!user_id(nickname, psn_id, xbox_gamertag, ea_id)"
         )
         .eq("tournament_id", tRow.id)
         .order("seed", { ascending: true }),
       supabase
-        .from("sa_standings")
+        .from("standings")
         .select("*")
         .eq("tournament_id", tRow.id)
         .order("points", { ascending: false })
         .order("goal_difference", { ascending: false })
         .order("goals_for", { ascending: false }),
       supabase
-        .from("sa_matches")
+        .from("matches")
         .select("*")
         .eq("tournament_id", tRow.id)
         .order("round", { ascending: true })

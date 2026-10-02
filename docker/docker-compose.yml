@@ -9,14 +9,48 @@ services:
       POSTGRES_USER: strike_admin
       POSTGRES_PASSWORD: strike_arena_2026_password
       POSTGRES_DB: strike_arena
-      TZ: America/Sao_Paulo
     volumes:
       - strike_arena_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U strike_admin -d strike_arena"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+
+  strike-arena-rest:
+    image: postgrest/postgrest:v12.2.3
+    container_name: strike-arena-rest
+    restart: unless-stopped
+    depends_on:
+      strike-arena-db:
+        condition: service_healthy
+    ports:
+      - "5434:3000"
+    environment:
+      PGRST_DB_URI: postgres://strike_admin:strike_arena_2026_password@strike-arena-db:5432/strike_arena
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: strike_arena_jwt_secret_2026_isolated_key_minimum_32_bytes!
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  strike-arena-gateway:
+    image: nginx:alpine
+    container_name: strike-arena-gateway
+    restart: unless-stopped
+    depends_on:
+      - strike-arena-rest
+    ports:
+      - "5435:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+  strike-arena-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: strike-arena-tunnel
+    restart: unless-stopped
+    depends_on:
+      - strike-arena-gateway
+    command: tunnel --no-autoupdate --url http://strike-arena-gateway:80
 
 volumes:
   strike_arena_pgdata:
