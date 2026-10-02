@@ -1,13 +1,4 @@
-import { eq, asc, desc } from "drizzle-orm";
-import {
-  db,
-  tournaments,
-  tournamentGroups,
-  participants,
-  standings,
-  matches,
-  profiles,
-} from "@/db";
+import { supabase } from "@/lib/supabase";
 import {
   MOCK_TOURNAMENTS,
   MOCK_GROUPS,
@@ -35,56 +26,44 @@ export async function getAllTournaments(): Promise<{
   source: "postgres" | "mock_fallback";
 }> {
   try {
-    const rows = await db
-      .select({
-        id: tournaments.id,
-        name: tournaments.name,
-        slug: tournaments.slug,
-        organizerId: tournaments.organizerId,
-        organizerNickname: profiles.nickname,
-        format: tournaments.format,
-        game: tournaments.game,
-        platform: tournaments.platform,
-        status: tournaments.status,
-        maxParticipants: tournaments.maxParticipants,
-        entryFeeBrl: tournaments.entryFeeBrl,
-        prizePoolBrl: tournaments.prizePoolBrl,
-        bannerUrl: tournaments.bannerUrl,
-        rulesMarkdown: tournaments.rulesMarkdown,
-        startsAt: tournaments.startsAt,
-      })
-      .from(tournaments)
-      .leftJoin(profiles, eq(tournaments.organizerId, profiles.id))
-      .orderBy(desc(tournaments.createdAt));
+    const { data: rows, error } = await supabase
+      .from("sa_tournaments")
+      .select("*, organizer:sa_profiles!organizer_id(nickname)")
+      .order("created_at", { ascending: false });
 
-    if (!rows.length) {
+    if (error || !rows || rows.length === 0) {
       return { tournaments: MOCK_TOURNAMENTS, source: "mock_fallback" };
     }
 
-    const allParticipants = await db.select().from(participants);
+    const { data: allParticipants } = await supabase
+      .from("sa_participants")
+      .select("id, tournament_id");
 
-    const mapped: MockTournament[] = rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
-      organizerId: r.organizerId,
-      organizerNickname: r.organizerNickname ?? "SPOOKY",
-      format: r.format,
-      game: r.game,
-      platform: r.platform,
-      status: r.status,
-      maxParticipants: r.maxParticipants,
-      currentParticipants:
-        allParticipants.filter((p) => p.tournamentId === r.id).length ||
-        (r.slug === "strike-cup-eafc26-elite" ? 8 : 12),
-      entryFeeBrl: r.entryFeeBrl,
-      prizePoolBrl: r.prizePoolBrl,
-      bannerUrl: r.bannerUrl ?? "/banners/strike-cup-eafc.jpg",
-      rulesMarkdown: r.rulesMarkdown,
-      startsAt: r.startsAt
-        ? r.startsAt.toISOString()
-        : new Date().toISOString(),
-    }));
+    const mapped: MockTournament[] = rows.map((r) => {
+      const org = Array.isArray(r.organizer) ? r.organizer[0] : r.organizer;
+      const count =
+        (allParticipants ?? []).filter((p) => p.tournament_id === r.id).length ||
+        (r.slug === "strike-cup-eafc26-elite" ? 8 : 12);
+
+      return {
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        organizerId: r.organizer_id,
+        organizerNickname: org?.nickname ?? "SPOOKY",
+        format: r.format,
+        game: r.game,
+        platform: r.platform,
+        status: r.status,
+        maxParticipants: r.max_participants,
+        currentParticipants: count,
+        entryFeeBrl: r.entry_fee_brl,
+        prizePoolBrl: r.prize_pool_brl,
+        bannerUrl: r.banner_url ?? "/banners/strike-cup-eafc.jpg",
+        rulesMarkdown: r.rules_markdown,
+        startsAt: r.starts_at ?? new Date().toISOString(),
+      };
+    });
 
     return { tournaments: mapped, source: "postgres" };
   } catch {
@@ -96,30 +75,13 @@ export async function getTournamentBySlug(
   slug: string
 ): Promise<TournamentHubData | null> {
   try {
-    const [tRow] = await db
-      .select({
-        id: tournaments.id,
-        name: tournaments.name,
-        slug: tournaments.slug,
-        organizerId: tournaments.organizerId,
-        organizerNickname: profiles.nickname,
-        format: tournaments.format,
-        game: tournaments.game,
-        platform: tournaments.platform,
-        status: tournaments.status,
-        maxParticipants: tournaments.maxParticipants,
-        entryFeeBrl: tournaments.entryFeeBrl,
-        prizePoolBrl: tournaments.prizePoolBrl,
-        bannerUrl: tournaments.bannerUrl,
-        rulesMarkdown: tournaments.rulesMarkdown,
-        startsAt: tournaments.startsAt,
-      })
-      .from(tournaments)
-      .leftJoin(profiles, eq(tournaments.organizerId, profiles.id))
-      .where(eq(tournaments.slug, slug))
-      .limit(1);
+    const { data: tRow, error: tErr } = await supabase
+      .from("sa_tournaments")
+      .select("*, organizer:sa_profiles!organizer_id(nickname)")
+      .eq("slug", slug)
+      .maybeSingle();
 
-    if (!tRow) {
+    if (tErr || !tRow) {
       const mockT =
         MOCK_TOURNAMENTS.find((t) => t.slug === slug) ?? MOCK_TOURNAMENTS[0];
       return {
@@ -132,51 +94,65 @@ export async function getTournamentBySlug(
       };
     }
 
-    const groupRows = await db
-      .select()
-      .from(tournamentGroups)
-      .where(eq(tournamentGroups.tournamentId, tRow.id))
-      .orderBy(asc(tournamentGroups.displayOrder));
+    const org = Array.isArray(tRow.organizer)
+      ? tRow.organizer[0]
+      : tRow.organizer;
 
-    const participantRows = await db
-      .select({
-        id: participants.id,
-        tournamentId: participants.tournamentId,
-        userId: participants.userId,
-        groupId: participants.groupId,
-        seed: participants.seed,
-        clubName: participants.clubName,
-        checkinStatus: participants.checkinStatus,
-        nickname: profiles.nickname,
-        psnId: profiles.psnId,
-        xboxGamertag: profiles.xboxGamertag,
-        eaId: profiles.eaId,
-      })
-      .from(participants)
-      .innerJoin(profiles, eq(participants.userId, profiles.id))
-      .where(eq(participants.tournamentId, tRow.id))
-      .orderBy(asc(participants.seed));
+    const [
+      { data: groupRows },
+      { data: participantRows },
+      { data: standingRows },
+      { data: matchRows },
+    ] = await Promise.all([
+      supabase
+        .from("sa_tournament_groups")
+        .select("*")
+        .eq("tournament_id", tRow.id)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("sa_participants")
+        .select(
+          "*, profile:sa_profiles!user_id(nickname, psn_id, xbox_gamertag, ea_id)"
+        )
+        .eq("tournament_id", tRow.id)
+        .order("seed", { ascending: true }),
+      supabase
+        .from("sa_standings")
+        .select("*")
+        .eq("tournament_id", tRow.id)
+        .order("points", { ascending: false })
+        .order("goal_difference", { ascending: false })
+        .order("goals_for", { ascending: false }),
+      supabase
+        .from("sa_matches")
+        .select("*")
+        .eq("tournament_id", tRow.id)
+        .order("round", { ascending: true })
+        .order("created_at", { ascending: true }),
+    ]);
 
-    // If this tournament has no seeded participants yet (e.g. secondary showcase tournament), fallback to main groups/participants for preview or empty
-    if (participantRows.length === 0 && tRow.slug !== "strike-cup-eafc26-elite") {
+    if (
+      (!participantRows || participantRows.length === 0) &&
+      tRow.slug !== "strike-cup-eafc26-elite"
+    ) {
       return {
         tournament: {
           id: tRow.id,
           name: tRow.name,
           slug: tRow.slug,
-          organizerId: tRow.organizerId,
-          organizerNickname: tRow.organizerNickname ?? "SPOOKY",
+          organizerId: tRow.organizer_id,
+          organizerNickname: org?.nickname ?? "SPOOKY",
           format: tRow.format,
           game: tRow.game,
           platform: tRow.platform,
           status: tRow.status,
-          maxParticipants: tRow.maxParticipants,
+          maxParticipants: tRow.max_participants,
           currentParticipants: 12,
-          entryFeeBrl: tRow.entryFeeBrl,
-          prizePoolBrl: tRow.prizePoolBrl,
-          bannerUrl: tRow.bannerUrl ?? "",
-          rulesMarkdown: tRow.rulesMarkdown,
-          startsAt: tRow.startsAt?.toISOString() ?? new Date().toISOString(),
+          entryFeeBrl: tRow.entry_fee_brl,
+          prizePoolBrl: tRow.prize_pool_brl,
+          bannerUrl: tRow.banner_url ?? "",
+          rulesMarkdown: tRow.rules_markdown,
+          startsAt: tRow.starts_at ?? new Date().toISOString(),
         },
         groups: MOCK_GROUPS,
         participants: MOCK_PARTICIPANTS,
@@ -186,35 +162,40 @@ export async function getTournamentBySlug(
       };
     }
 
-    const groupMap = new Map(groupRows.map((g) => [g.id, g]));
-    const participantMap = new Map(participantRows.map((p) => [p.id, p]));
+    const gList = groupRows ?? [];
+    const pList = participantRows ?? [];
+    const sList = standingRows ?? [];
+    const mList = matchRows ?? [];
 
-    const standingRows = await db
-      .select()
-      .from(standings)
-      .where(eq(standings.tournamentId, tRow.id))
-      .orderBy(
-        desc(standings.points),
-        desc(standings.goalDifference),
-        desc(standings.goalsFor)
-      );
+    const groupMap = new Map(gList.map((g) => [g.id, g]));
+    const participantMap = new Map(
+      pList.map((p) => {
+        const prof = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+        return [
+          p.id,
+          {
+            ...p,
+            nickname: prof?.nickname ?? "Jogador",
+            psnId: prof?.psn_id ?? null,
+            xboxGamertag: prof?.xbox_gamertag ?? null,
+            eaId: prof?.ea_id ?? null,
+          },
+        ];
+      })
+    );
 
-    const matchRows = await db
-      .select()
-      .from(matches)
-      .where(eq(matches.tournamentId, tRow.id))
-      .orderBy(asc(matches.round), asc(matches.createdAt));
-
-    const mappedGroups: MockGroup[] = groupRows.map((g) => ({
+    const mappedGroups: MockGroup[] = gList.map((g) => ({
       id: g.id,
-      tournamentId: g.tournamentId,
+      tournamentId: g.tournament_id,
       name: g.name,
       code: (g.code as "A" | "B") || "A",
-      displayOrder: g.displayOrder,
+      displayOrder: g.display_order,
     }));
 
-    const mappedParticipants: MockParticipant[] = participantRows.map((p) => {
-      const grp = p.groupId ? groupMap.get(p.groupId) : undefined;
+    const mappedParticipants: MockParticipant[] = Array.from(
+      participantMap.values()
+    ).map((p) => {
+      const grp = p.group_id ? groupMap.get(p.group_id) : undefined;
       const handle = p.psnId
         ? `PSN: ${p.psnId}`
         : p.xboxGamertag
@@ -222,21 +203,21 @@ export async function getTournamentBySlug(
         : `EA: ${p.eaId ?? p.nickname}`;
       return {
         id: p.id,
-        tournamentId: p.tournamentId,
-        userId: p.userId,
-        groupId: p.groupId ?? "",
-        groupCode: ((grp?.code as "A" | "B") ?? "A"),
+        tournamentId: p.tournament_id,
+        userId: p.user_id,
+        groupId: p.group_id ?? "",
+        groupCode: (grp?.code as "A" | "B") ?? "A",
         seed: p.seed ?? 1,
         nickname: p.nickname,
         platformHandle: handle,
-        clubName: p.clubName,
-        checkinStatus: p.checkinStatus,
+        clubName: p.club_name,
+        checkinStatus: p.checkin_status,
       };
     });
 
-    const mappedStandings: MockStanding[] = standingRows.map((s) => {
-      const part = participantMap.get(s.participantId);
-      const grp = s.groupId ? groupMap.get(s.groupId) : undefined;
+    const mappedStandings: MockStanding[] = sList.map((s) => {
+      const part = participantMap.get(s.participant_id);
+      const grp = s.group_id ? groupMap.get(s.group_id) : undefined;
       const handle = part?.psnId
         ? `PSN: ${part.psnId}`
         : part?.xboxGamertag
@@ -244,43 +225,43 @@ export async function getTournamentBySlug(
         : `EA: ${part?.eaId ?? part?.nickname ?? "Player"}`;
       return {
         id: s.id,
-        tournamentId: s.tournamentId,
-        groupId: s.groupId ?? "",
-        groupCode: ((grp?.code as "A" | "B") ?? "A"),
-        participantId: s.participantId,
+        tournamentId: s.tournament_id,
+        groupId: s.group_id ?? "",
+        groupCode: (grp?.code as "A" | "B") ?? "A",
+        participantId: s.participant_id,
         nickname: part?.nickname ?? "Jogador",
-        clubName: part?.clubName ?? "Clube",
+        clubName: part?.club_name ?? "Clube",
         platformHandle: handle,
         points: s.points,
-        matchesPlayed: s.matchesPlayed,
+        matchesPlayed: s.matches_played,
         wins: s.wins,
         draws: s.draws,
         losses: s.losses,
-        goalsFor: s.goalsFor,
-        goalsAgainst: s.goalsAgainst,
-        goalDifference: s.goalDifference,
+        goalsFor: s.goals_for,
+        goalsAgainst: s.goals_against,
+        goalDifference: s.goal_difference,
       };
     });
 
-    const mappedMatches: MockMatch[] = matchRows.map((m) => {
-      const home = m.homeParticipantId
-        ? participantMap.get(m.homeParticipantId)
+    const mappedMatches: MockMatch[] = mList.map((m) => {
+      const home = m.home_participant_id
+        ? participantMap.get(m.home_participant_id)
         : undefined;
-      const away = m.awayParticipantId
-        ? participantMap.get(m.awayParticipantId)
+      const away = m.away_participant_id
+        ? participantMap.get(m.away_participant_id)
         : undefined;
-      const grp = m.groupId ? groupMap.get(m.groupId) : undefined;
+      const grp = m.group_id ? groupMap.get(m.group_id) : undefined;
       return {
         id: m.id,
-        tournamentId: m.tournamentId,
-        groupId: m.groupId,
+        tournamentId: m.tournament_id,
+        groupId: m.group_id,
         groupCode: grp ? (grp.code as "A" | "B") : null,
         stage: m.stage as MockMatch["stage"],
         round: m.round,
-        bracketPosition: m.bracketPosition,
+        bracketPosition: m.bracket_position,
         label: m.label ?? `Rodada ${m.round}`,
-        homeParticipantId: m.homeParticipantId ?? "",
-        awayParticipantId: m.awayParticipantId ?? "",
+        homeParticipantId: m.home_participant_id ?? "",
+        awayParticipantId: m.away_participant_id ?? "",
         homeNickname:
           m.stage === "final" && m.status === "scheduled"
             ? "Vencedor SF1 (Vini/Gui)"
@@ -288,19 +269,17 @@ export async function getTournamentBySlug(
         homeClub:
           m.stage === "final" && m.status === "scheduled"
             ? "A Definir (SF1)"
-            : home?.clubName ?? "TBD",
+            : home?.club_name ?? "TBD",
         awayNickname: away?.nickname ?? "A Definir",
-        awayClub: away?.clubName ?? "TBD",
-        homeScore: m.homeScore,
-        awayScore: m.awayScore,
-        winnerParticipantId: m.winnerParticipantId,
-        proofUrl: m.proofUrl,
+        awayClub: away?.club_name ?? "TBD",
+        homeScore: m.home_score,
+        awayScore: m.away_score,
+        winnerParticipantId: m.winner_participant_id,
+        proofUrl: m.proof_url,
         notes: m.notes,
         status: m.status,
-        scheduledAt: m.scheduledAt
-          ? m.scheduledAt.toISOString()
-          : new Date().toISOString(),
-        playedAt: m.playedAt ? m.playedAt.toISOString() : null,
+        scheduledAt: m.scheduled_at ?? new Date().toISOString(),
+        playedAt: m.played_at ?? null,
       };
     });
 
@@ -309,21 +288,19 @@ export async function getTournamentBySlug(
         id: tRow.id,
         name: tRow.name,
         slug: tRow.slug,
-        organizerId: tRow.organizerId,
-        organizerNickname: tRow.organizerNickname ?? "SPOOKY",
+        organizerId: tRow.organizer_id,
+        organizerNickname: org?.nickname ?? "SPOOKY",
         format: tRow.format,
         game: tRow.game,
         platform: tRow.platform,
         status: tRow.status,
-        maxParticipants: tRow.maxParticipants,
+        maxParticipants: tRow.max_participants,
         currentParticipants: mappedParticipants.length,
-        entryFeeBrl: tRow.entryFeeBrl,
-        prizePoolBrl: tRow.prizePoolBrl,
-        bannerUrl: tRow.bannerUrl ?? "",
-        rulesMarkdown: tRow.rulesMarkdown,
-        startsAt: tRow.startsAt
-          ? tRow.startsAt.toISOString()
-          : new Date().toISOString(),
+        entryFeeBrl: tRow.entry_fee_brl,
+        prizePoolBrl: tRow.prize_pool_brl,
+        bannerUrl: tRow.banner_url ?? "",
+        rulesMarkdown: tRow.rules_markdown,
+        startsAt: tRow.starts_at ?? new Date().toISOString(),
       },
       groups: mappedGroups,
       participants: mappedParticipants,

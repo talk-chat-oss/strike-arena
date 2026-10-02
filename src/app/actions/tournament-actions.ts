@@ -1,16 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import {
-  db,
-  matches,
-  standings,
-  participants,
-  tournaments,
-  SUPER_ADMIN_ID,
-  isSuperAdmin,
-} from "@/db";
+import { supabaseAdmin } from "@/lib/supabase";
+import { SUPER_ADMIN_ID, isSuperAdmin } from "@/db";
 import {
   submitMatchScoreSchema,
   resolveMatchDisputeSchema,
@@ -18,19 +10,22 @@ import {
 } from "@/lib/validations/tournament";
 
 /**
- * Recalcula automaticamente a tabela de classificação (standings) do torneio
- * com base nas partidas de fase de grupos concluídas ou decididas por W.O.
+ * Recalcula automaticamente a tabela de classificação (sa_standings) do torneio
+ * no Supabase Local (deathstar-server via HTTPS) com base nas partidas concluídas/W.O.
  */
 async function recalculateGroupStandings(tournamentId: string) {
-  const allParticipants = await db
-    .select()
-    .from(participants)
-    .where(eq(participants.tournamentId, tournamentId));
+  const [{ data: allParticipants }, { data: allMatches }] = await Promise.all([
+    supabaseAdmin
+      .from("sa_participants")
+      .select("id, group_id")
+      .eq("tournament_id", tournamentId),
+    supabaseAdmin
+      .from("sa_matches")
+      .select("*")
+      .eq("tournament_id", tournamentId),
+  ]);
 
-  const allMatches = await db
-    .select()
-    .from(matches)
-    .where(eq(matches.tournamentId, tournamentId));
+  if (!allParticipants || !allMatches) return;
 
   const statsMap = new Map<
     string,
@@ -49,7 +44,7 @@ async function recalculateGroupStandings(tournamentId: string) {
 
   for (const p of allParticipants) {
     statsMap.set(p.id, {
-      groupId: p.groupId,
+      groupId: p.group_id,
       points: 0,
       matchesPlayed: 0,
       wins: 0,
@@ -65,30 +60,30 @@ async function recalculateGroupStandings(tournamentId: string) {
     if (
       m.stage !== "group" ||
       (m.status !== "completed" && m.status !== "walkover") ||
-      m.homeScore === null ||
-      m.awayScore === null ||
-      !m.homeParticipantId ||
-      !m.awayParticipantId
+      m.home_score === null ||
+      m.away_score === null ||
+      !m.home_participant_id ||
+      !m.away_participant_id
     ) {
       continue;
     }
 
-    const home = statsMap.get(m.homeParticipantId);
-    const away = statsMap.get(m.awayParticipantId);
+    const home = statsMap.get(m.home_participant_id);
+    const away = statsMap.get(m.away_participant_id);
     if (!home || !away) continue;
 
     home.matchesPlayed += 1;
     away.matchesPlayed += 1;
-    home.goalsFor += m.homeScore;
-    home.goalsAgainst += m.awayScore;
-    away.goalsFor += m.awayScore;
-    away.goalsAgainst += m.homeScore;
+    home.goalsFor += m.home_score;
+    home.goalsAgainst += m.away_score;
+    away.goalsFor += m.away_score;
+    away.goalsAgainst += m.home_score;
 
-    if (m.homeScore > m.awayScore) {
+    if (m.home_score > m.away_score) {
       home.wins += 1;
       home.points += 3;
       away.losses += 1;
-    } else if (m.homeScore < m.awayScore) {
+    } else if (m.home_score < m.away_score) {
       away.wins += 1;
       away.points += 3;
       home.losses += 1;
@@ -104,20 +99,20 @@ async function recalculateGroupStandings(tournamentId: string) {
   }
 
   for (const [participantId, st] of statsMap.entries()) {
-    await db
-      .update(standings)
-      .set({
+    await supabaseAdmin
+      .from("sa_standings")
+      .update({
         points: st.points,
-        matchesPlayed: st.matchesPlayed,
+        matches_played: st.matchesPlayed,
         wins: st.wins,
         draws: st.draws,
         losses: st.losses,
-        goalsFor: st.goalsFor,
-        goalsAgainst: st.goalsAgainst,
-        goalDifference: st.goalDifference,
-        updatedAt: new Date(),
+        goals_for: st.goalsFor,
+        goals_against: st.goalsAgainst,
+        goal_difference: st.goalDifference,
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(standings.participantId, participantId));
+      .eq("participant_id", participantId);
   }
 }
 
@@ -150,46 +145,48 @@ export async function submitMatchScoreAction(rawInput: {
   } = parsed.data;
 
   try {
-    const [existingMatch] = await db
-      .select()
-      .from(matches)
-      .where(eq(matches.id, matchId))
-      .limit(1);
+    const { data: existingMatch, error: findErr } = await supabaseAdmin
+      .from("sa_matches")
+      .select("*")
+      .eq("id", matchId)
+      .maybeSingle();
 
-    if (!existingMatch) {
+    if (findErr || !existingMatch) {
       return { ok: false, error: "Partida não encontrada no banco de dados." };
     }
 
     const winnerId =
       homeScore > awayScore
-        ? existingMatch.homeParticipantId
+        ? existingMatch.home_participant_id
         : awayScore > homeScore
-        ? existingMatch.awayParticipantId
+        ? existingMatch.away_participant_id
         : null;
 
-    // Super-Admin SPOOKY tem aprovação imediata se desejar, ou vai para aguardando confirmação/disputa
+    // Super-Admin SPOOKY tem aprovação imediata se desejar
     const newStatus = requestWalkover
       ? "disputed"
       : isSuperAdmin(rawInput.actorUserId)
       ? "completed"
       : "awaiting_confirmation";
 
-    await db
-      .update(matches)
-      .set({
-        homeScore,
-        awayScore,
-        winnerParticipantId: winnerId,
-        proofUrl,
+    const { error: updErr } = await supabaseAdmin
+      .from("sa_matches")
+      .update({
+        home_score: homeScore,
+        away_score: awayScore,
+        winner_participant_id: winnerId,
+        proof_url: proofUrl,
         notes: notes || "Placar reportado via Match Hub.",
         status: newStatus,
-        playedAt: new Date(),
-        reportedById: rawInput.actorUserId ?? SUPER_ADMIN_ID,
+        played_at: new Date().toISOString(),
+        reported_by_id: rawInput.actorUserId ?? SUPER_ADMIN_ID,
       })
-      .where(eq(matches.id, matchId));
+      .eq("id", matchId);
+
+    if (updErr) throw new Error(updErr.message);
 
     if (newStatus === "completed") {
-      await recalculateGroupStandings(existingMatch.tournamentId);
+      await recalculateGroupStandings(existingMatch.tournament_id);
     }
 
     revalidatePath(`/tournaments/${tournamentSlug}`);
@@ -212,7 +209,7 @@ export async function submitMatchScoreAction(rawInput: {
       error:
         err instanceof Error
           ? err.message
-          : "Erro ao salvar resultado no PostgreSQL.",
+          : "Erro ao salvar resultado no Supabase Local.",
     };
   }
 }
@@ -229,18 +226,18 @@ export async function mediateMatchAction(rawInput: {
   }
 
   try {
-    const [existingMatch] = await db
-      .select()
-      .from(matches)
-      .where(eq(matches.id, parsed.data.matchId))
-      .limit(1);
+    const { data: existingMatch, error: findErr } = await supabaseAdmin
+      .from("sa_matches")
+      .select("*")
+      .eq("id", parsed.data.matchId)
+      .maybeSingle();
 
-    if (!existingMatch) {
+    if (findErr || !existingMatch) {
       return { ok: false, error: "Partida não encontrada." };
     }
 
-    let homeScore = existingMatch.homeScore ?? 0;
-    let awayScore = existingMatch.awayScore ?? 0;
+    let homeScore = existingMatch.home_score ?? 0;
+    let awayScore = existingMatch.away_score ?? 0;
     let status: "completed" | "walkover" | "disputed" = "completed";
     let notes = existingMatch.notes ?? "";
 
@@ -248,12 +245,14 @@ export async function mediateMatchAction(rawInput: {
       homeScore = 3;
       awayScore = 0;
       status = "walkover";
-      notes = "W.O. (3×0 Mandante) aplicado pela Organização / Super-Admin SPOOKY.";
+      notes =
+        "W.O. (3×0 Mandante) aplicado pela Organização / Super-Admin SPOOKY.";
     } else if (parsed.data.action === "walkover_away") {
       homeScore = 0;
       awayScore = 3;
       status = "walkover";
-      notes = "W.O. (0×3 Visitante) aplicado pela Organização / Super-Admin SPOOKY.";
+      notes =
+        "W.O. (0×3 Visitante) aplicado pela Organização / Super-Admin SPOOKY.";
     } else if (parsed.data.action === "dispute") {
       status = "disputed";
       notes = "Partida marcada sob contestação para auditoria de print.";
@@ -264,24 +263,26 @@ export async function mediateMatchAction(rawInput: {
 
     const winnerId =
       homeScore > awayScore
-        ? existingMatch.homeParticipantId
+        ? existingMatch.home_participant_id
         : awayScore > homeScore
-        ? existingMatch.awayParticipantId
+        ? existingMatch.away_participant_id
         : null;
 
-    await db
-      .update(matches)
-      .set({
-        homeScore,
-        awayScore,
-        winnerParticipantId: winnerId,
+    const { error: updErr } = await supabaseAdmin
+      .from("sa_matches")
+      .update({
+        home_score: homeScore,
+        away_score: awayScore,
+        winner_participant_id: winnerId,
         status,
         notes,
-        playedAt: new Date(),
+        played_at: new Date().toISOString(),
       })
-      .where(eq(matches.id, existingMatch.id));
+      .eq("id", existingMatch.id);
 
-    await recalculateGroupStandings(existingMatch.tournamentId);
+    if (updErr) throw new Error(updErr.message);
+
+    await recalculateGroupStandings(existingMatch.tournament_id);
 
     revalidatePath(`/tournaments/${rawInput.tournamentSlug}`);
     revalidatePath("/organizer");
@@ -318,28 +319,34 @@ export async function createTournamentAction(rawInput: {
   if (!parsed.success) {
     return {
       ok: false,
-      error: parsed.error.issues[0]?.message ?? "Verifique os campos do torneio.",
+      error:
+        parsed.error.issues[0]?.message ?? "Verifique os campos do torneio.",
     };
   }
 
   try {
-    const [inserted] = await db
-      .insert(tournaments)
-      .values({
+    const { data: inserted, error } = await supabaseAdmin
+      .from("sa_tournaments")
+      .insert({
         name: parsed.data.name,
         slug: parsed.data.slug,
-        organizerId: SUPER_ADMIN_ID,
+        organizer_id: SUPER_ADMIN_ID,
         game: parsed.data.game,
         platform: parsed.data.platform,
         format: parsed.data.format,
         status: "open",
-        maxParticipants: parsed.data.maxParticipants,
-        entryFeeBrl: parsed.data.entryFeeBrl,
-        prizePoolBrl: parsed.data.prizePoolBrl,
-        rulesMarkdown: parsed.data.rulesMarkdown,
-        startsAt: new Date(Date.now() + 86400000),
+        max_participants: parsed.data.maxParticipants,
+        entry_fee_brl: parsed.data.entryFeeBrl,
+        prize_pool_brl: parsed.data.prizePoolBrl,
+        rules_markdown: parsed.data.rulesMarkdown,
+        starts_at: new Date(Date.now() + 86400000).toISOString(),
       })
-      .returning();
+      .select()
+      .single();
+
+    if (error || !inserted) {
+      throw new Error(error?.message ?? "Erro ao inserir torneio.");
+    }
 
     revalidatePath("/");
     revalidatePath("/organizer");
