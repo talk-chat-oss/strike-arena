@@ -18,6 +18,8 @@ import {
   MessageSquare,
   Send,
   X,
+  Scale,
+  Award,
 } from "lucide-react";
 import type {
   MockTournament,
@@ -27,6 +29,7 @@ import type {
   MockMatch,
 } from "@/db/mock-data";
 import type { SessionUser } from "@/lib/auth";
+import { CLUB_CRESTS, ClubCrest } from "@/lib/club-crests";
 import { MatchStatusBadge } from "./status-badge";
 import { ScoreSubmissionPanel } from "./score-submission-modal";
 import {
@@ -46,7 +49,7 @@ interface TournamentTabsProps {
   currentUser: SessionUser | null;
 }
 
-type ActiveTab = "standings" | "bracket" | "matches" | "rules";
+type ActiveTab = "standings" | "bracket" | "matches" | "h2h" | "rules";
 type MatchFilter = "all" | "group_a" | "group_b" | "playoffs" | "pending";
 
 interface ChatMessage {
@@ -58,18 +61,7 @@ interface ChatMessage {
   createdAt: string;
 }
 
-const POPULAR_CLUBS = [
-  "Real Madrid",
-  "Manchester City",
-  "FC Barcelona",
-  "Bayern München",
-  "Arsenal",
-  "Liverpool",
-  "Paris Saint-Germain",
-  "Inter de Milão",
-  "Flamengo",
-  "Palmeiras",
-];
+const POPULAR_CLUBS = Object.keys(CLUB_CRESTS);
 
 export function TournamentTabs({
   tournament,
@@ -97,6 +89,14 @@ export function TournamentTabs({
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Freguesômetro (Head-to-Head) state
+  const [h2hPlayerAId, setH2hPlayerAId] = useState(
+    standings[0]?.participantId ?? ""
+  );
+  const [h2hPlayerBId, setH2hPlayerBId] = useState(
+    standings[1]?.participantId ?? ""
+  );
+
   const myParticipant = currentUser
     ? participants.find(
         (p) =>
@@ -108,7 +108,7 @@ export function TournamentTabs({
   const canMediate =
     currentUser?.isSuperAdmin ||
     currentUser?.role === "organizer" ||
-    !currentUser; // Em avaliação demo permite testar ou mostra botão
+    !currentUser;
 
   const groupAStandings = standings
     .filter((s) => s.groupCode === "A")
@@ -151,6 +151,20 @@ export function TournamentTabs({
   const pendingMediationCount = matches.filter(
     (m) => m.status === "awaiting_confirmation" || m.status === "disputed"
   ).length;
+
+  // Freguesômetro calculations
+  const playerAStanding =
+    standings.find((s) => s.participantId === h2hPlayerAId) ?? standings[0];
+  const playerBStanding =
+    standings.find((s) => s.participantId === h2hPlayerBId) ?? standings[1];
+
+  const directMatches = matches.filter(
+    (m) =>
+      (m.homeParticipantId === h2hPlayerAId &&
+        m.awayParticipantId === h2hPlayerBId) ||
+      (m.homeParticipantId === h2hPlayerBId &&
+        m.awayParticipantId === h2hPlayerAId)
+  );
 
   function handleQuickMediate(
     matchId: string,
@@ -297,6 +311,20 @@ export function TournamentTabs({
 
           <button
             role="tab"
+            aria-selected={activeTab === "h2h"}
+            onClick={() => setActiveTab("h2h")}
+            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+              activeTab === "h2h"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] hover:text-[#f4f6fb] border border-[#222c40]"
+            }`}
+          >
+            <Scale className="w-4 h-4" />
+            <span>Freguesômetro & Fair Play</span>
+          </button>
+
+          <button
+            role="tab"
             aria-selected={activeTab === "rules"}
             onClick={() => setActiveTab("rules")}
             className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
@@ -316,9 +344,9 @@ export function TournamentTabs({
             <button
               type="button"
               onClick={() => handleToggleCheckin(myParticipant)}
-              className="min-h-10 px-3.5 py-2 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/50 text-[#4ade80] text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+              className="min-h-10 px-3.5 py-2 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/50 text-[#4ade80] text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5" />
+              <ClubCrest clubName={myParticipant.clubName} size="sm" />
               <span>
                 Inscrito ({myParticipant.clubName}) ·{" "}
                 {myParticipant.checkinStatus === "checked_in"
@@ -339,7 +367,7 @@ export function TournamentTabs({
               className="min-h-10 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>Inscrever-se no Torneio</span>
+              <span>Inscrever-se / Escolher Escudo</span>
             </button>
           )}
 
@@ -375,7 +403,7 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * TAB 1: TABELA DE CLASSIFICAÇÃO (GRUPOS A & B + ARTILHARIA CONSOLIDADA)
+       * TAB 1: TABELA DE CLASSIFICAÇÃO COM BRASÕES DOS TIMES
        * ===================================================================== */}
       {activeTab === "standings" && (
         <div className="space-y-6">
@@ -413,7 +441,7 @@ export function TournamentTabs({
                     <thead>
                       <tr className="border-b border-[#222c40] text-[11px] uppercase tracking-wider text-[#78849e]">
                         <th className="py-3 px-4 w-10">#</th>
-                        <th className="py-3 px-4">Jogador / Clube</th>
+                        <th className="py-3 px-4">Clube / Competidor</th>
                         <th className="py-3 px-3 text-center">PTS</th>
                         <th className="py-3 px-2.5 text-center">J</th>
                         <th className="py-3 px-2.5 text-center">V</th>
@@ -444,15 +472,20 @@ export function TournamentTabs({
                               </span>
                             </td>
                             <td className="py-3.5 px-4">
-                              <div className="font-semibold text-[#f4f6fb]">
-                                {row.nickname}
-                              </div>
-                              <div className="text-[11px] text-[#78849e] flex items-center gap-2">
-                                <span className="text-[#b6c0d4]">
-                                  {row.clubName}
-                                </span>
-                                <span>·</span>
-                                <span>{row.platformHandle}</span>
+                              <div className="flex items-center gap-3">
+                                <ClubCrest clubName={row.clubName} size="md" />
+                                <div>
+                                  <div className="font-semibold text-[#f4f6fb]">
+                                    {row.nickname}
+                                  </div>
+                                  <div className="text-[11px] text-[#78849e] flex items-center gap-2">
+                                    <span className="text-[#ffdc2b] font-medium">
+                                      {row.clubName}
+                                    </span>
+                                    <span>·</span>
+                                    <span>{row.platformHandle}</span>
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td className="py-3.5 px-3 text-center font-bold text-sm text-[#ffdc2b]">
@@ -499,16 +532,16 @@ export function TournamentTabs({
             ))}
           </div>
 
-          {/* Resumo de Ataque / Artilharia Consolidada + Pendências da Rodada */}
+          {/* Resumo de Ataque / Artilharia Consolidada com Brasões */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 bg-[#111622] border border-[#222c40] rounded-[4px] p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                    Estatísticas Consolidadas
+                    Artilharia & Poder Ofensivo
                   </span>
                   <h4 className="text-sm font-bold text-[#f4f6fb]">
-                    Melhores Ataques e Saldo de Gols
+                    Top 5 Melhores Ataques do Campeonato
                   </h4>
                 </div>
                 <Sparkles className="w-4 h-4 text-[#ffdc2b]" />
@@ -518,15 +551,13 @@ export function TournamentTabs({
                 {topAttacks.map((item, i) => (
                   <div
                     key={item.id}
-                    className="p-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] flex flex-col justify-between gap-2"
+                    className="p-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] flex flex-col justify-between gap-2.5"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] bg-[#1d2639] text-[#ffdc2b]">
                         #{i + 1}
                       </span>
-                      <span className="text-[10px] text-[#78849e]">
-                        Grupo {item.groupCode}
-                      </span>
+                      <ClubCrest clubName={item.clubName} size="sm" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-[#f4f6fb] truncate">
@@ -574,10 +605,10 @@ export function TournamentTabs({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("bracket")}
+                  onClick={() => setActiveTab("h2h")}
                   className="flex-1 min-h-10 px-3 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1d2639] border border-[#222c40] text-[#f4f6fb] font-medium text-xs cursor-pointer"
                 >
-                  Ver Playoffs
+                  Freguesômetro
                 </button>
               </div>
             </div>
@@ -586,7 +617,7 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * TAB 2: CHAVEAMENTO INTERATIVO (MATA-MATA / BRACKET TREE)
+       * TAB 2: CHAVEAMENTO INTERATIVO COM BRASÕES (MATA-MATA / BRACKET TREE)
        * ===================================================================== */}
       {activeTab === "bracket" && (
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 sm:p-8 space-y-6">
@@ -642,13 +673,16 @@ export function TournamentTabs({
                             : "bg-[#161d2c] border-[#222c40] text-[#b6c0d4]"
                         }`}
                       >
-                        <div>
-                          <p className="text-xs font-bold text-[#f4f6fb]">
-                            {sf.homeNickname}
-                          </p>
-                          <p className="text-[11px] text-[#78849e]">
-                            {sf.homeClub}
-                          </p>
+                        <div className="flex items-center gap-2.5">
+                          <ClubCrest clubName={sf.homeClub} size="md" />
+                          <div>
+                            <p className="text-xs font-bold text-[#f4f6fb]">
+                              {sf.homeNickname}
+                            </p>
+                            <p className="text-[11px] text-[#78849e]">
+                              {sf.homeClub}
+                            </p>
+                          </div>
                         </div>
                         <span className="text-base font-bold text-[#ffdc2b]">
                           {sf.homeScore ?? "—"}
@@ -662,13 +696,16 @@ export function TournamentTabs({
                             : "bg-[#161d2c] border-[#222c40] text-[#b6c0d4]"
                         }`}
                       >
-                        <div>
-                          <p className="text-xs font-bold text-[#f4f6fb]">
-                            {sf.awayNickname}
-                          </p>
-                          <p className="text-[11px] text-[#78849e]">
-                            {sf.awayClub}
-                          </p>
+                        <div className="flex items-center gap-2.5">
+                          <ClubCrest clubName={sf.awayClub} size="md" />
+                          <div>
+                            <p className="text-xs font-bold text-[#f4f6fb]">
+                              {sf.awayNickname}
+                            </p>
+                            <p className="text-[11px] text-[#78849e]">
+                              {sf.awayClub}
+                            </p>
+                          </div>
                         </div>
                         <span className="text-base font-bold text-[#ffdc2b]">
                           {sf.awayScore ?? "—"}
@@ -717,13 +754,16 @@ export function TournamentTabs({
 
                   <div className="space-y-2.5 tabular-nums">
                     <div className="flex items-center justify-between p-3 rounded-[4px] bg-[#161d2c] border border-[#222c40]">
-                      <div>
-                        <p className="text-sm font-bold text-[#f4f6fb]">
-                          {grandFinal.homeNickname}
-                        </p>
-                        <p className="text-xs text-[#78849e]">
-                          {grandFinal.homeClub}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <ClubCrest clubName={grandFinal.homeClub} size="md" />
+                        <div>
+                          <p className="text-sm font-bold text-[#f4f6fb]">
+                            {grandFinal.homeNickname}
+                          </p>
+                          <p className="text-xs text-[#78849e]">
+                            {grandFinal.homeClub}
+                          </p>
+                        </div>
                       </div>
                       <span className="text-lg font-bold text-[#ffdc2b]">
                         {grandFinal.homeScore ?? "—"}
@@ -731,13 +771,16 @@ export function TournamentTabs({
                     </div>
 
                     <div className="flex items-center justify-between p-3 rounded-[4px] bg-[#161d2c] border border-[#222c40]">
-                      <div>
-                        <p className="text-sm font-bold text-[#f4f6fb]">
-                          {grandFinal.awayNickname}
-                        </p>
-                        <p className="text-xs text-[#78849e]">
-                          {grandFinal.awayClub}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <ClubCrest clubName={grandFinal.awayClub} size="md" />
+                        <div>
+                          <p className="text-sm font-bold text-[#f4f6fb]">
+                            {grandFinal.awayNickname}
+                          </p>
+                          <p className="text-xs text-[#78849e]">
+                            {grandFinal.awayClub}
+                          </p>
+                        </div>
                       </div>
                       <span className="text-lg font-bold text-[#ffdc2b]">
                         {grandFinal.awayScore ?? "—"}
@@ -766,7 +809,7 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * TAB 3: PARTIDAS & MATCH HUB (SUBMISSÃO DE PLACAR, CHAT E MEDIAÇÃO)
+       * TAB 3: PARTIDAS & MATCH HUB COM BRASÕES FRENTE A FRENTE
        * ===================================================================== */}
       {activeTab === "matches" && (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6 items-start">
@@ -819,13 +862,16 @@ export function TournamentTabs({
                     <MatchStatusBadge status={m.status} />
                   </div>
 
-                  {/* Placar Central */}
+                  {/* Placar Central com Brasões dos Clubes */}
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-1 tabular-nums">
-                    <div>
-                      <p className="text-sm font-bold text-[#f4f6fb]">
-                        {m.homeNickname}
-                      </p>
-                      <p className="text-xs text-[#78849e]">{m.homeClub}</p>
+                    <div className="flex items-center gap-3">
+                      <ClubCrest clubName={m.homeClub} size="md" />
+                      <div>
+                        <p className="text-sm font-bold text-[#f4f6fb]">
+                          {m.homeNickname}
+                        </p>
+                        <p className="text-xs text-[#78849e]">{m.homeClub}</p>
+                      </div>
                     </div>
 
                     <div className="px-3.5 py-1.5 rounded-[4px] bg-[#090c12] border border-[#222c40] text-base font-bold text-[#ffdc2b] flex items-center gap-2">
@@ -834,11 +880,14 @@ export function TournamentTabs({
                       <span>{m.awayScore ?? "—"}</span>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-[#f4f6fb]">
-                        {m.awayNickname}
-                      </p>
-                      <p className="text-xs text-[#78849e]">{m.awayClub}</p>
+                    <div className="flex items-center justify-end gap-3 text-right">
+                      <div>
+                        <p className="text-sm font-bold text-[#f4f6fb]">
+                          {m.awayNickname}
+                        </p>
+                        <p className="text-xs text-[#78849e]">{m.awayClub}</p>
+                      </div>
+                      <ClubCrest clubName={m.awayClub} size="md" />
                     </div>
                   </div>
 
@@ -925,7 +974,235 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * TAB 4: INSCRITOS (CHECK-IN INTERATIVO) & REGULAMENTO
+       * TAB 4: FREGUESÔMETRO (HEAD-TO-HEAD) & RANKING FAIR PLAY (ARENA VIRTUAL / ARENA17)
+       * ===================================================================== */}
+      {activeTab === "h2h" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Freguesômetro Comparador */}
+          <div className="lg:col-span-7 bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-6">
+            <div className="border-b border-[#222c40] pb-4 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
+                  Freguesômetro · Confronto Direto & Raio-X
+                </span>
+                <h3 className="text-base font-bold text-[#f4f6fb]">
+                  Comparador Head-to-Head de Competidores
+                </h3>
+              </div>
+              <Scale className="w-5 h-5 text-[#ffdc2b]" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-[#78849e] mb-1.5">
+                  Competidor 1
+                </label>
+                <select
+                  value={h2hPlayerAId}
+                  onChange={(e) => setH2hPlayerAId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+                >
+                  {standings.map((s) => (
+                    <option key={s.participantId} value={s.participantId}>
+                      {s.nickname} ({s.clubName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-[#78849e] mb-1.5">
+                  Competidor 2
+                </label>
+                <select
+                  value={h2hPlayerBId}
+                  onChange={(e) => setH2hPlayerBId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+                >
+                  {standings.map((s) => (
+                    <option key={s.participantId} value={s.participantId}>
+                      {s.nickname} ({s.clubName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {playerAStanding && playerBStanding && (
+              <div className="bg-[#090c12] border border-[#222c40] rounded-[4px] p-5 space-y-5 tabular-nums">
+                <div className="grid grid-cols-3 items-center text-center gap-3">
+                  <div className="flex flex-col items-center gap-2">
+                    <ClubCrest clubName={playerAStanding.clubName} size="lg" />
+                    <div>
+                      <p className="text-sm font-bold text-[#f4f6fb]">
+                        {playerAStanding.nickname}
+                      </p>
+                      <p className="text-xs text-[#ffdc2b]">
+                        {playerAStanding.clubName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#78849e]">
+                    VS
+                  </div>
+
+                  <div className="flex flex-col items-center gap-2">
+                    <ClubCrest clubName={playerBStanding.clubName} size="lg" />
+                    <div>
+                      <p className="text-sm font-bold text-[#f4f6fb]">
+                        {playerBStanding.nickname}
+                      </p>
+                      <p className="text-xs text-[#ffdc2b]">
+                        {playerBStanding.clubName}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-[#192131] text-xs">
+                  {[
+                    {
+                      label: "Pontos na Liga",
+                      a: playerAStanding.points,
+                      b: playerBStanding.points,
+                    },
+                    {
+                      label: "Vitórias",
+                      a: playerAStanding.wins,
+                      b: playerBStanding.wins,
+                    },
+                    {
+                      label: "Gols Marcados (GP)",
+                      a: playerAStanding.goalsFor,
+                      b: playerBStanding.goalsFor,
+                    },
+                    {
+                      label: "Saldo de Gols (SG)",
+                      a: playerAStanding.goalDifference,
+                      b: playerBStanding.goalDifference,
+                    },
+                    {
+                      label: "Aproveitamento",
+                      a: `${
+                        playerAStanding.matchesPlayed > 0
+                          ? Math.round(
+                              (playerAStanding.points /
+                                (playerAStanding.matchesPlayed * 3)) *
+                                100
+                            )
+                          : 0
+                      }%`,
+                      b: `${
+                        playerBStanding.matchesPlayed > 0
+                          ? Math.round(
+                              (playerBStanding.points /
+                                (playerBStanding.matchesPlayed * 3)) *
+                                100
+                            )
+                          : 0
+                      }%`,
+                    },
+                  ].map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="py-2.5 grid grid-cols-3 items-center text-center"
+                    >
+                      <span className="font-bold text-sm text-[#f4f6fb]">
+                        {stat.a}
+                      </span>
+                      <span className="text-[11px] uppercase text-[#78849e]">
+                        {stat.label}
+                      </span>
+                      <span className="font-bold text-sm text-[#f4f6fb]">
+                        {stat.b}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {directMatches.length > 0 && (
+                  <div className="pt-3 border-t border-[#222c40] space-y-2">
+                    <span className="text-[11px] font-bold uppercase text-[#ffdc2b]">
+                      Confronto(s) Direto(s) Registrado(s) no Torneio:
+                    </span>
+                    {directMatches.map((dm) => (
+                      <div
+                        key={dm.id}
+                        className="p-2.5 rounded-[4px] bg-[#161d2c] flex items-center justify-between text-xs"
+                      >
+                        <span>{dm.label}</span>
+                        <span className="font-bold text-[#ffdc2b]">
+                          {dm.homeNickname} {dm.homeScore ?? "—"} ×{" "}
+                          {dm.awayScore ?? "—"} {dm.awayNickname}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Ranking Fair Play & Conduta (Arena17 Style) */}
+          <div className="lg:col-span-5 bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-4">
+            <div className="border-b border-[#222c40] pb-4 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] uppercase tracking-wider text-[#4ade80] font-semibold">
+                  Índice de Conduta · Anti-W.O.
+                </span>
+                <h3 className="text-base font-bold text-[#f4f6fb]">
+                  Ranking Fair Play da Liga
+                </h3>
+              </div>
+              <Award className="w-5 h-5 text-[#4ade80]" />
+            </div>
+
+            <p className="text-xs text-[#78849e] leading-relaxed">
+              Calculado automaticamente pelo comparecimento no horário, ausência
+              de W.O. e confirmação rápida de súmulas no Match Hub.
+            </p>
+
+            <div className="divide-y divide-[#192131]">
+              {participants.map((p) => {
+                const isPendingCheckin = p.checkinStatus !== "checked_in";
+                const score = isPendingCheckin ? "85%" : "100%";
+                return (
+                  <div
+                    key={p.id}
+                    className="py-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ClubCrest clubName={p.clubName} size="sm" />
+                      <div>
+                        <p className="text-xs font-bold text-[#f4f6fb]">
+                          {p.nickname}
+                        </p>
+                        <p className="text-[11px] text-[#78849e]">
+                          {p.clubName} · 0 W.O. sofridos
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums ${
+                        isPendingCheckin
+                          ? "bg-[#f97316]/15 text-[#fb923c]"
+                          : "bg-[#15a34a]/15 text-[#4ade80]"
+                      }`}
+                    >
+                      {score} Fair Play
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+       * TAB 5: INSCRITOS (CHECK-IN INTERATIVO COM BRASÕES) & REGULAMENTO
        * ===================================================================== */}
       {activeTab === "rules" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -954,10 +1231,11 @@ export function TournamentTabs({
                     <span className="w-6 h-6 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-xs font-bold text-[#ffdc2b] inline-flex items-center justify-center tabular-nums">
                       {p.seed}
                     </span>
+                    <ClubCrest clubName={p.clubName} size="md" />
                     <div>
                       <p className="text-xs font-bold text-[#f4f6fb]">
                         {p.nickname}{" "}
-                        <span className="text-[#78849e] font-normal">
+                        <span className="text-[#ffdc2b] font-medium">
                           · {p.clubName}
                         </span>
                       </p>
@@ -1004,7 +1282,7 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * MODAL DE INSCRIÇÃO NO TORNEIO (ESCOLHA DE CLUBE)
+       * MODAL DE INSCRIÇÃO NO TORNEIO (SELETOR VISUAL DE ESCUDOS / BRASÕES)
        * ===================================================================== */}
       {joinModalOpen && (
         <div
@@ -1012,11 +1290,11 @@ export function TournamentTabs({
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-md bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-5">
+          <div className="w-full max-w-lg bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
               <div>
                 <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                  Inscrição Oficial · Check-in Automático
+                  Selecione o Escudo de sua Preferência
                 </span>
                 <h3 className="text-base font-bold text-[#f4f6fb]">
                   Inscrever-se em {tournament.name}
@@ -1040,7 +1318,7 @@ export function TournamentTabs({
             <form onSubmit={handleJoinTournament} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
-                  Competidor
+                  Competidor Autenticado
                 </label>
                 <div className="p-2.5 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]">
                   {currentUser?.nickname} ({currentUser?.email})
@@ -1048,32 +1326,45 @@ export function TournamentTabs({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
-                  Escolha seu Clube / Equipe
+                <label className="block text-xs font-medium text-[#b6c0d4] mb-2">
+                  Escolha seu Clube & Brasão Oficial
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={selectedClub}
-                  onChange={(e) => setSelectedClub(e.target.value)}
-                  placeholder="Ex: Real Madrid"
-                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
-                />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {POPULAR_CLUBS.map((club) => (
-                    <button
-                      key={club}
-                      type="button"
-                      onClick={() => setSelectedClub(club)}
-                      className={`px-2 py-1 rounded-[2px] text-[11px] transition-colors cursor-pointer ${
-                        selectedClub === club
-                          ? "bg-[#ffdc2b] text-[#0e1312] font-bold"
-                          : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb]"
-                      }`}
-                    >
-                      {club}
-                    </button>
-                  ))}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
+                  {POPULAR_CLUBS.map((club) => {
+                    const active = selectedClub === club;
+                    return (
+                      <button
+                        key={club}
+                        type="button"
+                        onClick={() => setSelectedClub(club)}
+                        className={`p-2.5 rounded-[4px] border text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                          active
+                            ? "bg-[#ffdc2b]/15 border-[#ffdc2b] text-[#f4f6fb]"
+                            : "bg-[#090c12] border-[#222c40] text-[#b6c0d4] hover:border-[#78849e]"
+                        }`}
+                      >
+                        <ClubCrest clubName={club} size="sm" />
+                        <span className="text-xs font-semibold truncate">
+                          {club}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-[11px] text-[#78849e] mb-1">
+                    Ou digite o nome de outro clube:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={selectedClub}
+                    onChange={(e) => setSelectedClub(e.target.value)}
+                    placeholder="Ex: Real Madrid"
+                    className="w-full h-9 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
+                  />
                 </div>
               </div>
 
@@ -1092,7 +1383,7 @@ export function TournamentTabs({
                 >
                   {isPending
                     ? "Confirmando no PostgreSQL..."
-                    : "Confirmar Inscrição & Check-in"}
+                    : "Confirmar Escudo & Inscrição"}
                 </button>
               </div>
             </form>
@@ -1111,14 +1402,17 @@ export function TournamentTabs({
         >
           <div className="w-full max-w-lg bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
-              <div>
-                <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                  Sala de Confronto · {chatMatch.label}
-                </span>
-                <h3 className="text-sm font-bold text-[#f4f6fb]">
-                  {chatMatch.homeNickname} ({chatMatch.homeClub}) ×{" "}
-                  {chatMatch.awayNickname} ({chatMatch.awayClub})
-                </h3>
+              <div className="flex items-center gap-2.5">
+                <ClubCrest clubName={chatMatch.homeClub} size="sm" />
+                <div>
+                  <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold block">
+                    Sala de Confronto · {chatMatch.label}
+                  </span>
+                  <h3 className="text-sm font-bold text-[#f4f6fb]">
+                    {chatMatch.homeNickname} × {chatMatch.awayNickname}
+                  </h3>
+                </div>
+                <ClubCrest clubName={chatMatch.awayClub} size="sm" />
               </div>
               <button
                 type="button"

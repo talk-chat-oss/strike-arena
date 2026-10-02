@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { getTournamentBySlug } from "@/lib/queries/tournaments";
 import { getCurrentUser } from "@/lib/auth";
+import { GAME_COVERS } from "@/lib/club-crests";
 import { TournamentStatusBadge } from "@/components/tournament/status-badge";
 import { TournamentTabs } from "@/components/tournament/tournament-tabs";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
 const FORMAT_LABELS: Record<string, string> = {
   groups_playoffs: "Fase de Grupos + Playoffs",
   round_robin: "Pontos Corridos",
-  single_elimination: "Mata-Mata Simples",
+  single_elimination: "Torneio Relâmpago (Mata-Mata)",
   double_elimination: "Eliminação Dupla",
 };
 
@@ -45,6 +46,8 @@ export default async function TournamentPage({
   }
 
   const { tournament, groups, participants, standings, matches, source } = data;
+  const gameVisual =
+    tournament.game === "ea_fc" ? GAME_COVERS.ea_fc : GAME_COVERS.efootball;
 
   const completedMatches = matches.filter(
     (m) => m.status === "completed" || m.status === "walkover"
@@ -79,41 +82,50 @@ export default async function TournamentPage({
         </ol>
       </nav>
 
-      {/* Tournament Operational Header */}
+      {/* Tournament Operational Header com Capa Oficial do Jogo */}
       <section className="bg-[#111622] border border-[#222c40] rounded-[4px] p-6 sm:p-8 space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2.5 max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <TournamentStatusBadge status={tournament.status} />
-              <span className="px-2.5 py-0.5 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-[11px] font-bold text-[#ffdc2b] uppercase">
-                {tournament.game === "ea_fc"
-                  ? "EA SPORTS FC 26"
-                  : "eFootball 2026"}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-[11px] text-[#b6c0d4]">
-                {PLATFORM_LABELS[tournament.platform] ?? tournament.platform}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[11px] text-[#4ade80]">
-                <Database className="w-3 h-3" />
-                {source === "postgres" ? "PG Live" : "Mock"}
-              </span>
+        <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="flex items-start gap-4 max-w-3xl">
+            <div className="hidden sm:block w-20 h-28 rounded-[4px] overflow-hidden border border-[#222c40] bg-[#090c12] shrink-0 shadow-md">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={gameVisual.coverUrl}
+                alt={gameVisual.title}
+                className="w-full h-full object-cover"
+              />
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#f4f6fb] tracking-tight">
-              {tournament.name}
-            </h1>
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <TournamentStatusBadge status={tournament.status} />
+                <span className="px-2.5 py-0.5 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-[11px] font-bold text-[#ffdc2b] uppercase">
+                  {gameVisual.title}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-[11px] text-[#b6c0d4]">
+                  {PLATFORM_LABELS[tournament.platform] ?? tournament.platform}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[11px] text-[#4ade80]">
+                  <Database className="w-3 h-3" />
+                  {source === "postgres" ? "PG Live" : "Mock"}
+                </span>
+              </div>
 
-            <p className="text-xs sm:text-sm text-[#b6c0d4]">
-              Formato:{" "}
-              <strong className="text-[#f4f6fb]">
-                {FORMAT_LABELS[tournament.format] ?? tournament.format}
-              </strong>{" "}
-              · Organizado por{" "}
-              <strong className="text-[#ffdc2b]">
-                {tournament.organizerNickname}
-              </strong>{" "}
-              (Super-Admin)
-            </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#f4f6fb] tracking-tight">
+                {tournament.name}
+              </h1>
+
+              <p className="text-xs sm:text-sm text-[#b6c0d4]">
+                Formato:{" "}
+                <strong className="text-[#f4f6fb]">
+                  {FORMAT_LABELS[tournament.format] ?? tournament.format}
+                </strong>{" "}
+                · Organizado por{" "}
+                <strong className="text-[#ffdc2b]">
+                  {tournament.organizerNickname}
+                </strong>{" "}
+                (Super-Admin)
+              </p>
+            </div>
           </div>
 
           {/* Prize Pool Highlight Box */}
@@ -178,7 +190,7 @@ export default async function TournamentPage({
         </div>
       </section>
 
-      {/* Interactive Tabs: Tabela, Chaveamento, Partidas & Match Hub, Regras */}
+      {/* Interactive Tabs: Tabela, Chaveamento, Partidas, Freguesômetro, Regras */}
       <TournamentTabs
         tournament={tournament}
         groups={groups}

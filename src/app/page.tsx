@@ -4,12 +4,44 @@ import {
   Swords,
   CheckCircle2,
   UserPlus,
+  Shield,
+  Zap,
+  Scale,
+  Award,
 } from "lucide-react";
 import { getAllTournaments } from "@/lib/queries/tournaments";
 import { getCurrentUser } from "@/lib/auth";
 import { TournamentShowcase } from "@/components/tournament/tournament-showcase";
+import { ClubCrest } from "@/lib/club-crests";
 
 export const dynamic = "force-dynamic";
+
+const GAMES_CATALOG = [
+  {
+    name: "EA SPORTS FC 26",
+    sub: "PS5 · Xbox Series · PC Crossplay",
+    cover: "https://api.arena17.com/uploads/jogos/39.jpg",
+    tag: "MAIS JOGADO",
+  },
+  {
+    name: "eFootball 2026",
+    sub: "Dream Team & Autenticidade",
+    cover: "https://api.arena17.com/uploads/jogos/38.jpg",
+    tag: "KONAMI OFICIAL",
+  },
+  {
+    name: "EA SPORTS FC 25",
+    sub: "Ligas Clássicas & Pro Clubs",
+    cover: "https://api.arena17.com/uploads/jogos/37.jpg",
+    tag: "LEGACY",
+  },
+  {
+    name: "eFootball 2025",
+    sub: "Copas e Divisões Online",
+    cover: "https://api.arena17.com/uploads/jogos/36.jpg",
+    tag: "LEGACY",
+  },
+];
 
 export default async function HomePage() {
   const [{ tournaments, source }, currentUser] = await Promise.all([
@@ -18,62 +50,120 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="space-y-12 pb-8">
-      {/* Hero Section — Kinetic Control Plane */}
+    <div className="space-y-14 pb-12">
+      {/* Hero Section — Kinetic Control Plane com Escudo Oficial + Preview de Confronto */}
       <section className="relative border-b border-[#222c40] kinetic-grid-bg py-14 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111622] border border-[#222c40] text-xs">
-              <span className="w-2 h-2 rounded-full bg-[#ffdc2b]" />
-              <span className="font-semibold text-[#ffdc2b]">
-                TEMPORADA 2026 ATIVA
-              </span>
-              <span className="text-[#78849e]">·</span>
-              <span className="text-[#b6c0d4]">
-                EA FC 26 & eFootball · Fonte:{" "}
-                {source === "postgres"
-                  ? "PostgreSQL Isolado (strike-arena-db)"
-                  : "Mock Fallback"}
-              </span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111622] border border-[#222c40] text-xs">
+                <span className="w-2 h-2 rounded-full bg-[#ffdc2b]" />
+                <span className="font-semibold text-[#ffdc2b]">
+                  TEMPORADA 2026 ATIVA
+                </span>
+                <span className="text-[#78849e]">·</span>
+                <span className="text-[#b6c0d4]">
+                  EA FC 26 & eFootball ·{" "}
+                  {source === "postgres"
+                    ? "PostgreSQL Isolado (strike-arena-db)"
+                    : "Mock Fallback"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-strike-arena.svg"
+                  alt="Strike Arena Escudo"
+                  className="w-14 h-14 sm:w-16 sm:h-16 shrink-0"
+                />
+                <h1 className="text-3xl sm:text-5xl font-bold text-[#f4f6fb] tracking-tight leading-[1.08]">
+                  A Arena Oficial de{" "}
+                  <span className="text-[#ffdc2b]">EA FC & eFootball</span>.
+                </h1>
+              </div>
+
+              <p className="text-sm sm:text-base text-[#b6c0d4] leading-relaxed max-w-2xl">
+                Escolha o escudo do seu clube, dispute ligas de pontos corridos,
+                grupos + mata-mata ou torneios relâmpago com Freguesômetro
+                (Head-to-Head), Ranking Fair Play e homologação por print.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Link
+                  href="/tournaments/strike-cup-eafc26-elite"
+                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                >
+                  <Swords className="w-4 h-4" />
+                  <span>Abrir Strike Arena Cup (Ao Vivo)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                {!currentUser ? (
+                  <Link
+                    href="/auth"
+                    className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4 text-[#ffdc2b]" />
+                    <span>Criar Conta / Escolher Escudo</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href="/organizer"
+                    className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                  >
+                    <span>Painel do Organizador</span>
+                  </Link>
+                )}
+              </div>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-bold text-[#f4f6fb] tracking-tight leading-[1.08]">
-              Controle total para ligas e torneios de{" "}
-              <span className="text-[#ffdc2b]">EA FC & eFootball</span>.
-            </h1>
+            {/* Card Destaque Ao Vivo com Brasões dos Clubes */}
+            <div className="lg:col-span-5 bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#ffdc2b]">
+                  Destaque da Rodada · Semifinal Ao Vivo
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-[#15a34a]/20 text-[#4ade80] text-[10px] font-bold">
+                  VALE R$ 500
+                </span>
+              </div>
 
-            <p className="text-sm sm:text-base text-[#b6c0d4] leading-relaxed max-w-2xl">
-              Tabelas automáticas no PostgreSQL, chaveamento dinâmico, check-in
-              pré-jogo e Match Hub com chat de partida, envio de comprovante de
-              placar (print) e mediação anti-fraude.
-            </p>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-2 tabular-nums">
+                <div className="flex flex-col items-center text-center gap-2">
+                  <ClubCrest clubName="Real Madrid" size="lg" />
+                  <div>
+                    <p className="text-xs font-bold text-[#f4f6fb]">
+                      ViniJr_FC
+                    </p>
+                    <p className="text-[11px] text-[#78849e]">Real Madrid</p>
+                  </div>
+                </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Link
-                href="/tournaments/strike-cup-eafc26-elite"
-                className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
-              >
-                <Swords className="w-4 h-4" />
-                <span>Abrir Strike Arena Cup (Ao Vivo)</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+                <div className="px-4 py-2 rounded-[4px] bg-[#090c12] border border-[#ffdc2b]/50 text-xl font-bold text-[#ffdc2b]">
+                  2 × 1
+                </div>
 
-              {!currentUser ? (
+                <div className="flex flex-col items-center text-center gap-2">
+                  <ClubCrest clubName="Paris Saint-Germain" size="lg" />
+                  <div>
+                    <p className="text-xs font-bold text-[#f4f6fb]">GuiPES_99</p>
+                    <p className="text-[11px] text-[#78849e]">PSG</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#192131] flex items-center justify-between text-xs">
+                <span className="text-[#78849e]">
+                  Aguardando homologação de print
+                </span>
                 <Link
-                  href="/auth"
-                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                  href="/tournaments/strike-cup-eafc26-elite"
+                  className="text-[#ffdc2b] font-bold hover:underline"
                 >
-                  <UserPlus className="w-4 h-4 text-[#ffdc2b]" />
-                  <span>Criar Conta de Jogador / Login</span>
+                  Ver Chaveamento →
                 </Link>
-              ) : (
-                <Link
-                  href="/organizer"
-                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
-                >
-                  <span>Painel do Organizador</span>
-                </Link>
-              )}
+              </div>
             </div>
           </div>
 
@@ -91,14 +181,14 @@ export default async function HomePage() {
                 sub: "Via PIX automatizado",
               },
               {
-                label: "Partidas Auditadas",
-                value: "100%",
-                sub: "Com print de placar",
+                label: "Escudos Oficiais",
+                value: "12+ Clubes",
+                sub: "Real, City, Barça, Fla...",
               },
               {
-                label: "Banco Dedicado",
-                value: "PG 16",
-                sub: "strike-arena-db :5433",
+                label: "Índice Fair Play",
+                value: "98.4%",
+                sub: "Anti-W.O. e Auditoria",
               },
             ].map((kpi) => (
               <div
@@ -118,7 +208,50 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Vitrine de Torneios com Filtros */}
+      {/* Seção: Jogos Mais Disputados (Capas Oficiais extraídas do Arena17) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
+            Modalidades Oficiais
+          </span>
+          <h2 className="text-xl font-bold text-[#f4f6fb] mt-0.5">
+            Jogos Mais Disputados na Plataforma
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {GAMES_CATALOG.map((g) => (
+            <Link
+              key={g.name}
+              href="/tournaments/strike-cup-eafc26-elite"
+              className="group bg-[#111622] border border-[#222c40] hover:border-[#ffdc2b] rounded-[4px] p-3.5 flex items-center gap-3.5 transition-colors"
+            >
+              <div className="w-14 h-20 rounded-[4px] overflow-hidden border border-[#222c40] bg-[#090c12] shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={g.cover}
+                  alt={g.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  loading="lazy"
+                />
+              </div>
+              <div className="space-y-1 min-w-0">
+                <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[#161d2c] text-[9px] font-bold text-[#ffdc2b]">
+                  {g.tag}
+                </span>
+                <h3 className="text-xs sm:text-sm font-bold text-[#f4f6fb] truncate">
+                  {g.name}
+                </h3>
+                <p className="text-[11px] text-[#78849e] leading-snug">
+                  {g.sub}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Vitrine de Torneios com Filtros e Brasões */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -126,7 +259,7 @@ export default async function HomePage() {
               Vitrine de Competições
             </span>
             <h2 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-0.5">
-              Torneios e Ligas Disponíveis
+              Torneios, Ligas e Copas Relâmpago
             </h2>
           </div>
 
@@ -137,6 +270,61 @@ export default async function HomePage() {
         </div>
 
         <TournamentShowcase tournaments={tournaments} />
+      </section>
+
+      {/* Recursos Exclusivos (Inspirados no Arena Virtual & Arena17) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
+            Ecossistema Completo de Futebol Virtual
+          </span>
+          <h2 className="text-xl font-bold text-[#f4f6fb] mt-0.5">
+            Tudo o que sua Liga Precisa em um Só Painel
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              icon: Shield,
+              title: "Escolha de Escudos Oficiais",
+              desc: "Jogue com os brasões de Real Madrid, Manchester City, Barcelona, PSG, Flamengo, Palmeiras e mais.",
+            },
+            {
+              icon: Scale,
+              title: "Freguesômetro (Head-to-Head)",
+              desc: "Compare qualquer dupla de jogadores da liga para ver quem tem mais vitórias, gols e saldo.",
+            },
+            {
+              icon: Zap,
+              title: "Torneios Relâmpago & Sorteio",
+              desc: "Crie copas rápidas mata-mata para jogar na mesma noite ou ligas com grupos e cruzamento olímpico.",
+            },
+            {
+              icon: Award,
+              title: "Índice Fair Play & Anti-W.O.",
+              desc: "Reputação automática por comparecimento, chat de partida auditado e homologação com print.",
+            },
+          ].map((feat) => {
+            const Icon = feat.icon;
+            return (
+              <div
+                key={feat.title}
+                className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-2.5"
+              >
+                <div className="w-9 h-9 rounded-[4px] bg-[#161d2c] border border-[#222c40] flex items-center justify-center text-[#ffdc2b]">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-[#f4f6fb]">
+                  {feat.title}
+                </h3>
+                <p className="text-xs text-[#78849e] leading-relaxed">
+                  {feat.desc}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Outer Shield -->
+  <path d="M32 4L8 14V30C8 45.5 18.2 58.6 32 62C45.8 58.6 56 45.5 56 30V14L32 4Z" fill="#133865" stroke="#FFDC2B" stroke-width="3"/>
+  <!-- Inner Shield Accent -->
+  <path d="M32 9L13 17.2V30C13 42.6 21.1 53.4 32 56.6C42.9 53.4 51 42.6 51 30V17.2L32 9Z" fill="#090C12"/>
+  <!-- Lightning / Strike Bolt S -->
+  <path d="M36 14L20 34H31L27 50L44 29H33L36 14Z" fill="#FFDC2B"/>
+</svg>

@@ -17,18 +17,21 @@ export async function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-[#090c12]/95 backdrop-blur-md border-b border-[#222c40]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
-        {/* Brand Logo (Kinetic Style) */}
+        {/* Brand Logo (Official Strike Arena Shield SVG) */}
         <div className="flex items-center gap-6">
           <Link
             href="/"
             className="inline-flex items-center gap-2.5 text-[#f4f6fb] font-semibold text-sm tracking-tight hover:opacity-90 transition-opacity"
           >
-            <span className="w-6 h-6 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-xs inline-flex items-center justify-center">
-              S
-            </span>
-            <span>STRIKE ARENA</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-strike-arena.svg"
+              alt="Strike Arena Logo"
+              className="w-7 h-7 object-contain"
+            />
+            <span className="font-bold tracking-wider">STRIKE ARENA</span>
             <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium rounded-full bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/30">
-              v0.2 LIVE
+              PRO LEAGUE
             </span>
           </Link>
 
@@ -45,7 +48,7 @@ export async function Navbar() {
                 1
               </span>
               <Trophy className="w-3.5 h-3.5" />
-              <span>Vitrine</span>
+              <span>Vitrine & Ligas</span>
             </Link>
 
             <Link
