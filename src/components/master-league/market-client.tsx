@@ -1,0 +1,925 @@
+"use client";
+
+import { useState, useEffect, useTransition } from "react";
+import Link from "next/link";
+import {
+  Gavel,
+  Flame,
+  ArrowLeftRight,
+  Clock,
+  ShieldAlert,
+  Search,
+  Wallet,
+  Check,
+  X,
+  Send,
+  Zap,
+} from "lucide-react";
+import type {
+  AthleteDTO,
+  ClubTeamDTO,
+  ContractRosterItemDTO,
+  AuctionDTO,
+  TransferProposalDTO,
+} from "@/lib/master-league-data";
+import {
+  payBuyoutClauseAction,
+  placeAuctionBidAction,
+  respondTransferProposalAction,
+  createTransferProposalAction,
+} from "@/app/actions/master-league-actions";
+import { ClubCrest } from "@/lib/club-crests";
+
+interface MarketClientProps {
+  athletes: AthleteDTO[];
+  clubs: ClubTeamDTO[];
+  contracts: ContractRosterItemDTO[];
+  auctions: AuctionDTO[];
+  proposals: TransferProposalDTO[];
+  initialClubId: string;
+}
+
+function formatMoney(val: number) {
+  if (val >= 1000000) return `$ ${(val / 1000000).toFixed(2)}M`;
+  if (val >= 1000) return `$ ${(val / 1000).toFixed(0)}K`;
+  return `$ ${val}`;
+}
+
+function formatCountdown(endsAtIso: string, nowMs: number) {
+  const diffSec = Math.max(
+    0,
+    Math.floor((new Date(endsAtIso).getTime() - nowMs) / 1000)
+  );
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+  const isAntiSniperWindow = diffSec > 0 && diffSec <= 120;
+
+  const formatted =
+    hrs > 0
+      ? `${String(hrs).padStart(2, "0")}:${String(mins).padStart(
+          2,
+          "0"
+        )}:${String(secs).padStart(2, "0")}`
+      : `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+
+  return { diffSec, formatted, isAntiSniperWindow };
+}
+
+export function MarketClient({
+  clubs,
+  contracts,
+  auctions,
+  proposals,
+  initialClubId,
+}: MarketClientProps) {
+  const [activeTab, setActiveTab] = useState<
+    "auctions" | "buyout" | "proposals"
+  >("auctions");
+  const [activeClubId, setActiveClubId] = useState(
+    initialClubId || clubs[0]?.id || ""
+  );
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  const [bidAmounts, setBidAmounts] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [minOverall, setMinOverall] = useState<number>(80);
+  const [posFilter, setPosFilter] = useState<string>("ALL");
+
+  // Formulário Nova Proposta de Troca
+  const [targetClubId, setTargetClubId] = useState<string>(
+    clubs.find((c) => c.id !== initialClubId)?.id ?? clubs[1]?.id ?? ""
+  );
+  const [offeredAthleteId, setOfferedAthleteId] = useState<string>("");
+  const [requestedAthleteId, setRequestedAthleteId] = useState<string>("");
+  const [cashOffer, setCashOffer] = useState<number>(1500000);
+
+  const [feedback, setFeedback] = useState<{
+    ok: boolean;
+    text: string;
+  } | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // Cronômetro Regressivo em Tempo Real (1s)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentClub =
+    clubs.find((c) => c.id === activeClubId) ?? clubs[0] ?? null;
+
+  const filteredContracts = contracts
+    .filter((c) => {
+      if (c.overall < minOverall) return false;
+      if (posFilter !== "ALL" && c.position !== posFilter) return false;
+      if (
+        searchQuery.trim() &&
+        !c.athleteName.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !c.clubName.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => b.overall - a.overall);
+
+  const myContracts = contracts.filter((c) => c.clubTeamId === activeClubId);
+  const targetClubContracts = contracts.filter(
+    (c) => c.clubTeamId === targetClubId
+  );
+
+  function handleQuickBid(auction: AuctionDTO) {
+    if (!currentClub) return;
+    const amount = bidAmounts[auction.id] ?? auction.currentBid + 250000;
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await placeAuctionBidAction({
+        auctionId: auction.id,
+        bidderClubId: currentClub.id,
+        bidAmount: amount,
+      });
+      setFeedback({
+        ok: res.ok,
+        text: res.ok ? res.message! : res.error!,
+      });
+    });
+  }
+
+  function handlePayBuyout(contract: ContractRosterItemDTO) {
+    if (!currentClub) return;
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await payBuyoutClauseAction({
+        contractId: contract.id,
+        buyerClubId: currentClub.id,
+      });
+      setFeedback({
+        ok: res.ok,
+        text: res.ok ? res.message! : res.error!,
+      });
+    });
+  }
+
+  function handleRespondProposal(
+    proposalId: string,
+    decision: "ACEITA" | "RECUSADA" | "CANCELADA"
+  ) {
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await respondTransferProposalAction({
+        proposalId,
+        decision,
+      });
+      setFeedback({
+        ok: res.ok,
+        text: res.ok ? res.message! : res.error!,
+      });
+    });
+  }
+
+  function handleCreateProposal(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentClub) return;
+    setFeedback(null);
+    startTransition(async () => {
+      const res = await createTransferProposalAction({
+        fromClubId: currentClub.id,
+        toClubId: targetClubId,
+        offeredAthleteId:
+          offeredAthleteId || myContracts[0]?.athleteId || "",
+        requestedAthleteId:
+          requestedAthleteId || targetClubContracts[0]?.athleteId || "",
+        cashAmount: cashOffer,
+      });
+      setFeedback({
+        ok: res.ok,
+        text: res.ok ? res.message! : res.error!,
+      });
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header do Mercado com Saldo do Clube Comprador Ativo */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
+              JANELA ABERTA
+            </span>
+            <span className="text-xs text-[#78849e]">
+              Transações Atômicas • Proteção Anti-Sniper (+2 min) • Multa à Vista
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1">
+            Central de Transferências & Leilões da Master Liga
+          </h1>
+        </div>
+
+        {currentClub && (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-2">
+              <ClubCrest clubName={currentClub.name} size="sm" />
+              <div>
+                <div className="text-[10px] text-[#78849e] uppercase font-bold">
+                  Operando no Mercado como:
+                </div>
+                <select
+                  value={activeClubId}
+                  onChange={(e) => {
+                    setActiveClubId(e.target.value);
+                    setFeedback(null);
+                  }}
+                  className="bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
+                >
+                  {clubs.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-[#111622]">
+                      {c.name} ({c.ownerNickname})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="bg-[#15a34a]/15 border border-[#15a34a]/40 rounded-[4px] px-3.5 py-2 flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-[#4ade80]" />
+              <div>
+                <div className="text-[10px] text-[#9aa5b8] uppercase font-bold">
+                  Saldo Livre p/ Lances & Multas
+                </div>
+                <div className="text-sm font-extrabold text-[#4ade80] tabular-nums">
+                  {formatMoney(currentClub.balance)}
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard"
+              className="px-3 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-semibold text-[#f4f6fb]"
+            >
+              Ver Meu Elenco
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Feedback Transacional */}
+      {feedback && (
+        <div
+          className={`p-3.5 rounded-[4px] border text-xs font-semibold flex items-center justify-between ${
+            feedback.ok
+              ? "bg-[#15a34a]/15 border-[#15a34a]/40 text-[#4ade80]"
+              : "bg-[#dc2626]/15 border-[#dc2626]/40 text-[#f87171]"
+          }`}
+        >
+          <span>{feedback.text}</span>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="text-[11px] underline ml-4 cursor-pointer"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
+
+      {/* 3 Abas do Mercado */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#222c40] pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab("auctions")}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+            activeTab === "auctions"
+              ? "bg-[#ffdc2b] text-[#0e1312]"
+              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+          }`}
+        >
+          <Gavel className="w-3.5 h-3.5" />
+          <span>1. Leilões Ativos (Anti-Sniper)</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
+            {auctions.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("buyout")}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+            activeTab === "buyout"
+              ? "bg-[#ffdc2b] text-[#0e1312]"
+              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+          }`}
+        >
+          <Flame className="w-3.5 h-3.5" />
+          <span>2. Multa Rescisória ("Roubar Jogador")</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
+            {contracts.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("proposals")}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+            activeTab === "proposals"
+              ? "bg-[#ffdc2b] text-[#0e1312]"
+              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+          }`}
+        >
+          <ArrowLeftRight className="w-3.5 h-3.5" />
+          <span>3. Propostas de Troca & Negociações</span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
+            {proposals.length}
+          </span>
+        </button>
+      </div>
+
+      {/* ABA 1: LEILÕES ATIVOS COM CRONÔMETRO E ANTI-SNIPER */}
+      {activeTab === "auctions" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {auctions.map((auc) => {
+            const { diffSec, formatted, isAntiSniperWindow } = formatCountdown(
+              auc.endsAt,
+              nowMs
+            );
+            const suggestedNextBid = auc.currentBid + 250000;
+            const currentInputBid = bidAmounts[auc.id] ?? suggestedNextBid;
+            const isWinning = auc.currentWinningClubId === currentClub?.id;
+
+            return (
+              <div
+                key={auc.id}
+                className={`bg-[#111622] border rounded-[4px] p-4 flex flex-col justify-between gap-4 ${
+                  isAntiSniperWindow
+                    ? "border-[#ffdc2b] shadow-[0_0_20px_rgba(255,220,43,0.12)]"
+                    : "border-[#222c40]"
+                }`}
+              >
+                <div>
+                  {/* Topo do Card de Leilão */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={auc.photoUrl}
+                        alt={auc.athleteName}
+                        className="w-12 h-12 rounded-full bg-[#1d2639] border border-[#2c3852] object-cover"
+                      />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] font-extrabold text-xs">
+                            OVR {auc.overall}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
+                            {auc.position}
+                          </span>
+                          <span className="text-[11px] text-[#78849e]">
+                            {auc.age} anos
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-[#f4f6fb] mt-1">
+                          {auc.athleteName}
+                        </h3>
+                        <p className="text-[11px] text-[#78849e]">
+                          Origem: {auc.defaultTeam} • Vendedor:{" "}
+                          {auc.sellerClubName}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Cronômetro Regressivo em Tempo Real */}
+                    <div
+                      className={`px-3 py-1.5 rounded-[4px] border text-right ${
+                        isAntiSniperWindow
+                          ? "bg-[#dc2626]/20 border-[#dc2626] text-[#f87171]"
+                          : "bg-[#090c12] border-[#222c40] text-[#f4f6fb]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-end gap-1 text-[10px] uppercase font-bold">
+                        <Clock className="w-3 h-3" />
+                        <span>
+                          {isAntiSniperWindow
+                            ? "ZONA ANTI-SNIPER"
+                            : "ENCERRA EM"}
+                        </span>
+                      </div>
+                      <div className="text-base font-mono font-extrabold tabular-nums">
+                        {diffSec > 0 ? formatted : "ENCERRADO"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {isAntiSniperWindow && (
+                    <div className="mt-3 px-3 py-1.5 rounded-[4px] bg-[#ffdc2b]/15 border border-[#ffdc2b]/40 text-[#ffdc2b] text-[11px] font-bold flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        Regra Anti-Sniper Ativa: Qualquer lance feito agora
+                        adiciona +02:00 ao relógio!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Maior Lance Atual e Líder */}
+                  <div className="mt-4 p-3 rounded-[4px] bg-[#0c1018] border border-[#1c2436] flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-[#78849e]">
+                        Lance Atual (Bloqueado em Escrow)
+                      </div>
+                      <div className="text-lg font-extrabold text-[#4ade80] tabular-nums">
+                        {formatMoney(auc.currentBid)}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase font-bold text-[#78849e]">
+                        Clube Vencendo
+                      </div>
+                      {auc.currentWinningClubName ? (
+                        <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                          <ClubCrest
+                            clubName={auc.currentWinningClubName}
+                            size="sm"
+                          />
+                          <span className="text-xs font-bold text-[#f4f6fb]">
+                            {auc.currentWinningClubName}
+                          </span>
+                          {isWinning && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-[#15a34a]/25 text-[#4ade80] text-[10px] font-bold">
+                              SEU CLUBE
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#78849e]">
+                          Sem lances
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Formulário de Lance Rápido */}
+                <div className="pt-2 border-t border-[#1c2436] space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
+                        Seu Lance ($ — Mínimo {formatMoney(suggestedNextBid)})
+                      </label>
+                      <input
+                        type="number"
+                        step={250000}
+                        min={auc.currentBid + 50000}
+                        value={currentInputBid}
+                        onChange={(e) =>
+                          setBidAmounts((prev) => ({
+                            ...prev,
+                            [auc.id]: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] tabular-nums focus:border-[#ffdc2b] focus:outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isPending || diffSec === 0}
+                      onClick={() => handleQuickBid(auc)}
+                      className="mt-4 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Dar Lance Rápido
+                    </button>
+                  </div>
+
+                  {/* Últimos lances do histórico */}
+                  {auc.bids.length > 0 && (
+                    <div className="text-[11px] text-[#78849e] flex items-center justify-between pt-1">
+                      <span>
+                        Últimos lances:{" "}
+                        {auc.bids
+                          .slice(0, 2)
+                          .map(
+                            (b) =>
+                              `${b.clubAcronym} (${formatMoney(b.bidAmount)})`
+                          )
+                          .join(" • ")}
+                      </span>
+                      <span>{auc.bids.length} lance(s)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ABA 2: MULTA RESCISÓRIA ("ROUBO DE JOGADOR") */}
+      {activeTab === "buyout" && (
+        <div className="space-y-4">
+          {/* Barra de Filtros */}
+          <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Buscar atleta ou clube detentor..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-1.5">
+                <span className="text-[11px] text-[#78849e] font-semibold">
+                  Overall Mínimo:
+                </span>
+                <select
+                  value={minOverall}
+                  onChange={(e) => setMinOverall(Number(e.target.value))}
+                  className="bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
+                >
+                  <option value={80} className="bg-[#111622]">
+                    80+ OVR (Todos)
+                  </option>
+                  <option value={85} className="bg-[#111622]">
+                    85+ OVR (Craques)
+                  </option>
+                  <option value={88} className="bg-[#111622]">
+                    88+ OVR (World Class)
+                  </option>
+                  <option value={90} className="bg-[#111622]">
+                    90+ OVR (Lendas)
+                  </option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-1.5">
+                <span className="text-[11px] text-[#78849e] font-semibold">
+                  Posição:
+                </span>
+                <select
+                  value={posFilter}
+                  onChange={(e) => setPosFilter(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL" className="bg-[#111622]">
+                    Todas
+                  </option>
+                  <option value="ATA" className="bg-[#111622]">
+                    ATA (Atacante)
+                  </option>
+                  <option value="PE" className="bg-[#111622]">
+                    PE / PD (Pontas)
+                  </option>
+                  <option value="MEI" className="bg-[#111622]">
+                    MEI (Meia Atacante)
+                  </option>
+                  <option value="MC" className="bg-[#111622]">
+                    MC / VOL (Meio-Campo)
+                  </option>
+                  <option value="ZAG" className="bg-[#111622]">
+                    ZAG (Defensor)
+                  </option>
+                  <option value="GOL" className="bg-[#111622]">
+                    GOL (Goleiro)
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-[#ffdc2b]">
+              <ShieldAlert className="w-4 h-4" />
+              <span>
+                Pagamento integral à vista transfere o atleta imediatamente!
+              </span>
+            </div>
+          </div>
+
+          {/* Tabela de Multas Rescisórias */}
+          <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#222c40] bg-[#0c1018] text-[11px] font-bold uppercase text-[#78849e]">
+                    <th className="py-3 px-4">Jogador</th>
+                    <th className="py-3 px-3 text-center">Posição</th>
+                    <th className="py-3 px-3 text-center">OVR</th>
+                    <th className="py-3 px-3">Clube Atual</th>
+                    <th className="py-3 px-3 text-right">Salário</th>
+                    <th className="py-3 px-3 text-right">Multa Rescisória</th>
+                    <th className="py-3 px-4 text-right">Ação Unilateral</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1c2436] text-xs">
+                  {filteredContracts.map((c) => {
+                    const isOwnPlayer = c.clubTeamId === currentClub?.id;
+                    const canAfford =
+                      (currentClub?.balance ?? 0) >= c.buyoutClause;
+
+                    return (
+                      <tr
+                        key={c.id}
+                        className="hover:bg-[#161d2c]/60 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={c.photoUrl}
+                              alt={c.athleteName}
+                              className="w-9 h-9 rounded-full bg-[#1d2639] border border-[#2c3852]"
+                            />
+                            <div>
+                              <div className="font-bold text-[#f4f6fb]">
+                                {c.athleteName}
+                              </div>
+                              <div className="text-[11px] text-[#78849e]">
+                                {c.age} anos • Base: {c.defaultTeam}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-3 text-center">
+                          <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
+                            {c.position}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
+                              c.overall >= 90
+                                ? "bg-[#ffdc2b] text-[#0e1312]"
+                                : "bg-[#1d2639] text-[#f4f6fb]"
+                            }`}
+                          >
+                            {c.overall}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2">
+                            <ClubCrest clubName={c.clubName} size="sm" />
+                            <div>
+                              <div className="font-semibold text-[#f4f6fb]">
+                                {c.clubName}
+                              </div>
+                              <div className="text-[10px] text-[#78849e]">
+                                Treinador: {c.ownerNickname}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-3 text-right tabular-nums text-[#b6c0d4]">
+                          {formatMoney(c.salary)}
+                        </td>
+
+                        <td className="py-3 px-3 text-right">
+                          <span className="font-extrabold text-[#ffdc2b] tabular-nums">
+                            {formatMoney(c.buyoutClause)}
+                          </span>
+                        </td>
+
+                        <td className="py-3 px-4 text-right">
+                          {isOwnPlayer ? (
+                            <span className="px-2.5 py-1 rounded-[4px] bg-[#161d2c] text-[#78849e] text-[11px] font-semibold">
+                              Seu Atleta
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isPending || !canAfford}
+                              onClick={() => handlePayBuyout(c)}
+                              title={
+                                canAfford
+                                  ? "Pagar multa integral à vista e contratar imediatamente"
+                                  : "Saldo insuficiente para cobrir a multa rescisória"
+                              }
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
+                                canAfford
+                                  ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
+                                  : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
+                              }`}
+                            >
+                              <Flame className="w-3.5 h-3.5" />
+                              <span>
+                                {canAfford
+                                  ? "Pagar Multa Rescisória"
+                                  : "Saldo Insuficiente"}
+                              </span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ABA 3: PAINEL DE PROPOSTAS DE TROCA RECEBIDAS E ENVIADAS */}
+      {activeTab === "proposals" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Lista de Propostas */}
+          <div className="lg:col-span-2 space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
+              Negociações Diretas & Trocas entre Clubes
+            </h2>
+
+            {proposals.map((p) => {
+              const isIncoming = p.toClubId === currentClub?.id;
+              const isOutgoing = p.fromClubId === currentClub?.id;
+
+              return (
+                <div
+                  key={p.id}
+                  className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase ${
+                          p.status === "PENDENTE"
+                            ? "bg-[#ffdc2b]/20 text-[#ffdc2b]"
+                            : p.status === "ACEITA"
+                            ? "bg-[#15a34a]/20 text-[#4ade80]"
+                            : "bg-[#dc2626]/20 text-[#f87171]"
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                      {isIncoming && (
+                        <span className="text-[11px] font-bold text-[#4ade80]">
+                          • Recebida pelo seu clube
+                        </span>
+                      )}
+                      {isOutgoing && (
+                        <span className="text-[11px] font-bold text-[#60a5fa]">
+                          • Enviada pelo seu clube
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                      <div className="flex items-center gap-1.5 font-bold text-[#f4f6fb]">
+                        <ClubCrest clubName={p.fromClubName} size="sm" />
+                        <span>{p.fromClubName} oferece:</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-[4px] bg-[#161d2c] text-[#ffdc2b] font-bold">
+                        {p.offeredAthletes.map((a) => a.name).join(", ") ||
+                          "Apenas Dinheiro"}
+                      </span>
+                      {p.cashAmount > 0 && (
+                        <span className="px-2 py-0.5 rounded-[4px] bg-[#15a34a]/20 text-[#4ade80] font-bold">
+                          + {formatMoney(p.cashAmount)} em caixa
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                      <div className="flex items-center gap-1.5 font-bold text-[#b6c0d4]">
+                        <ClubCrest clubName={p.toClubName} size="sm" />
+                        <span>Em troca de ({p.toClubName}):</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-[4px] bg-[#161d2c] text-[#60a5fa] font-bold">
+                        {p.requestedAthletes.map((a) => a.name).join(", ") ||
+                          "Liberação Direta"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {p.status === "PENDENTE" && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleRespondProposal(p.id, "ACEITA")}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#15a34a] hover:bg-[#15803d] text-white text-xs font-bold cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Aceitar Troca</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleRespondProposal(p.id, "RECUSADA")}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#dc2626]/20 hover:bg-[#dc2626]/30 border border-[#dc2626]/40 text-[#f87171] text-xs font-bold cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Recusar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Formulário: Propor Nova Troca */}
+          <form
+            onSubmit={handleCreateProposal}
+            className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 space-y-4 h-fit"
+          >
+            <h3 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb] flex items-center gap-2">
+              <Send className="w-4 h-4 text-[#ffdc2b]" />
+              <span>Enviar Nova Proposta de Troca</span>
+            </h3>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
+                Clube Destinatário
+              </label>
+              <select
+                value={targetClubId}
+                onChange={(e) => {
+                  setTargetClubId(e.target.value);
+                  setRequestedAthleteId("");
+                }}
+                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+              >
+                {clubs
+                  .filter((c) => c.id !== currentClub?.id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id} className="bg-[#111622]">
+                      {c.name} ({c.ownerNickname})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
+                Atleta Oferecido ({currentClub?.acronym})
+              </label>
+              <select
+                value={offeredAthleteId}
+                onChange={(e) => setOfferedAthleteId(e.target.value)}
+                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+              >
+                {myContracts.map((c) => (
+                  <option
+                    key={c.athleteId}
+                    value={c.athleteId}
+                    className="bg-[#111622]"
+                  >
+                    {c.athleteName} (OVR {c.overall})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
+                Atleta Solicitado do Adversário
+              </label>
+              <select
+                value={requestedAthleteId}
+                onChange={(e) => setRequestedAthleteId(e.target.value)}
+                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+              >
+                {targetClubContracts.map((c) => (
+                  <option
+                    key={c.athleteId}
+                    value={c.athleteId}
+                    className="bg-[#111622]"
+                  >
+                    {c.athleteName} (OVR {c.overall})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
+                Volta Financeira em Dinheiro ($)
+              </label>
+              <input
+                type="number"
+                step={250000}
+                min={0}
+                value={cashOffer}
+                onChange={(e) => setCashOffer(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer"
+            >
+              Enviar Proposta Oficial
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

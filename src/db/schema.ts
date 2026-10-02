@@ -5,6 +5,8 @@ import {
   varchar,
   text,
   integer,
+  boolean,
+  jsonb,
   timestamp,
   index,
   uniqueIndex,
@@ -67,6 +69,30 @@ export const matchStatusEnum = pgEnum("match_status", [
   "disputed",
   "walkover",
 ]);
+
+export const financialTxTypeEnum = pgEnum("financial_tx_type", [
+  "PREMIO_VITORIA",
+  "GOL_MARCADO",
+  "META_PATROCINADOR",
+  "TITULO",
+  "SALARIO_PAGO",
+  "TRANSFERENCIA",
+  "MULTA_PAGA",
+]);
+
+export const transferProposalStatusEnum = pgEnum("transfer_proposal_status", [
+  "PENDENTE",
+  "ACEITA",
+  "RECUSADA",
+  "CANCELADA",
+]);
+
+export const auctionStatusEnum = pgEnum("auction_status", [
+  "ATIVO",
+  "ENCERRADO",
+  "CANCELADO",
+]);
+
 
 // ============================================================================
 // 1. USERS / PROFILES
@@ -261,6 +287,12 @@ export const standings = pgTable(
 // 7. MATCHES & MATCH HUB MESSAGES
 // ============================================================================
 
+export interface MatchGoalScorer {
+  athleteId?: string;
+  athleteName: string;
+  goals: number;
+}
+
 export const matches = pgTable(
   "matches",
   {
@@ -283,8 +315,16 @@ export const matches = pgTable(
       () => participants.id,
       { onDelete: "set null" }
     ),
+    homeTeamId: uuid("home_team_id"),
+    awayTeamId: uuid("away_team_id"),
     homeScore: integer("home_score"),
     awayScore: integer("away_score"),
+    homeGoalsScorers: jsonb("home_goals_scorers")
+      .$type<MatchGoalScorer[]>()
+      .default([]),
+    awayGoalsScorers: jsonb("away_goals_scorers")
+      .$type<MatchGoalScorer[]>()
+      .default([]),
     winnerParticipantId: uuid("winner_participant_id").references(
       () => participants.id,
       { onDelete: "set null" }
@@ -330,6 +370,223 @@ export const matchMessages = pgTable(
 );
 
 // ============================================================================
+// 8. MASTER LIGA ONLINE: ATHLETES (Base Global de Jogadores de Futebol)
+// ============================================================================
+
+export const athletes = pgTable(
+  "athletes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 120 }).notNull(),
+    overall: integer("overall").default(80).notNull(),
+    position: varchar("position", { length: 16 }).notNull(), // ATA, PE, PD, MEI, MC, VOL, ZAG, LE, LD, GOL
+    age: integer("age").default(24).notNull(),
+    photoUrl: text("photo_url"),
+    defaultTeam: varchar("default_team", { length: 100 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("athletes_overall_idx").on(table.overall),
+    index("athletes_position_idx").on(table.position),
+  ]
+);
+
+// ============================================================================
+// 9. MASTER LIGA ONLINE: CLUB TEAMS (Times dos Usuários na Liga)
+// ============================================================================
+
+export const clubTeams = pgTable(
+  "club_teams",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leagueId: uuid("league_id").references(() => tournaments.id, {
+      onDelete: "set null",
+    }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    acronym: varchar("acronym", { length: 8 }).notNull(),
+    badgeUrl: text("badge_url"),
+    balance: integer("balance").default(25000000).notNull(), // Moeda virtual da liga ($ / R$)
+    isDelinquent: boolean("is_delinquent").default(false).notNull(), // Status de inadimplência/punição
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("club_teams_user_idx").on(table.userId),
+    index("club_teams_league_idx").on(table.leagueId),
+  ]
+);
+
+// ============================================================================
+// 10. MASTER LIGA ONLINE: CONTRACTS / ROSTER (Elenco do Clube)
+// ============================================================================
+
+export const contracts = pgTable(
+  "contracts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clubTeamId: uuid("club_team_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    salary: integer("salary").default(250000).notNull(), // Definido pelo treinador
+    buyoutClause: integer("buyout_clause").default(2500000).notNull(), // Multa rescisória proporcional (ex: 10x salário)
+    acquiredAt: timestamp("acquired_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("contracts_athlete_unique_idx").on(table.athleteId),
+    index("contracts_club_team_idx").on(table.clubTeamId),
+  ]
+);
+
+// ============================================================================
+// 11. MASTER LIGA ONLINE: FINANCIAL TRANSACTIONS (Fluxo de Caixa)
+// ============================================================================
+
+export const financialTransactions = pgTable(
+  "financial_transactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clubTeamId: uuid("club_team_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    type: financialTxTypeEnum("type").notNull(),
+    amount: integer("amount").notNull(), // Positivo (entrada) ou Negativo (saída)
+    description: text("description").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("financial_tx_club_idx").on(table.clubTeamId, table.createdAt),
+  ]
+);
+
+// ============================================================================
+// 12. MASTER LIGA ONLINE: TRANSFER PROPOSALS (Negociações Diretas e Trocas)
+// ============================================================================
+
+export const transferProposals = pgTable(
+  "transfer_proposals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fromClubId: uuid("from_club_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    toClubId: uuid("to_club_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    cashAmount: integer("cash_amount").default(0).notNull(),
+    offeredAthleteIds: jsonb("offered_athlete_ids")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    requestedAthleteIds: jsonb("requested_athlete_ids")
+      .$type<string[]>()
+      .default([])
+      .notNull(),
+    status: transferProposalStatusEnum("status").default("PENDENTE").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("transfer_proposals_from_idx").on(table.fromClubId),
+    index("transfer_proposals_to_idx").on(table.toClubId),
+    index("transfer_proposals_status_idx").on(table.status),
+  ]
+);
+
+// ============================================================================
+// 13. MASTER LIGA ONLINE: AUCTIONS & BIDS (Leilões Abertos com Anti-Sniper)
+// ============================================================================
+
+export const auctions = pgTable(
+  "auctions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    athleteId: uuid("athlete_id")
+      .notNull()
+      .references(() => athletes.id, { onDelete: "cascade" }),
+    sellerClubId: uuid("seller_club_id").references(() => clubTeams.id, {
+      onDelete: "set null",
+    }),
+    currentBid: integer("current_bid").default(1000000).notNull(),
+    currentWinningClubId: uuid("current_winning_club_id").references(
+      () => clubTeams.id,
+      { onDelete: "set null" }
+    ),
+    startsAt: timestamp("starts_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    status: auctionStatusEnum("status").default("ATIVO").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("auctions_status_ends_idx").on(table.status, table.endsAt),
+    index("auctions_athlete_idx").on(table.athleteId),
+  ]
+);
+
+export const auctionBids = pgTable(
+  "auction_bids",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    auctionId: uuid("auction_id")
+      .notNull()
+      .references(() => auctions.id, { onDelete: "cascade" }),
+    clubTeamId: uuid("club_team_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    bidAmount: integer("bid_amount").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("auction_bids_auction_idx").on(table.auctionId)]
+);
+
+// ============================================================================
+// 14. MASTER LIGA ONLINE: HEAD TO HEAD CACHE (Base do Freguesômetro)
+// ============================================================================
+
+export const headToHeadCache = pgTable(
+  "head_to_head_cache",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    teamAId: uuid("team_a_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    teamBId: uuid("team_b_id")
+      .notNull()
+      .references(() => clubTeams.id, { onDelete: "cascade" }),
+    winsA: integer("wins_a").default(0).notNull(),
+    winsB: integer("wins_b").default(0).notNull(),
+    draws: integer("draws").default(0).notNull(),
+    goalsA: integer("goals_a").default(0).notNull(),
+    goalsB: integer("goals_b").default(0).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("h2h_teams_unique_idx").on(table.teamAId, table.teamBId),
+  ]
+);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -337,6 +594,7 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   organizedTournaments: many(tournaments),
   participations: many(participants),
   captainedTeams: many(teams),
+  clubTeams: many(clubTeams),
 }));
 
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
@@ -348,6 +606,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   participants: many(participants),
   matches: many(matches),
   standings: many(standings),
+  clubTeams: many(clubTeams),
 }));
 
 export const tournamentGroupsRelations = relations(
@@ -420,6 +679,16 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     references: [participants.id],
     relationName: "awayParticipant",
   }),
+  homeClubTeam: one(clubTeams, {
+    fields: [matches.homeTeamId],
+    references: [clubTeams.id],
+    relationName: "homeClubTeam",
+  }),
+  awayClubTeam: one(clubTeams, {
+    fields: [matches.awayTeamId],
+    references: [clubTeams.id],
+    relationName: "awayClubTeam",
+  }),
   winnerParticipant: one(participants, {
     fields: [matches.winnerParticipantId],
     references: [participants.id],
@@ -431,3 +700,93 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
   }),
   messages: many(matchMessages),
 }));
+
+export const athletesRelations = relations(athletes, ({ many }) => ({
+  contracts: many(contracts),
+  auctions: many(auctions),
+}));
+
+export const clubTeamsRelations = relations(clubTeams, ({ one, many }) => ({
+  league: one(tournaments, {
+    fields: [clubTeams.leagueId],
+    references: [tournaments.id],
+  }),
+  user: one(profiles, {
+    fields: [clubTeams.userId],
+    references: [profiles.id],
+  }),
+  contracts: many(contracts),
+  transactions: many(financialTransactions),
+  sentProposals: many(transferProposals, { relationName: "sentProposals" }),
+  receivedProposals: many(transferProposals, {
+    relationName: "receivedProposals",
+  }),
+  bids: many(auctionBids),
+}));
+
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  clubTeam: one(clubTeams, {
+    fields: [contracts.clubTeamId],
+    references: [clubTeams.id],
+  }),
+  athlete: one(athletes, {
+    fields: [contracts.athleteId],
+    references: [athletes.id],
+  }),
+}));
+
+export const financialTransactionsRelations = relations(
+  financialTransactions,
+  ({ one }) => ({
+    clubTeam: one(clubTeams, {
+      fields: [financialTransactions.clubTeamId],
+      references: [clubTeams.id],
+    }),
+  })
+);
+
+export const transferProposalsRelations = relations(
+  transferProposals,
+  ({ one }) => ({
+    fromClub: one(clubTeams, {
+      fields: [transferProposals.fromClubId],
+      references: [clubTeams.id],
+      relationName: "sentProposals",
+    }),
+    toClub: one(clubTeams, {
+      fields: [transferProposals.toClubId],
+      references: [clubTeams.id],
+      relationName: "receivedProposals",
+    }),
+  })
+);
+
+export const auctionsRelations = relations(auctions, ({ one, many }) => ({
+  athlete: one(athletes, {
+    fields: [auctions.athleteId],
+    references: [athletes.id],
+  }),
+  sellerClub: one(clubTeams, {
+    fields: [auctions.sellerClubId],
+    references: [clubTeams.id],
+    relationName: "sellerClub",
+  }),
+  currentWinningClub: one(clubTeams, {
+    fields: [auctions.currentWinningClubId],
+    references: [clubTeams.id],
+    relationName: "currentWinningClub",
+  }),
+  bids: many(auctionBids),
+}));
+
+export const auctionBidsRelations = relations(auctionBids, ({ one }) => ({
+  auction: one(auctions, {
+    fields: [auctionBids.auctionId],
+    references: [auctions.id],
+  }),
+  clubTeam: one(clubTeams, {
+    fields: [auctionBids.clubTeamId],
+    references: [clubTeams.id],
+  }),
+}));
+

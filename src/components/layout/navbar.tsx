@@ -7,6 +7,8 @@ import {
   Database,
   UserPlus,
   UserCheck,
+  Gavel,
+  Briefcase,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -18,7 +20,7 @@ export async function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-[#090c12]/95 backdrop-blur-md border-b border-[#222c40]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
         {/* Brand Logo (Official Strike Arena Shield SVG) */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-5">
           <Link
             href="/"
             className="inline-flex items-center gap-2.5 text-[#f4f6fb] font-semibold text-sm tracking-tight hover:opacity-90 transition-opacity"
@@ -31,7 +33,7 @@ export async function Navbar() {
             />
             <span className="font-bold tracking-wider">STRIKE ARENA</span>
             <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium rounded-full bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/30">
-              PRO LEAGUE
+              MASTER LIGA
             </span>
           </Link>
 
@@ -48,18 +50,40 @@ export async function Navbar() {
                 1
               </span>
               <Trophy className="w-3.5 h-3.5" />
-              <span>Vitrine & Ligas</span>
+              <span>Ligas</span>
             </Link>
 
             <Link
-              href="/tournaments/strike-cup-eafc26-elite"
+              href="/dashboard"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
             >
               <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
                 2
               </span>
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Meu Clube (Elenco)</span>
+            </Link>
+
+            <Link
+              href="/market"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
+            >
+              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
+                3
+              </span>
+              <Gavel className="w-3.5 h-3.5" />
+              <span>Mercado & Leilões</span>
+            </Link>
+
+            <Link
+              href="/freguesometro"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
+            >
+              <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
+                4
+              </span>
               <Swords className="w-3.5 h-3.5" />
-              <span>Strike Cup (Ao Vivo)</span>
+              <span>Freguesômetro & Súmula</span>
             </Link>
 
             <Link
@@ -67,7 +91,7 @@ export async function Navbar() {
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c] transition-colors"
             >
               <span className="w-4 h-4 rounded-[2px] bg-[#1d2639] text-[#ffdc2b] text-[10px] font-bold inline-flex items-center justify-center">
-                3
+                5
               </span>
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span>Organizador</span>
