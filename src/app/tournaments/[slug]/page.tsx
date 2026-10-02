@@ -9,6 +9,7 @@ import {
   Database,
 } from "lucide-react";
 import { getTournamentBySlug } from "@/lib/queries/tournaments";
+import { getCurrentUser } from "@/lib/auth";
 import { TournamentStatusBadge } from "@/components/tournament/status-badge";
 import { TournamentTabs } from "@/components/tournament/tournament-tabs";
 
@@ -34,7 +35,10 @@ export default async function TournamentPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const data = await getTournamentBySlug(slug);
+  const [data, currentUser] = await Promise.all([
+    getTournamentBySlug(slug),
+    getCurrentUser(),
+  ]);
 
   if (!data) {
     notFound();
@@ -181,6 +185,7 @@ export default async function TournamentPage({
         participants={participants}
         standings={standings}
         matches={matches}
+        currentUser={currentUser}
       />
     </div>
   );

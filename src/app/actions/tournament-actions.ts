@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
 import { SUPER_ADMIN_ID, isSuperAdmin } from "@/db";
+import { getCurrentUser } from "@/lib/auth";
 import {
   submitMatchScoreSchema,
   resolveMatchDisputeSchema,
@@ -145,6 +146,9 @@ export async function submitMatchScoreAction(rawInput: {
   } = parsed.data;
 
   try {
+    const sessionUser = await getCurrentUser();
+    const actorId = sessionUser?.id ?? rawInput.actorUserId;
+
     const { data: existingMatch, error: findErr } = await supabaseAdmin
       .from("matches")
       .select("*")
@@ -165,9 +169,13 @@ export async function submitMatchScoreAction(rawInput: {
     // Super-Admin SPOOKY tem aprovação imediata se desejar
     const newStatus = requestWalkover
       ? "disputed"
-      : isSuperAdmin(rawInput.actorUserId)
+      : isSuperAdmin(actorId) || sessionUser?.role === "organizer"
       ? "completed"
       : "awaiting_confirmation";
+
+    const reporterLabel = sessionUser
+      ? `[Reportado por ${sessionUser.nickname}] `
+      : "";
 
     const { error: updErr } = await supabaseAdmin
       .from("matches")
@@ -176,10 +184,10 @@ export async function submitMatchScoreAction(rawInput: {
         away_score: awayScore,
         winner_participant_id: winnerId,
         proof_url: proofUrl,
-        notes: notes || "Placar reportado via Match Hub.",
+        notes: `${reporterLabel}${notes || "Placar reportado via Match Hub."}`,
         status: newStatus,
         played_at: new Date().toISOString(),
-        reported_by_id: rawInput.actorUserId ?? SUPER_ADMIN_ID,
+        reported_by_id: actorId ?? SUPER_ADMIN_ID,
       })
       .eq("id", matchId);
 
@@ -198,7 +206,7 @@ export async function submitMatchScoreAction(rawInput: {
       status: newStatus,
       message:
         newStatus === "completed"
-          ? "Placar homologado imediatamente (Super-Admin SPOOKY) e tabela recalculada!"
+          ? "Placar homologado imediatamente e tabela recalculada no PostgreSQL!"
           : requestWalkover
           ? "Pedido de W.O. registrado com comprovante e enviado para mediação."
           : "Placar e comprovante enviados! Aguardando confirmação do adversário ou homologação.",
@@ -325,12 +333,15 @@ export async function createTournamentAction(rawInput: {
   }
 
   try {
+    const sessionUser = await getCurrentUser();
+    const organizerId = sessionUser?.id ?? SUPER_ADMIN_ID;
+
     const { data: inserted, error } = await supabaseAdmin
       .from("tournaments")
       .insert({
         name: parsed.data.name,
         slug: parsed.data.slug,
-        organizer_id: SUPER_ADMIN_ID,
+        organizer_id: organizerId,
         game: parsed.data.game,
         platform: parsed.data.platform,
         format: parsed.data.format,
@@ -348,13 +359,29 @@ export async function createTournamentAction(rawInput: {
       throw new Error(error?.message ?? "Erro ao inserir torneio.");
     }
 
+    // Criar Grupos A e B automaticamente
+    await supabaseAdmin.from("tournament_groups").insert([
+      {
+        tournament_id: inserted.id,
+        name: "Grupo A",
+        code: "A",
+        display_order: 1,
+      },
+      {
+        tournament_id: inserted.id,
+        name: "Grupo B",
+        code: "B",
+        display_order: 2,
+      },
+    ]);
+
     revalidatePath("/");
     revalidatePath("/organizer");
 
     return {
       ok: true,
       slug: inserted.slug,
-      message: `Torneio "${inserted.name}" publicado com sucesso!`,
+      message: `Torneio "${inserted.name}" publicado com Grupos A & B prontos para inscrição!`,
     };
   } catch (err) {
     return {
@@ -363,6 +390,231 @@ export async function createTournamentAction(rawInput: {
         err instanceof Error
           ? err.message
           : "Erro ao criar torneio (verifique se o slug já existe).",
+    };
+  }
+}
+
+/**
+ * Inscreve o jogador logado no torneio, aloca automaticamente no Grupo A ou B
+ * e cria seu registro na tabela de classificação (standings).
+ */
+export async function joinTournamentAction(input: {
+  tournamentId: string;
+  tournamentSlug: string;
+  clubName: string;
+}) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return {
+      ok: false,
+      requireAuth: true,
+      error: "Faça login ou crie sua conta para se inscrever neste torneio.",
+    };
+  }
+
+  const club = input.clubName.trim();
+  if (club.length < 2) {
+    return { ok: false, error: "Informe o nome do seu Clube/Time." };
+  }
+
+  try {
+    // Verificar se já está inscrito
+    const { data: existing } = await supabaseAdmin
+      .from("participants")
+      .select("id")
+      .eq("tournament_id", input.tournamentId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      return {
+        ok: false,
+        error: `Você (${user.nickname}) já está inscrito neste torneio!`,
+      };
+    }
+
+    // Buscar grupos do torneio (ou criar Grupo A e B se não existirem)
+    let { data: groups } = await supabaseAdmin
+      .from("tournament_groups")
+      .select("*")
+      .eq("tournament_id", input.tournamentId)
+      .order("display_order", { ascending: true });
+
+    if (!groups || groups.length === 0) {
+      const { data: createdGroups } = await supabaseAdmin
+        .from("tournament_groups")
+        .insert([
+          {
+            tournament_id: input.tournamentId,
+            name: "Grupo A",
+            code: "A",
+            display_order: 1,
+          },
+          {
+            tournament_id: input.tournamentId,
+            name: "Grupo B",
+            code: "B",
+            display_order: 2,
+          },
+        ])
+        .select();
+      groups = createdGroups ?? [];
+    }
+
+    // Contar participantes atuais para balancear entre Grupo A e Grupo B
+    const { data: currentParts } = await supabaseAdmin
+      .from("participants")
+      .select("id, group_id")
+      .eq("tournament_id", input.tournamentId);
+
+    const totalCount = currentParts?.length ?? 0;
+    const targetGroup =
+      groups && groups.length > 0
+        ? groups[totalCount % groups.length]
+        : null;
+
+    const { data: newParticipant, error: partErr } = await supabaseAdmin
+      .from("participants")
+      .insert({
+        tournament_id: input.tournamentId,
+        user_id: user.id,
+        group_id: targetGroup?.id ?? null,
+        seed: totalCount + 1,
+        club_name: club,
+        checkin_status: "checked_in",
+        checked_in_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (partErr || !newParticipant) {
+      throw new Error(partErr?.message ?? "Falha ao registrar inscrição.");
+    }
+
+    // Criar linha inicial na tabela de classificação (standings)
+    await supabaseAdmin.from("standings").insert({
+      tournament_id: input.tournamentId,
+      group_id: targetGroup?.id ?? null,
+      participant_id: newParticipant.id,
+      points: 0,
+      matches_played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goals_for: 0,
+      goals_against: 0,
+      goal_difference: 0,
+    });
+
+    revalidatePath(`/tournaments/${input.tournamentSlug}`);
+    revalidatePath("/");
+
+    return {
+      ok: true,
+      message: `Inscrição confirmada! ${user.nickname} (${club}) alocado no ${
+        targetGroup?.name ?? "Torneio"
+      } com Check-in ativo.`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Erro ao processar inscrição.",
+    };
+  }
+}
+
+export async function toggleCheckinAction(input: {
+  participantId: string;
+  tournamentSlug: string;
+  currentStatus: string;
+}) {
+  try {
+    const nextStatus =
+      input.currentStatus === "checked_in" ? "pending" : "checked_in";
+
+    const { error } = await supabaseAdmin
+      .from("participants")
+      .update({
+        checkin_status: nextStatus,
+        checked_in_at:
+          nextStatus === "checked_in" ? new Date().toISOString() : null,
+      })
+      .eq("id", input.participantId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/tournaments/${input.tournamentSlug}`);
+    return {
+      ok: true,
+      nextStatus,
+      message:
+        nextStatus === "checked_in"
+          ? "Check-in pré-jogo confirmado!"
+          : "Status alterado para Pendente.",
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro ao atualizar check-in.",
+    };
+  }
+}
+
+export async function getMatchMessagesAction(matchId: string) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("match_messages")
+      .select("id, match_id, sender_id, content, created_at, sender:profiles!sender_id(nickname, role)")
+      .eq("match_id", matchId)
+      .order("created_at", { ascending: true });
+
+    if (error || !data) return [];
+
+    return data.map((row) => {
+      const s = Array.isArray(row.sender) ? row.sender[0] : row.sender;
+      return {
+        id: row.id,
+        matchId: row.match_id,
+        senderNickname: s?.nickname ?? "Jogador",
+        senderRole: s?.role ?? "player",
+        content: row.content,
+        createdAt: row.created_at,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function sendMatchMessageAction(input: {
+  matchId: string;
+  tournamentSlug: string;
+  content: string;
+}) {
+  const user = await getCurrentUser();
+  const senderId = user?.id ?? SUPER_ADMIN_ID;
+  const text = input.content.trim();
+
+  if (!text) {
+    return { ok: false, error: "Digite uma mensagem." };
+  }
+
+  try {
+    const { error } = await supabaseAdmin.from("match_messages").insert({
+      match_id: input.matchId,
+      sender_id: senderId,
+      content: text,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/tournaments/${input.tournamentSlug}`);
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Erro ao enviar mensagem.",
     };
   }
 }

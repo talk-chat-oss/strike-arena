@@ -5,9 +5,15 @@ import {
   Swords,
   LayoutDashboard,
   Database,
+  UserPlus,
+  UserCheck,
 } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
 
-export function Navbar() {
+export async function Navbar() {
+  const user = await getCurrentUser();
+  const canManage = user?.isSuperAdmin || user?.role === "organizer";
+
   return (
     <header className="sticky top-0 z-50 w-full bg-[#090c12]/95 backdrop-blur-md border-b border-[#222c40]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
@@ -22,7 +28,7 @@ export function Navbar() {
             </span>
             <span>STRIKE ARENA</span>
             <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium rounded-full bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/30">
-              v0.1 MVP
+              v0.2 LIVE
             </span>
           </Link>
 
@@ -66,34 +72,57 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right Operational Telemetry & Super-Admin Badge */}
+        {/* Right Operational Telemetry & User Identity */}
         <div className="flex items-center gap-2.5">
           <div
-            title="Instância PostgreSQL dedicada no deathstar-server (porta 5433)"
+            title="Instância PostgreSQL isolada no deathstar-server (porta 5433)"
             className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#111622] border border-[#222c40] text-[11px] text-[#78849e]"
           >
             <span className="w-2 h-2 rounded-full bg-[#15a34a]" />
             <Database className="w-3 h-3 text-[#4ade80]" />
-            <span>deathstar:5433</span>
+            <span>strike-db:5433</span>
           </div>
 
-          <div
-            title="Super-Admin ID: 80193776-6790-457c-906d-ed45ea16df9f"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#133865]/40 border border-[#1c4d8a] text-xs font-medium text-[#f4f6fb]"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#ffdc2b]" />
-            <span>SPOOKY</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#ffdc2b] text-[#0e1312] font-bold">
-              ROOT
-            </span>
-          </div>
+          {user ? (
+            <>
+              <Link
+                href="/auth"
+                title="Clique para trocar de conta ou sair"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#133865]/40 hover:bg-[#133865]/60 border border-[#1c4d8a] text-xs font-medium text-[#f4f6fb] transition-colors"
+              >
+                {user.isSuperAdmin ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#ffdc2b]" />
+                ) : (
+                  <UserCheck className="w-3.5 h-3.5 text-[#4ade80]" />
+                )}
+                <span>{user.nickname}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#ffdc2b] text-[#0e1312] font-bold uppercase">
+                  {user.isSuperAdmin
+                    ? "ROOT"
+                    : user.role === "organizer"
+                    ? "ORG"
+                    : "PLAYER"}
+                </span>
+              </Link>
 
-          <Link
-            href="/organizer"
-            className="inline-flex items-center justify-center min-h-9 px-3 py-1.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-semibold text-xs transition-colors"
-          >
-            + Criar Torneio
-          </Link>
+              {canManage && (
+                <Link
+                  href="/organizer"
+                  className="hidden sm:inline-flex items-center justify-center min-h-9 px-3 py-1.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-semibold text-xs transition-colors"
+                >
+                  + Criar Torneio
+                </Link>
+              )}
+            </>
+          ) : (
+            <Link
+              href="/auth"
+              className="inline-flex items-center justify-center gap-1.5 min-h-9 px-3.5 py-1.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Entrar / Criar Conta</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

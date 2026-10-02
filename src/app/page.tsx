@@ -1,34 +1,21 @@
 import Link from "next/link";
 import {
-  Trophy,
-  Gamepad2,
-  Users,
   ArrowRight,
-  ShieldCheck,
   Swords,
   CheckCircle2,
+  UserPlus,
 } from "lucide-react";
 import { getAllTournaments } from "@/lib/queries/tournaments";
-import { TournamentStatusBadge } from "@/components/tournament/status-badge";
+import { getCurrentUser } from "@/lib/auth";
+import { TournamentShowcase } from "@/components/tournament/tournament-showcase";
 
 export const dynamic = "force-dynamic";
 
-const FORMAT_LABELS: Record<string, string> = {
-  groups_playoffs: "Fase de Grupos + Playoffs",
-  round_robin: "Pontos Corridos",
-  single_elimination: "Mata-Mata Simples",
-  double_elimination: "Eliminação Dupla",
-};
-
-const PLATFORM_LABELS: Record<string, string> = {
-  crossplay: "Crossplay (PS5 / Xbox / PC)",
-  ps5: "PlayStation 5",
-  xbox: "Xbox Series X|S",
-  pc: "PC (EA App / Steam)",
-};
-
 export default async function HomePage() {
-  const { tournaments, source } = await getAllTournaments();
+  const [{ tournaments, source }, currentUser] = await Promise.all([
+    getAllTournaments(),
+    getCurrentUser(),
+  ]);
 
   return (
     <div className="space-y-12 pb-8">
@@ -45,7 +32,7 @@ export default async function HomePage() {
               <span className="text-[#b6c0d4]">
                 EA FC 26 & eFootball · Fonte:{" "}
                 {source === "postgres"
-                  ? "PostgreSQL (deathstar:5433)"
+                  ? "PostgreSQL Isolado (strike-arena-db)"
                   : "Mock Fallback"}
               </span>
             </div>
@@ -57,8 +44,8 @@ export default async function HomePage() {
 
             <p className="text-sm sm:text-base text-[#b6c0d4] leading-relaxed max-w-2xl">
               Tabelas automáticas no PostgreSQL, chaveamento dinâmico, check-in
-              pré-jogo e Match Hub com envio de comprovante de placar (print) e
-              mediação anti-fraude.
+              pré-jogo e Match Hub com chat de partida, envio de comprovante de
+              placar (print) e mediação anti-fraude.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -67,16 +54,26 @@ export default async function HomePage() {
                 className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
               >
                 <Swords className="w-4 h-4" />
-                <span>Abrir Strike Arena Cup (8 Players / 2 Grupos)</span>
+                <span>Abrir Strike Arena Cup (Ao Vivo)</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
-              <Link
-                href="/organizer"
-                className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
-              >
-                <span>Painel do Organizador</span>
-              </Link>
+              {!currentUser ? (
+                <Link
+                  href="/auth"
+                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4 text-[#ffdc2b]" />
+                  <span>Criar Conta de Jogador / Login</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/organizer"
+                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                >
+                  <span>Painel do Organizador</span>
+                </Link>
+              )}
             </div>
           </div>
 
@@ -121,7 +118,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Vitrine de Torneios */}
+      {/* Vitrine de Torneios com Filtros */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -139,98 +136,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {tournaments.map((t) => (
-            <div
-              key={t.id}
-              className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 flex flex-col justify-between gap-5 hover:border-[#ffdc2b]/60 transition-colors"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-[11px] font-bold text-[#ffdc2b] uppercase">
-                    {t.game === "ea_fc" ? "EA SPORTS FC 26" : "eFootball 2026"}
-                  </span>
-                  <TournamentStatusBadge status={t.status} />
-                </div>
-
-                <h3 className="text-base font-bold text-[#f4f6fb] leading-snug">
-                  {t.name}
-                </h3>
-
-                <div className="space-y-1.5 text-xs text-[#78849e] pt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Gamepad2 className="w-3.5 h-3.5 text-[#b6c0d4]" />
-                      Plataforma:
-                    </span>
-                    <span className="text-[#f4f6fb] font-medium">
-                      {PLATFORM_LABELS[t.platform] ?? t.platform}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Trophy className="w-3.5 h-3.5 text-[#ffdc2b]" />
-                      Formato:
-                    </span>
-                    <span className="text-[#f4f6fb] font-medium">
-                      {FORMAT_LABELS[t.format] ?? t.format}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between tabular-nums">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-[#b6c0d4]" />
-                      Vagas / Check-in:
-                    </span>
-                    <span className="text-[#f4f6fb] font-semibold">
-                      {t.currentParticipants} / {t.maxParticipants} inscritos
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#4ade80]" />
-                      Organizador:
-                    </span>
-                    <span className="text-[#f4f6fb] font-semibold">
-                      {t.organizerNickname}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-[#192131] space-y-3">
-                <div className="flex items-baseline justify-between tabular-nums">
-                  <div>
-                    <span className="text-[10px] uppercase text-[#78849e] block">
-                      Inscrição
-                    </span>
-                    <span className="text-xs font-semibold text-[#b6c0d4]">
-                      {t.entryFeeBrl > 0 ? `R$ ${t.entryFeeBrl},00` : "Gratuita"}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase text-[#78849e] block">
-                      Premiação Total
-                    </span>
-                    <span className="text-base font-bold text-[#ffdc2b]">
-                      R$ {t.prizePoolBrl},00
-                    </span>
-                  </div>
-                </div>
-
-                <Link
-                  href={`/tournaments/${t.slug}`}
-                  className="w-full min-h-10 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs inline-flex items-center justify-center gap-2 transition-colors"
-                >
-                  <span>Acessar Central do Torneio</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+        <TournamentShowcase tournaments={tournaments} />
       </section>
     </div>
   );
