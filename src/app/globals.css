@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+:root {
+  /* ==========================================================================
+   * KINETIC DARK ADAPTATION — STRIKE ARENA TOKENS
+   * Dense technical UI · JetBrains Mono · Kinetic Yellow (#FFDC2B) · 4px Radius
+   * ========================================================================== */
+
+  /* Typography & Text Hierarchy (Dark Mode Operational) */
+  --color-heading: #f4f6fb;
+  --color-body: #b6c0d4;
+  --color-body-subtle: #78849e;
+  --color-ink-on-brand: #0e1312;
+  --color-white: #ffffff;
+  --color-fg-disabled: #4e586e;
+
+  /* Primary Brand Ramp (Kinetic Yellow) */
+  --color-brand: #ffdc2b;
+  --color-brand-softer: rgba(255, 220, 43, 0.1);
+  --color-brand-soft: rgba(255, 220, 43, 0.2);
+  --color-brand-medium: #fce588;
+  --color-brand-strong: #d4a017;
+
+  /* Deep Navy Technical Accents */
+  --color-fg-brand: #ffdc2b;
+  --color-fg-brand-navy: #669df6;
+  --color-dark: #133865;
+  --color-dark-soft: #1c4d8a;
+  --color-dark-strong: #0c2546;
+
+  /* Uniform Dark Surfaces & Lifted Borderless Cards */
+  --color-canvas: #090c12;                /* Uniform page & section background */
+  --color-surface-card: #111622;          /* Lifted flat cards, modals, tables */
+  --color-surface-elevated: #161d2c;      /* Tertiary fills, inputs, hover states */
+  --color-surface-subtle: #1d2639;        /* Code headers, keycaps, pills */
+  --color-border-default: #222c40;        /* Crisp 1px structural hairline */
+  --color-border-subtle: #192131;
+
+  /* Semantic Status Hues (State only, never decoration) */
+  --color-success: #15a34a;
+  --color-fg-success: #4ade80;
+  --color-success-soft: rgba(21, 163, 74, 0.14);
+
+  --color-warning: #f97316;
+  --color-fg-warning: #fb923c;
+  --color-warning-soft: rgba(249, 115, 22, 0.14);
+
+  --color-danger: #be123c;
+  --color-fg-danger: #fb7185;
+  --color-danger-soft: rgba(190, 18, 60, 0.16);
+
+  /* Geometry (Strict Kinetic 4px scale) */
+  --radius-none: 0px;
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-xxl: 4px;
+  --radius-xxxl: 8px;
+  --radius-full: 9999px;
+
+  /* Focus Ring */
+  --focus-ring: 0 0 0 3px rgba(255, 220, 43, 0.38);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-body);
+  font-family: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+/* Tabular numbers for standings, scores, and timers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kinetic Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Hairline Gradient Divider */
+.kinetic-hairline {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-border-default) 12%,
+    var(--color-border-default) 88%,
+    transparent 100%
+  );
+}
+
+/* Subtle dot grid texture for Hero */
+.kinetic-grid-bg {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 220, 43, 0.12) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
