@@ -46,19 +46,12 @@ export function FreguesometroClient({
   const [teamBId, setTeamBId] = useState(clubs[1]?.id ?? clubs[0]?.id ?? "");
 
   // Estado da Súmula / Hub de Confrontos (Envio de Resultado + Artilheiros + Bônus)
-  const [homeScore, setHomeScore] = useState<number>(3);
-  const [awayScore, setAwayScore] = useState<number>(1);
-  const [scheduledDate, setScheduledDate] = useState<string>("2026-10-03T21:00");
-  const [proofUrl, setProofUrl] = useState<string>(
-    "https://strike-arena.gg/prints/match-sumula-oficial.png"
-  );
-  const [homeScorers, setHomeScorers] = useState<MasterGoalScorerDTO[]>([
-    { athleteName: "Vinícius Jr.", goals: 2 },
-    { athleteName: "Jude Bellingham", goals: 1 },
-  ]);
-  const [awayScorers, setAwayScorers] = useState<MasterGoalScorerDTO[]>([
-    { athleteName: "Erling Haaland", goals: 1 },
-  ]);
+  const [homeScore, setHomeScore] = useState<number>(0);
+  const [awayScore, setAwayScore] = useState<number>(0);
+  const [scheduledDate, setScheduledDate] = useState<string>("");
+  const [proofUrl, setProofUrl] = useState<string>("");
+  const [homeScorers, setHomeScorers] = useState<MasterGoalScorerDTO[]>([]);
+  const [awayScorers, setAwayScorers] = useState<MasterGoalScorerDTO[]>([]);
   const [newHomeScorerName, setNewHomeScorerName] = useState<string>("");
   const [newAwayScorerName, setNewAwayScorerName] = useState<string>("");
 
@@ -67,6 +60,21 @@ export function FreguesometroClient({
     text: string;
   } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  if (clubs.length === 0) {
+    return (
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-8 text-center space-y-2">
+        <Swords className="w-8 h-8 text-[#ffdc2b] mx-auto" />
+        <h2 className="text-base font-bold text-[#f4f6fb]">
+          Nenhum clube registrado na temporada ainda
+        </h2>
+        <p className="text-xs text-[#78849e]">
+          Assim que os treinadores criarem suas contas ou se inscreverem nos
+          campeonatos, o Freguesômetro e o Hub de Confrontos serão habilitados.
+        </p>
+      </div>
+    );
+  }
 
   const teamA = clubs.find((c) => c.id === teamAId) ?? clubs[0];
   const teamB = clubs.find((c) => c.id === teamBId) ?? clubs[1] ?? clubs[0];

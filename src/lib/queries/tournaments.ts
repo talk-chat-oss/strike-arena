@@ -1,10 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import {
-  MOCK_TOURNAMENTS,
-  MOCK_GROUPS,
-  MOCK_PARTICIPANTS,
-  MOCK_STANDINGS,
-  MOCK_MATCHES,
   type MockTournament,
   type MockGroup,
   type MockParticipant,
@@ -32,7 +27,7 @@ export async function getAllTournaments(): Promise<{
       .order("created_at", { ascending: false });
 
     if (error || !rows || rows.length === 0) {
-      return { tournaments: MOCK_TOURNAMENTS, source: "mock_fallback" };
+      return { tournaments: [], source: "postgres" };
     }
 
     const { data: allParticipants } = await supabase
@@ -41,9 +36,9 @@ export async function getAllTournaments(): Promise<{
 
     const mapped: MockTournament[] = rows.map((r) => {
       const org = Array.isArray(r.organizer) ? r.organizer[0] : r.organizer;
-      const count =
-        (allParticipants ?? []).filter((p) => p.tournament_id === r.id).length ||
-        (r.slug === "strike-cup-eafc26-elite" ? 8 : 12);
+      const count = (allParticipants ?? []).filter(
+        (p) => p.tournament_id === r.id
+      ).length;
 
       return {
         id: r.id,
@@ -67,7 +62,7 @@ export async function getAllTournaments(): Promise<{
 
     return { tournaments: mapped, source: "postgres" };
   } catch {
-    return { tournaments: MOCK_TOURNAMENTS, source: "mock_fallback" };
+    return { tournaments: [], source: "postgres" };
   }
 }
 
@@ -82,16 +77,7 @@ export async function getTournamentBySlug(
       .maybeSingle();
 
     if (tErr || !tRow) {
-      const mockT =
-        MOCK_TOURNAMENTS.find((t) => t.slug === slug) ?? MOCK_TOURNAMENTS[0];
-      return {
-        tournament: mockT,
-        groups: MOCK_GROUPS,
-        participants: MOCK_PARTICIPANTS,
-        standings: MOCK_STANDINGS,
-        matches: MOCK_MATCHES,
-        source: "mock_fallback",
-      };
+      return null;
     }
 
     const org = Array.isArray(tRow.organizer)
@@ -130,37 +116,6 @@ export async function getTournamentBySlug(
         .order("round", { ascending: true })
         .order("created_at", { ascending: true }),
     ]);
-
-    if (
-      (!participantRows || participantRows.length === 0) &&
-      tRow.slug !== "strike-cup-eafc26-elite"
-    ) {
-      return {
-        tournament: {
-          id: tRow.id,
-          name: tRow.name,
-          slug: tRow.slug,
-          organizerId: tRow.organizer_id,
-          organizerNickname: org?.nickname ?? "SPOOKY",
-          format: tRow.format,
-          game: tRow.game,
-          platform: tRow.platform,
-          status: tRow.status,
-          maxParticipants: tRow.max_participants,
-          currentParticipants: 12,
-          entryFeeBrl: tRow.entry_fee_brl,
-          prizePoolBrl: tRow.prize_pool_brl,
-          bannerUrl: tRow.banner_url ?? "",
-          rulesMarkdown: tRow.rules_markdown,
-          startsAt: tRow.starts_at ?? new Date().toISOString(),
-        },
-        groups: MOCK_GROUPS,
-        participants: MOCK_PARTICIPANTS,
-        standings: MOCK_STANDINGS,
-        matches: MOCK_MATCHES,
-        source: "postgres",
-      };
-    }
 
     const gList = groupRows ?? [];
     const pList = participantRows ?? [];
@@ -309,15 +264,6 @@ export async function getTournamentBySlug(
       source: "postgres",
     };
   } catch {
-    const mockT =
-      MOCK_TOURNAMENTS.find((t) => t.slug === slug) ?? MOCK_TOURNAMENTS[0];
-    return {
-      tournament: mockT,
-      groups: MOCK_GROUPS,
-      participants: MOCK_PARTICIPANTS,
-      standings: MOCK_STANDINGS,
-      matches: MOCK_MATCHES,
-      source: "mock_fallback",
-    };
+    return null;
   }
 }

@@ -44,10 +44,16 @@ const GAMES_CATALOG = [
 ];
 
 export default async function HomePage() {
-  const [{ tournaments, source }, currentUser] = await Promise.all([
+  const [{ tournaments }, currentUser] = await Promise.all([
     getAllTournaments(),
     getCurrentUser(),
   ]);
+
+  const totalPrizePool = tournaments.reduce(
+    (acc, t) => acc + (t.prizePoolBrl || 0),
+    0
+  );
+  const featuredTournament = tournaments[0] ?? null;
 
   return (
     <div className="space-y-14 pb-12">
@@ -124,52 +130,84 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Card Destaque Ao Vivo com Brasões dos Clubes */}
+            {/* Card Destaque da Temporada */}
             <div className="lg:col-span-5 bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#ffdc2b]">
-                  Destaque da Rodada · Semifinal Ao Vivo
+                  {featuredTournament
+                    ? "Campeonato em Destaque"
+                    : "Temporada Oficial · Inscrições Abertas"}
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-[#15a34a]/20 text-[#4ade80] text-[10px] font-bold">
-                  VALE R$ 500
+                  {featuredTournament
+                    ? `PRÊMIO R$ ${featuredTournament.prizePoolBrl}`
+                    : "PRODUÇÃO ATIVA"}
                 </span>
               </div>
 
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-2 tabular-nums">
-                <div className="flex flex-col items-center text-center gap-2">
-                  <ClubCrest clubName="Real Madrid" size="lg" />
-                  <div>
-                    <p className="text-xs font-bold text-[#f4f6fb]">
-                      ViniJr_FC
+              {featuredTournament ? (
+                <>
+                  <div className="py-2 space-y-2">
+                    <h3 className="text-lg font-bold text-[#f4f6fb]">
+                      {featuredTournament.name}
+                    </h3>
+                    <p className="text-xs text-[#b6c0d4]">
+                      Inscritos:{" "}
+                      <strong className="text-[#ffdc2b]">
+                        {featuredTournament.currentParticipants} /{" "}
+                        {featuredTournament.maxParticipants}
+                      </strong>{" "}
+                      · Organizador:{" "}
+                      <strong>{featuredTournament.organizerNickname}</strong>
                     </p>
-                    <p className="text-[11px] text-[#78849e]">Real Madrid</p>
                   </div>
-                </div>
-
-                <div className="px-4 py-2 rounded-[4px] bg-[#090c12] border border-[#ffdc2b]/50 text-xl font-bold text-[#ffdc2b]">
-                  2 × 1
-                </div>
-
-                <div className="flex flex-col items-center text-center gap-2">
-                  <ClubCrest clubName="Paris Saint-Germain" size="lg" />
-                  <div>
-                    <p className="text-xs font-bold text-[#f4f6fb]">GuiPES_99</p>
-                    <p className="text-[11px] text-[#78849e]">PSG</p>
+                  <div className="pt-2 border-t border-[#192131] flex items-center justify-between text-xs">
+                    <span className="text-[#78849e]">
+                      Vagas abertas para clubes oficiais
+                    </span>
+                    <Link
+                      href={`/tournaments/${featuredTournament.slug}`}
+                      className="text-[#ffdc2b] font-bold hover:underline"
+                    >
+                      Acessar Campeonato →
+                    </Link>
                   </div>
-                </div>
-              </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-2">
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <ClubCrest clubName="Real Madrid" size="lg" />
+                      <p className="text-xs font-bold text-[#f4f6fb]">
+                        Escolha seu Clube
+                      </p>
+                    </div>
 
-              <div className="pt-2 border-t border-[#192131] flex items-center justify-between text-xs">
-                <span className="text-[#78849e]">
-                  Aguardando homologação de print
-                </span>
-                <Link
-                  href="/tournaments/strike-cup-eafc26-elite"
-                  className="text-[#ffdc2b] font-bold hover:underline"
-                >
-                  Ver Chaveamento →
-                </Link>
-              </div>
+                    <div className="px-3 py-1.5 rounded-[4px] bg-[#090c12] border border-[#ffdc2b]/50 text-xs font-bold text-[#ffdc2b]">
+                      VS
+                    </div>
+
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <ClubCrest clubName="Manchester City" size="lg" />
+                      <p className="text-xs font-bold text-[#f4f6fb]">
+                        Monte seu Elenco
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#192131] flex items-center justify-between text-xs">
+                    <span className="text-[#78849e]">
+                      Cadastre sua conta e crie ou entre na liga
+                    </span>
+                    <Link
+                      href={currentUser ? "/organizer" : "/auth"}
+                      className="text-[#ffdc2b] font-bold hover:underline"
+                    >
+                      {currentUser ? "Criar Campeonato →" : "Criar Conta →"}
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -261,18 +299,18 @@ export default async function HomePage() {
                 sub: "EA FC 26 & eFootball",
               },
               {
-                label: "Premiação Acumulada",
-                value: "R$ 1.100",
+                label: "Premiação em Disputa",
+                value: `R$ ${totalPrizePool}`,
                 sub: "Via PIX automatizado",
               },
               {
-                label: "Escudos Oficiais",
-                value: "12+ Clubes",
-                sub: "Real, City, Barça, Fla...",
+                label: "Database de Atletas",
+                value: "24 Craques",
+                sub: "Bola Preta & Bola Ouro",
               },
               {
                 label: "Índice Fair Play",
-                value: "98.4%",
+                value: "100%",
                 sub: "Anti-W.O. e Auditoria",
               },
             ].map((kpi) => (
@@ -308,7 +346,11 @@ export default async function HomePage() {
           {GAMES_CATALOG.map((g) => (
             <Link
               key={g.name}
-              href="/tournaments/strike-cup-eafc26-elite"
+              href={
+                featuredTournament
+                  ? `/tournaments/${featuredTournament.slug}`
+                  : "/organizer"
+              }
               className="group bg-[#111622] border border-[#222c40] hover:border-[#ffdc2b] rounded-[4px] p-3.5 flex items-center gap-3.5 transition-colors"
             >
               <div className="w-14 h-20 rounded-[4px] overflow-hidden border border-[#222c40] bg-[#090c12] shrink-0">

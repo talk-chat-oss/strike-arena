@@ -504,7 +504,44 @@ export async function joinTournamentAction(input: {
       goal_difference: 0,
     });
 
+    // Garantir que o jogador também possua seu Clube na Master Liga (club_teams)
+    const { data: existingClub } = await supabaseAdmin
+      .from("club_teams")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!existingClub) {
+      const acronym =
+        club
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 3)
+          .toUpperCase() || "CLB";
+
+      await supabaseAdmin.from("club_teams").insert({
+        league_id: input.tournamentId,
+        user_id: user.id,
+        name: club,
+        acronym,
+        badge_url: club,
+        balance: 0,
+        is_delinquent: false,
+      });
+    } else {
+      await supabaseAdmin
+        .from("club_teams")
+        .update({
+          league_id: input.tournamentId,
+          name: club,
+          badge_url: club,
+        })
+        .eq("id", existingClub.id);
+    }
+
     revalidatePath(`/tournaments/${input.tournamentSlug}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/market");
+    revalidatePath("/auctions");
     revalidatePath("/");
 
     return {

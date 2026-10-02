@@ -7,13 +7,13 @@ import { SUPER_ADMIN_ID } from "@/db";
 import {
   SESSION_COOKIE_NAME,
   encodeSessionCookie,
-  type SessionUser,
 } from "@/lib/auth";
 
 export async function registerUserAction(input: {
   nickname: string;
   email: string;
   password: string;
+  clubName?: string;
   psnId?: string;
   xboxGamertag?: string;
   eaId?: string;
@@ -24,6 +24,11 @@ export async function registerUserAction(input: {
   const nickname = input.nickname.trim();
   const email = input.email.trim().toLowerCase();
   const password = input.password.trim();
+  const clubName = input.clubName?.trim() || `${nickname} FC`;
+  const acronym = clubName
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(0, 3)
+    .toUpperCase() || "CLB";
 
   if (nickname.length < 3) {
     return {
@@ -79,6 +84,16 @@ export async function registerUserAction(input: {
       throw new Error(error?.message ?? "Falha ao criar conta.");
     }
 
+    // Criar automaticamente o Clube na Master Liga (saldo inicial = 0 Escudos)
+    await supabaseAdmin.from("club_teams").insert({
+      user_id: created.id,
+      name: clubName,
+      acronym,
+      badge_url: clubName,
+      balance: 0,
+      is_delinquent: false,
+    });
+
     const cookieStore = await cookies();
     cookieStore.set(
       SESSION_COOKIE_NAME,
@@ -105,7 +120,7 @@ export async function registerUserAction(input: {
 
     return {
       ok: true,
-      message: `Conta "${created.nickname}" criada com sucesso! Bem-vindo à Strike Arena.`,
+      message: `Conta "${created.nickname}" e clube "${clubName}" criados com sucesso! Bem-vindo à Strike Arena.`,
     };
   } catch (err) {
     return {
@@ -143,11 +158,7 @@ export async function loginUserAction(input: {
       };
     }
 
-    if (
-      userRow.password_hash &&
-      userRow.password_hash !== pwd &&
-      pwd !== "strike123"
-    ) {
+    if (userRow.password_hash && userRow.password_hash !== pwd) {
       return { ok: false, error: "Senha incorreta." };
     }
 
@@ -190,60 +201,6 @@ export async function loginUserAction(input: {
         err instanceof Error ? err.message : "Erro ao realizar login.",
     };
   }
-}
-
-export async function quickSwitchDemoAccountAction(
-  preset: "spooky" | "vinijr" | "lucaspro"
-) {
-  let targetUser: Omit<SessionUser, "isSuperAdmin">;
-
-  if (preset === "spooky") {
-    targetUser = {
-      id: SUPER_ADMIN_ID,
-      nickname: "SPOOKY",
-      email: "spooky@strikearena.gg",
-      role: "super_admin",
-      psnId: "SPOOKY_BR99",
-      eaId: "SPOOKY_ADMIN",
-      discordHandle: "spooky#0001",
-    };
-  } else if (preset === "vinijr") {
-    targetUser = {
-      id: "11111111-1111-4111-8111-111111111101",
-      nickname: "ViniJr_FC",
-      email: "vini@player.gg",
-      role: "player",
-      psnId: "ViniMalvadeza_PS5",
-      eaId: "ViniFC26",
-      discordHandle: "vinijr#10",
-    };
-  } else {
-    targetUser = {
-      id: "11111111-1111-4111-8111-111111111105",
-      nickname: "LucasPro_10",
-      email: "lucas@player.gg",
-      role: "player",
-      psnId: "LucasPro_PS5",
-      eaId: "LucasPro10",
-      discordHandle: "lucaspro#10",
-    };
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, encodeSessionCookie(targetUser), {
-    httpOnly: true,
-    path: "/",
-    maxAge: 60 * 60 * 24 * 14,
-    sameSite: "lax",
-  });
-
-  revalidatePath("/", "layout");
-
-  return {
-    ok: true,
-    nickname: targetUser.nickname,
-    role: targetUser.role,
-  };
 }
 
 export async function logoutAction() {

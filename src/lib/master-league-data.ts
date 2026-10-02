@@ -700,7 +700,7 @@ export async function getMasterLeagueOverviewData() {
               rosterCount: clubRoster.length,
             };
           })
-        : MOCK_CLUB_TEAMS;
+        : [];
 
     const bidsByAuction = new Map<string, AuctionBidDTO[]>();
     for (const b of dbBids ?? []) {
@@ -852,7 +852,7 @@ export async function getMasterLeagueOverviewData() {
   } catch {
     return {
       athletes: MOCK_ATHLETES,
-      clubs: MOCK_CLUB_TEAMS,
+      clubs: [],
       contracts: [],
       auctions: [],
       transactions: [],
@@ -906,12 +906,6 @@ export function computeHeadToHeadBetweenClubs(
       goalsA = direct.goalsB;
       goalsB = direct.goalsA;
     }
-  } else {
-    winsA = 4;
-    winsB = 2;
-    draws = 1;
-    goalsA = 14;
-    goalsB = 9;
   }
 
   const totalMatches = winsA + winsB + draws;
@@ -925,7 +919,8 @@ export function computeHeadToHeadBetweenClubs(
   let freguesClubName: string | null = null;
   let freguesCoachName: string | null = null;
   let carrascoClubName: string | null = null;
-  let dominanceLabel = "CONFRONTO EQUILIBRADO";
+  let dominanceLabel =
+    totalMatches === 0 ? "NENHUM CONFRONTO REGISTRADO" : "CONFRONTO EQUILIBRADO";
 
   if (winsA > winsB) {
     freguesClubName = teamB.name;
@@ -945,42 +940,6 @@ export function computeHeadToHeadBetweenClubs(
         : `VANTAGEM DE ${teamB.name.toUpperCase()}`;
   }
 
-  const recentMatches = [
-    {
-      id: "h2h-m1",
-      date: "Há 2 dias",
-      competition: "Master Liga Season 1 • Rodada 4",
-      homeClubName: teamA.name,
-      awayClubName: teamB.name,
-      homeScore: winsA >= winsB ? 3 : 1,
-      awayScore: winsA >= winsB ? 1 : 2,
-      scorersSummary:
-        winsA >= winsB
-          ? `Vinícius Jr. (2x), Bellingham • Haaland`
-          : `Rodri, Haaland • Valverde`,
-    },
-    {
-      id: "h2h-m2",
-      date: "Há 5 dias",
-      competition: "Master Liga Season 1 • Rodada 1",
-      homeClubName: teamB.name,
-      awayClubName: teamA.name,
-      homeScore: 2,
-      awayScore: 2,
-      scorersSummary: "Partida eletrizante decidida nos acréscimos (90+3')",
-    },
-    {
-      id: "h2h-m3",
-      date: "Há 12 dias",
-      competition: "Supercopa Strike Arena",
-      homeClubName: teamA.name,
-      awayClubName: teamB.name,
-      homeScore: winsA >= winsB ? 4 : 0,
-      awayScore: winsA >= winsB ? 1 : 3,
-      scorersSummary: "Domínio tático completo e bônus máximo de artilharia",
-    },
-  ];
-
   return {
     teamA,
     teamB,
@@ -996,6 +955,6 @@ export function computeHeadToHeadBetweenClubs(
     freguesCoachName,
     carrascoClubName,
     dominanceLabel,
-    recentMatches,
+    recentMatches: [],
   };
 }

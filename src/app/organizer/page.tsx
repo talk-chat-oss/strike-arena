@@ -4,15 +4,23 @@ import {
   AlertTriangle,
   ExternalLink,
   ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
-import { getTournamentBySlug } from "@/lib/queries/tournaments";
+import {
+  getAllTournaments,
+  getTournamentBySlug,
+} from "@/lib/queries/tournaments";
 import { OrganizerWizard } from "@/components/tournament/organizer-wizard";
 import { MatchStatusBadge } from "@/components/tournament/status-badge";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrganizerPage() {
-  const data = await getTournamentBySlug("strike-cup-eafc26-elite");
+  const { tournaments } = await getAllTournaments();
+  const activeTournament = tournaments[0] ?? null;
+  const data = activeTournament
+    ? await getTournamentBySlug(activeTournament.slug)
+    : null;
   const pendingMatches =
     data?.matches.filter(
       (m) => m.status === "awaiting_confirmation" || m.status === "disputed"
@@ -36,13 +44,15 @@ export default async function OrganizerPage() {
           </p>
         </div>
 
-        <Link
-          href="/tournaments/strike-cup-eafc26-elite"
-          className="min-h-10 px-4 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1d2639] border border-[#222c40] text-xs font-semibold text-[#f4f6fb] inline-flex items-center gap-2"
-        >
-          <span>Abrir Strike Arena Cup</span>
-          <ArrowRight className="w-3.5 h-3.5 text-[#ffdc2b]" />
-        </Link>
+        {activeTournament && (
+          <Link
+            href={`/tournaments/${activeTournament.slug}`}
+            className="min-h-10 px-4 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1d2639] border border-[#222c40] text-xs font-semibold text-[#f4f6fb] inline-flex items-center gap-2"
+          >
+            <span>Abrir {activeTournament.name}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-[#ffdc2b]" />
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -64,66 +74,81 @@ export default async function OrganizerPage() {
           </div>
 
           <div className="space-y-3">
-            {pendingMatches.map((m) => (
-              <div
-                key={m.id}
-                className="p-4 rounded-[4px] bg-[#090c12] border border-[#222c40] space-y-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-[#ffdc2b]">
-                    {m.label}
-                  </span>
-                  <MatchStatusBadge status={m.status} />
-                </div>
-
-                <div className="flex items-center justify-between text-sm font-bold text-[#f4f6fb] tabular-nums">
-                  <span>
-                    {m.homeNickname}{" "}
-                    <span className="text-xs font-normal text-[#78849e]">
-                      ({m.homeClub})
+            {pendingMatches.length === 0 ? (
+              <div className="p-6 rounded-[4px] bg-[#090c12] border border-[#222c40] text-center space-y-2">
+                <CheckCircle2 className="w-6 h-6 text-[#4ade80] mx-auto" />
+                <p className="text-xs font-semibold text-[#f4f6fb]">
+                  Nenhuma súmula pendente de mediação no momento.
+                </p>
+                <p className="text-[11px] text-[#78849e]">
+                  Quando jogadores reportarem placares ou pedidos de W.O., eles
+                  aparecerão aqui para homologação.
+                </p>
+              </div>
+            ) : (
+              pendingMatches.map((m) => (
+                <div
+                  key={m.id}
+                  className="p-4 rounded-[4px] bg-[#090c12] border border-[#222c40] space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#ffdc2b]">
+                      {m.label}
                     </span>
-                  </span>
-                  <span className="px-2.5 py-1 rounded-[2px] bg-[#161d2c] text-[#ffdc2b]">
-                    {m.homeScore ?? 0} × {m.awayScore ?? 0}
-                  </span>
-                  <span>
-                    {m.awayNickname}{" "}
-                    <span className="text-xs font-normal text-[#78849e]">
-                      ({m.awayClub})
+                    <MatchStatusBadge status={m.status} />
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm font-bold text-[#f4f6fb] tabular-nums">
+                    <span>
+                      {m.homeNickname}{" "}
+                      <span className="text-xs font-normal text-[#78849e]">
+                        ({m.homeClub})
+                      </span>
                     </span>
-                  </span>
-                </div>
+                    <span className="px-2.5 py-1 rounded-[2px] bg-[#161d2c] text-[#ffdc2b]">
+                      {m.homeScore ?? 0} × {m.awayScore ?? 0}
+                    </span>
+                    <span>
+                      {m.awayNickname}{" "}
+                      <span className="text-xs font-normal text-[#78849e]">
+                        ({m.awayClub})
+                      </span>
+                    </span>
+                  </div>
 
-                {m.notes && (
-                  <p className="text-xs text-[#b6c0d4] bg-[#161d2c] p-2.5 rounded-[4px]">
-                    {m.notes}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between pt-1 text-xs">
-                  {m.proofUrl ? (
-                    <a
-                      href={m.proofUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[#ffdc2b] hover:underline"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Inspecionar Screenshot</span>
-                    </a>
-                  ) : (
-                    <span className="text-[#78849e]">Sem anexo</span>
+                  {m.notes && (
+                    <p className="text-xs text-[#b6c0d4] bg-[#161d2c] p-2.5 rounded-[4px]">
+                      {m.notes}
+                    </p>
                   )}
 
-                  <Link
-                    href="/tournaments/strike-cup-eafc26-elite"
-                    className="px-3 py-1.5 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-xs"
-                  >
-                    Julgar no Match Hub →
-                  </Link>
+                  <div className="flex items-center justify-between pt-1 text-xs">
+                    {m.proofUrl ? (
+                      <a
+                        href={m.proofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[#ffdc2b] hover:underline"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Inspecionar Screenshot</span>
+                      </a>
+                    ) : (
+                      <span className="text-[#78849e]">Sem anexo</span>
+                    )}
+
+                    {activeTournament && (
+                      <Link
+                        href={`/tournaments/${activeTournament.slug}`}
+                        className="px-3 py-1.5 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-xs"
+                      >
+                        Julgar no Match Hub →
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

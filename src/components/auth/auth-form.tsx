@@ -7,22 +7,24 @@ import {
   LogIn,
   ShieldCheck,
   Gamepad2,
-  Zap,
   LogOut,
   CheckCircle2,
   AlertCircle,
+  Shield,
 } from "lucide-react";
 import {
   registerUserAction,
   loginUserAction,
-  quickSwitchDemoAccountAction,
   logoutAction,
 } from "@/app/actions/auth-actions";
 import type { SessionUser } from "@/lib/auth";
+import { CLUB_CRESTS } from "@/lib/club-crests";
 
 interface AuthFormProps {
   currentUser: SessionUser | null;
 }
+
+const POPULAR_CLUBS = Object.keys(CLUB_CRESTS);
 
 export function AuthForm({ currentUser }: AuthFormProps) {
   const router = useRouter();
@@ -39,6 +41,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [clubName, setClubName] = useState(POPULAR_CLUBS[0] ?? "Real Madrid");
   const [accountType, setAccountType] = useState<"player" | "organizer">(
     "player"
   );
@@ -60,6 +63,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
         nickname,
         email,
         password,
+        clubName,
         accountType,
         psnId,
         xboxGamertag,
@@ -77,7 +81,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
         type: "success",
         text: res.message ?? "Conta criada com sucesso!",
       });
-      router.push("/tournaments/strike-cup-eafc26-elite");
+      router.push("/dashboard");
       router.refresh();
     });
   }
@@ -100,27 +104,8 @@ export function AuthForm({ currentUser }: AuthFormProps) {
         type: "success",
         text: res.message ?? "Login realizado!",
       });
-      router.push("/tournaments/strike-cup-eafc26-elite");
+      router.push("/dashboard");
       router.refresh();
-    });
-  }
-
-  function handleQuickDemo(preset: "spooky" | "vinijr" | "lucaspro") {
-    setFeedback(null);
-    startTransition(async () => {
-      const res = await quickSwitchDemoAccountAction(preset);
-      if (res.ok) {
-        setFeedback({
-          type: "success",
-          text: `Sessão ativa como ${res.nickname} (${res.role.toUpperCase()})! Redirecionando...`,
-        });
-        router.push(
-          preset === "spooky"
-            ? "/organizer"
-            : "/tournaments/strike-cup-eafc26-elite"
-        );
-        router.refresh();
-      }
     });
   }
 
@@ -129,7 +114,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
       await logoutAction();
       setFeedback({
         type: "success",
-        text: "Você saiu da conta. Modo Visitante ativo.",
+        text: "Você saiu da conta.",
       });
       router.refresh();
     });
@@ -198,11 +183,11 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                 Novo Competidor Oficial
               </span>
               <h2 className="text-lg font-bold text-[#f4f6fb] mt-0.5">
-                Cadastre seu Perfil e Gamertags
+                Cadastre seu Perfil, Clube e Gamertags
               </h2>
               <p className="text-xs text-[#78849e] mt-1">
-                Sua conta já libera imediatamente inscrição em torneios,
-                escolha de escudo, check-in e envio de súmulas.
+                Sua conta já cria automaticamente seu Clube na Master Liga e
+                libera inscrição em torneios, check-in e envio de súmulas.
               </p>
             </div>
 
@@ -253,19 +238,36 @@ export function AuthForm({ currentUser }: AuthFormProps) {
 
               <div>
                 <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
-                  Perfil na Plataforma
+                  Escudo / Clube Inicial *
                 </label>
                 <select
-                  value={accountType}
-                  onChange={(e) =>
-                    setAccountType(e.target.value as "player" | "organizer")
-                  }
+                  value={clubName}
+                  onChange={(e) => setClubName(e.target.value)}
                   className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
                 >
-                  <option value="player">Jogador / Competidor</option>
-                  <option value="organizer">Organizador de Torneios</option>
+                  {POPULAR_CLUBS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
+                Perfil na Plataforma
+              </label>
+              <select
+                value={accountType}
+                onChange={(e) =>
+                  setAccountType(e.target.value as "player" | "organizer")
+                }
+                className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
+              >
+                <option value="player">Jogador / Competidor</option>
+                <option value="organizer">Organizador de Torneios</option>
+              </select>
             </div>
 
             {/* Gamertags / IDs de Jogo */}
@@ -371,7 +373,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Ex: ViniJr_FC"
+                  placeholder="Seu Nickname ou E-mail"
                   className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
                 />
               </div>
@@ -403,7 +405,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
         )}
       </div>
 
-      {/* Coluna Lateral (5 cols): Sessão Atual + Acesso Rápido */}
+      {/* Coluna Lateral (5 cols): Status da Sessão & Segurança */}
       <div className="lg:col-span-5 space-y-5">
         {/* Status da Sessão Atual */}
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-4">
@@ -418,7 +420,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                   : "bg-[#1d2639] text-[#b6c0d4]"
               }`}
             >
-              {currentUser ? "AUTENTICADO" : "VISITANTE"}
+              {currentUser ? "AUTENTICADO" : "NÃO AUTENTICADO"}
             </span>
           </div>
 
@@ -429,7 +431,9 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                   {currentUser.nickname}
                 </p>
                 <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-bold uppercase">
-                  {currentUser.role === "super_admin" ? "ADMIN" : currentUser.role}
+                  {currentUser.role === "super_admin"
+                    ? "ADMIN"
+                    : currentUser.role}
                 </span>
               </div>
               <p className="text-xs text-[#78849e]">{currentUser.email}</p>
@@ -439,7 +443,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                     ? `PSN: ${currentUser.psnId}`
                     : currentUser.eaId
                     ? `EA: ${currentUser.eaId}`
-                    : "ID vinculado"}
+                    : "Conta Oficial"}
                 </span>
                 <button
                   type="button"
@@ -454,86 +458,36 @@ export function AuthForm({ currentUser }: AuthFormProps) {
             </div>
           ) : (
             <p className="text-xs text-[#b6c0d4] leading-relaxed">
-              Você está navegando como <strong>Visitante</strong>. Crie uma
-              conta ao lado para se inscrever em torneios ou selecione um perfil
-              de demonstração abaixo.
+              Crie sua conta ou faça login ao lado para registrar seu clube,
+              disputar torneios e participar dos leilões oficiais da temporada.
             </p>
           )}
         </div>
 
-        {/* Acesso Rápido de Demonstração */}
-        <div className="bg-[#111622] border border-[#ffdc2b]/40 rounded-[4px] p-5 space-y-4">
+        {/* Informações de Conta Oficial */}
+        <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#ffdc2b]" />
+            <Shield className="w-4 h-4 text-[#ffdc2b]" />
             <h3 className="text-sm font-bold text-[#f4f6fb]">
-              Troca Rápida de Perfil (Demonstração)
+              Ambiente Oficial de Competição
             </h3>
           </div>
-
-          <p className="text-xs text-[#b6c0d4] leading-relaxed">
-            Alterne com 1 clique entre perfis de Treinador e Diretoria para
-            navegar pela plataforma:
-          </p>
-
-          <div className="space-y-2.5">
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => handleQuickDemo("vinijr")}
-              className="w-full p-3 rounded-[4px] bg-[#090c12] hover:bg-[#161d2c] border border-[#222c40] hover:border-[#ffdc2b] text-left transition-colors flex items-center justify-between cursor-pointer"
-            >
-              <div>
-                <p className="text-xs font-bold text-[#f4f6fb]">
-                  Treinador: ViniJr_FC
-                </p>
-                <p className="text-[11px] text-[#78849e]">
-                  Real Madrid · Líder do Grupo A · Sala de Jogo e Check-in
-                </p>
-              </div>
-              <span className="px-2 py-1 rounded-[2px] bg-[#161d2c] text-[#ffdc2b] text-[10px] font-bold">
-                TREINADOR
+          <ul className="space-y-2 text-xs text-[#9aa5b8]">
+            <li className="flex items-start gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#4ade80] shrink-0 mt-0.5" />
+              <span>
+                Cadastro único vinculado ao seu clube na Master Liga Online e
+                nos torneios da plataforma.
               </span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => handleQuickDemo("lucaspro")}
-              className="w-full p-3 rounded-[4px] bg-[#090c12] hover:bg-[#161d2c] border border-[#222c40] hover:border-[#ffdc2b] text-left transition-colors flex items-center justify-between cursor-pointer"
-            >
-              <div>
-                <p className="text-xs font-bold text-[#f4f6fb]">
-                  Treinador: LucasPro_10
-                </p>
-                <p className="text-[11px] text-[#78849e]">
-                  Arsenal · Líder do Grupo B · Partida aguardando confirmação
-                </p>
-              </div>
-              <span className="px-2 py-1 rounded-[2px] bg-[#161d2c] text-[#ffdc2b] text-[10px] font-bold">
-                TREINADOR
+            </li>
+            <li className="flex items-start gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#4ade80] shrink-0 mt-0.5" />
+              <span>
+                Economia fechada em Escudos com auditoria completa de lances,
+                multas rescisórias e premiações por partida.
               </span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => handleQuickDemo("spooky")}
-              className="w-full p-3 rounded-[4px] bg-[#133865]/30 hover:bg-[#133865]/50 border border-[#1c4d8a] hover:border-[#ffdc2b] text-left transition-colors flex items-center justify-between cursor-pointer"
-            >
-              <div>
-                <p className="text-xs font-bold text-[#f4f6fb] flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#ffdc2b]" />
-                  <span>Diretoria Geral: SPOOKY</span>
-                </p>
-                <p className="text-[11px] text-[#b6c0d4]">
-                  Criar Torneios, Homologar Súmulas e Arbitragem de W.O.
-                </p>
-              </div>
-              <span className="px-2 py-1 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-bold">
-                ADMIN
-              </span>
-            </button>
-          </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
