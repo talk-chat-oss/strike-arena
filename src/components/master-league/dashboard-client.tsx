@@ -349,7 +349,7 @@ export function DashboardClient({
                           <img
                             src={item.photoUrl}
                             alt={item.athleteName}
-                            className="w-9 h-9 rounded-full bg-[#1d2639] border border-[#2c3852] object-cover"
+                            className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
                           />
                           <div>
                             <div className="font-bold text-[#f4f6fb]">

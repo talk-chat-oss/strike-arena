@@ -365,7 +365,7 @@ export function MarketClient({
                       <img
                         src={auc.photoUrl}
                         alt={auc.athleteName}
-                        className="w-12 h-12 rounded-full bg-[#1d2639] border border-[#2c3852] object-cover"
+                        className="w-16 h-16 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom shrink-0 pt-1"
                       />
                       <div>
                         <div className="flex items-center gap-2">
@@ -629,7 +629,7 @@ export function MarketClient({
                             <img
                               src={c.photoUrl}
                               alt={c.athleteName}
-                              className="w-9 h-9 rounded-full bg-[#1d2639] border border-[#2c3852]"
+                              className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
                             />
                             <div>
                               <div className="font-bold text-[#f4f6fb]">

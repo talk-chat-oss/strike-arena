@@ -178,7 +178,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 92,
     position: "ATA",
     age: 26,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Mbappe",
+    photoUrl: "/players/mbappe.png",
     defaultTeam: "Real Madrid",
   },
   {
@@ -187,7 +187,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 91,
     position: "ATA",
     age: 25,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Haaland",
+    photoUrl: "/players/haaland.png",
     defaultTeam: "Manchester City",
   },
   {
@@ -196,7 +196,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 91,
     position: "PE",
     age: 25,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=ViniJr",
+    photoUrl: "/players/vinijr.png",
     defaultTeam: "Real Madrid",
   },
   {
@@ -205,7 +205,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 90,
     position: "MEI",
     age: 22,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Bellingham",
+    photoUrl: "/players/bellingham.png",
     defaultTeam: "Real Madrid",
   },
   {
@@ -214,7 +214,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 91,
     position: "VOL",
     age: 29,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Rodri",
+    photoUrl: "/players/rodri.png",
     defaultTeam: "Manchester City",
   },
   {
@@ -223,7 +223,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 88,
     position: "PD",
     age: 18,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Yamal",
+    photoUrl: "/players/yamal.png",
     defaultTeam: "FC Barcelona",
   },
   {
@@ -232,7 +232,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 90,
     position: "ATA",
     age: 32,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=HarryKane",
+    photoUrl: "/players/kane.png",
     defaultTeam: "Bayern München",
   },
   {
@@ -241,7 +241,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 89,
     position: "PD",
     age: 33,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Salah",
+    photoUrl: "/players/salah.png",
     defaultTeam: "Liverpool",
   },
   {
@@ -250,7 +250,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 88,
     position: "PD",
     age: 24,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Saka",
+    photoUrl: "/players/saka.png",
     defaultTeam: "Arsenal",
   },
   {
@@ -259,7 +259,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 89,
     position: "MC",
     age: 27,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Valverde",
+    photoUrl: "/players/valverde.png",
     defaultTeam: "Real Madrid",
   },
   {
@@ -268,7 +268,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 89,
     position: "ZAG",
     age: 34,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=VanDijk",
+    photoUrl: "/players/vandijk.png",
     defaultTeam: "Liverpool",
   },
   {
@@ -277,7 +277,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 88,
     position: "ZAG",
     age: 24,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Saliba",
+    photoUrl: "/players/saliba.png",
     defaultTeam: "Arsenal",
   },
   {
@@ -286,7 +286,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 90,
     position: "GOL",
     age: 33,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Courtois",
+    photoUrl: "/players/courtois.png",
     defaultTeam: "Real Madrid",
   },
   {
@@ -295,7 +295,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 89,
     position: "GOL",
     age: 32,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Alisson",
+    photoUrl: "/players/alisson.png",
     defaultTeam: "Liverpool",
   },
   {
@@ -304,7 +304,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 88,
     position: "MC",
     age: 22,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Pedri",
+    photoUrl: "/players/pedri.png",
     defaultTeam: "FC Barcelona",
   },
   {
@@ -313,7 +313,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 89,
     position: "MEI",
     age: 22,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Musiala",
+    photoUrl: "/players/musiala.png",
     defaultTeam: "Bayern München",
   },
   {
@@ -322,7 +322,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 87,
     position: "MEI",
     age: 23,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Palmer",
+    photoUrl: "/players/palmer.png",
     defaultTeam: "Chelsea",
   },
   {
@@ -331,7 +331,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 84,
     position: "ATA",
     age: 28,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Pedro9",
+    photoUrl: "/players/pedro.png",
     defaultTeam: "Flamengo",
   },
   {
@@ -340,7 +340,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 83,
     position: "PD",
     age: 18,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Estevao",
+    photoUrl: "/players/estevao.png",
     defaultTeam: "Palmeiras",
   },
   {
@@ -349,7 +349,7 @@ export const MOCK_ATHLETES: AthleteDTO[] = [
     overall: 89,
     position: "MEI",
     age: 22,
-    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Wirtz",
+    photoUrl: "/players/wirtz.png",
     defaultTeam: "Bayern München",
   },
 ];
