@@ -25,14 +25,14 @@ export default async function OrganizerPage() {
         <div>
           <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            Painel Administrativo · Super-Admin SPOOKY
+            Diretoria da Liga & Arbitragem Oficial
           </span>
           <h1 className="text-2xl font-bold text-[#f4f6fb] mt-0.5">
-            Dashboard do Organizador & Mediação
+            Central do Organizador & Mediação
           </h1>
           <p className="text-xs text-[#78849e] mt-1">
             Crie campeonatos, sorteie grupos e homologue placares ou W.O. com
-            atualização imediata no PostgreSQL.
+            atualização automática na tabela.
           </p>
         </div>
 

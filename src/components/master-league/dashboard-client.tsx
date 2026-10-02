@@ -257,7 +257,7 @@ export function DashboardClient({
             {formatCurrency(activeClub.balance)}
           </div>
           <p className="text-[11px] text-[#78849e] mt-1">
-            Livre para Multas Rescisórias à vista e Escrow de Leilões
+            Livre para Multas Rescisórias à vista e Lances de Leilão
           </p>
         </div>
 

@@ -1382,7 +1382,7 @@ export function TournamentTabs({
                   className="h-10 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs cursor-pointer"
                 >
                   {isPending
-                    ? "Confirmando no PostgreSQL..."
+                    ? "Confirmando inscrição..."
                     : "Confirmar Escudo & Inscrição"}
                 </button>
               </div>

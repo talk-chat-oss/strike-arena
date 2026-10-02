@@ -34,10 +34,10 @@ export default function RootLayout({
               <span className="font-semibold text-[#f4f6fb]">
                 STRIKE ARENA
               </span>
-              <span>· Kinetic Dark Design System · PostgreSQL 16</span>
+              <span>· Plataforma Oficial de Ligas & Master Liga Online</span>
             </div>
             <div>
-              © 2026 Strike Arena · Hospedagem Vercel · DB deathstar-server:5433
+              © 2026 Strike Arena · EA Sports FC & eFootball Competitive Hub
             </div>
           </div>
         </footer>

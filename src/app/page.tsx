@@ -63,10 +63,7 @@ export default async function HomePage() {
                 </span>
                 <span className="text-[#78849e]">·</span>
                 <span className="text-[#b6c0d4]">
-                  EA FC 26 & eFootball ·{" "}
-                  {source === "postgres"
-                    ? "PostgreSQL Isolado (strike-arena-db)"
-                    : "Mock Fallback"}
+                  EA FC 26 & eFootball · Crossplay PS5, Xbox & PC
                 </span>
               </div>
 
@@ -113,7 +110,7 @@ export default async function HomePage() {
                     className="min-h-11 px-4 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
                   >
                     <UserPlus className="w-4 h-4 text-[#ffdc2b]" />
-                    <span>Entrar / Avaliador</span>
+                    <span>Entrar / Criar Conta</span>
                   </Link>
                 )}
               </div>
@@ -176,7 +173,7 @@ export default async function HomePage() {
             >
               <div>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#ffdc2b]/20 text-[#ffdc2b]">
-                  MÓDULO 1 • /dashboard
+                  GESTÃO DO CLUBE
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
                   Painel Geral do Treinador & Folha Salarial
@@ -195,7 +192,7 @@ export default async function HomePage() {
             >
               <div>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#dc2626]/20 text-[#f87171]">
-                  MÓDULO 2 • /market
+                  MERCADO DA BOLA
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
                   Central de Leilões (Anti-Sniper) & Multa Rescisória
@@ -214,7 +211,7 @@ export default async function HomePage() {
             >
               <div>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#15a34a]/20 text-[#4ade80]">
-                  MÓDULO 3 • /freguesometro
+                  RIVALIDADES & SÚMULA
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
                   Freguesômetro H2H & Súmula com Bônus de Gol

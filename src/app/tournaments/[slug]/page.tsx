@@ -105,8 +105,8 @@ export default async function TournamentPage({
                   {PLATFORM_LABELS[tournament.platform] ?? tournament.platform}
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[11px] text-[#4ade80]">
-                  <Database className="w-3 h-3" />
-                  {source === "postgres" ? "PG Live" : "Mock"}
+                  <ShieldCheck className="w-3 h-3" />
+                  Liga Oficial Verificada
                 </span>
               </div>
 
@@ -122,8 +122,7 @@ export default async function TournamentPage({
                 · Organizado por{" "}
                 <strong className="text-[#ffdc2b]">
                   {tournament.organizerNickname}
-                </strong>{" "}
-                (Super-Admin)
+                </strong>
               </p>
             </div>
           </div>

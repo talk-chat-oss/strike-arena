@@ -263,7 +263,7 @@ export function OrganizerWizard() {
           <PlusCircle className="w-4 h-4" />
           <span>
             {isPending
-              ? "Publicando no PostgreSQL..."
+              ? "Publicando torneio..."
               : "Criar e Publicar Torneio"}
           </span>
         </button>

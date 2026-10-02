@@ -336,10 +336,10 @@ export function ScoreSubmissionPanel({
             <span className="text-xs">
               <strong className="flex items-center gap-1 text-[#ffdc2b]">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                Homologar como SPOOKY
+                Homologação Direta (Arbitragem)
               </strong>
               <span className="text-[11px] text-[#b6c0d4]">
-                Aprova o placar na hora e recalcula a tabela no PostgreSQL.
+                Aprova o placar na hora e atualiza a tabela automaticamente.
               </span>
             </span>
           </label>
@@ -383,7 +383,7 @@ export function ScoreSubmissionPanel({
             <Send className="w-3.5 h-3.5" />
             <span>
               {isPending
-                ? "Gravando no PostgreSQL..."
+                ? "Enviando súmula..."
                 : actAsSuperAdmin
                 ? "Salvar e Homologar Placar"
                 : "Enviar Placar com Comprovante"}

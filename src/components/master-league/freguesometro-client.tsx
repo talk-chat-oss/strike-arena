@@ -145,7 +145,7 @@ export function FreguesometroClient({
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
-                MOTOR H2H • ARENA VIRTUAL STYLE
+                HISTÓRICO OFICIAL DE RIVALIDADES
               </span>
               <span className="text-xs text-[#78849e]">
                 Estatísticas acumuladas de confrontos diretos

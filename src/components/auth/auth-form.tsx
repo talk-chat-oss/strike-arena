@@ -195,14 +195,14 @@ export function AuthForm({ currentUser }: AuthFormProps) {
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
               <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                Novo Competidor · PostgreSQL Live
+                Novo Competidor Oficial
               </span>
               <h2 className="text-lg font-bold text-[#f4f6fb] mt-0.5">
                 Cadastre seu Perfil e Gamertags
               </h2>
               <p className="text-xs text-[#78849e] mt-1">
-                Sua conta é gravada na hora no banco dedicado e já libera
-                inscrição em torneios, check-in e envio de placares.
+                Sua conta já libera imediatamente inscrição em torneios,
+                escolha de escudo, check-in e envio de súmulas.
               </p>
             </div>
 
@@ -341,7 +341,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
               <UserPlus className="w-4 h-4" />
               <span>
                 {isPending
-                  ? "Registrando no PostgreSQL..."
+                  ? "Criando sua conta..."
                   : "Concluir Cadastro e Entrar na Arena"}
               </span>
             </button>
@@ -356,9 +356,8 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                 Entrar na Strike Arena
               </h2>
               <p className="text-xs text-[#78849e] mt-1">
-                Use seu Nickname ou E-mail cadastrado. (Dica: contas demo
-                aceitam a senha <code className="text-[#ffdc2b]">strike123</code>
-                ).
+                Informe seu Nickname ou E-mail cadastrado para acessar seu clube
+                e campeonatos.
               </p>
             </div>
 
@@ -372,7 +371,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Ex: ViniJr_FC ou SPOOKY"
+                  placeholder="Ex: ViniJr_FC"
                   className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
                 />
               </div>
@@ -404,7 +403,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
         )}
       </div>
 
-      {/* Coluna Lateral (5 cols): Sessão Atual + Troca Rápida 1-Click para Avaliação */}
+      {/* Coluna Lateral (5 cols): Sessão Atual + Acesso Rápido */}
       <div className="lg:col-span-5 space-y-5">
         {/* Status da Sessão Atual */}
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-4">
@@ -430,7 +429,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
                   {currentUser.nickname}
                 </p>
                 <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-bold uppercase">
-                  {currentUser.role}
+                  {currentUser.role === "super_admin" ? "ADMIN" : currentUser.role}
                 </span>
               </div>
               <p className="text-xs text-[#78849e]">{currentUser.email}</p>
@@ -456,24 +455,24 @@ export function AuthForm({ currentUser }: AuthFormProps) {
           ) : (
             <p className="text-xs text-[#b6c0d4] leading-relaxed">
               Você está navegando como <strong>Visitante</strong>. Crie uma
-              conta ao lado para se inscrever em torneios ou use um dos perfis
-              de teste rápido abaixo.
+              conta ao lado para se inscrever em torneios ou selecione um perfil
+              de demonstração abaixo.
             </p>
           )}
         </div>
 
-        {/* Simulador Rápido de Perfis (Para Avaliação do Colega) */}
+        {/* Acesso Rápido de Demonstração */}
         <div className="bg-[#111622] border border-[#ffdc2b]/40 rounded-[4px] p-5 space-y-4">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-[#ffdc2b]" />
             <h3 className="text-sm font-bold text-[#f4f6fb]">
-              Acesso Rápido (1-Clique para Teste/Avaliação)
+              Troca Rápida de Perfil (Demonstração)
             </h3>
           </div>
 
           <p className="text-xs text-[#b6c0d4] leading-relaxed">
-            Para testar rapidamente as diferentes permissões da plataforma sem
-            preencher formulário, escolha um perfil abaixo:
+            Alterne com 1 clique entre perfis de Treinador e Diretoria para
+            navegar pela plataforma:
           </p>
 
           <div className="space-y-2.5">
@@ -485,14 +484,14 @@ export function AuthForm({ currentUser }: AuthFormProps) {
             >
               <div>
                 <p className="text-xs font-bold text-[#f4f6fb]">
-                  Entrar como Jogador: ViniJr_FC
+                  Treinador: ViniJr_FC
                 </p>
                 <p className="text-[11px] text-[#78849e]">
-                  Real Madrid · Líder do Grupo A · Testar Match Hub e Check-in
+                  Real Madrid · Líder do Grupo A · Sala de Jogo e Check-in
                 </p>
               </div>
               <span className="px-2 py-1 rounded-[2px] bg-[#161d2c] text-[#ffdc2b] text-[10px] font-bold">
-                PLAYER
+                TREINADOR
               </span>
             </button>
 
@@ -504,14 +503,14 @@ export function AuthForm({ currentUser }: AuthFormProps) {
             >
               <div>
                 <p className="text-xs font-bold text-[#f4f6fb]">
-                  Entrar como Jogador: LucasPro_10
+                  Treinador: LucasPro_10
                 </p>
                 <p className="text-[11px] text-[#78849e]">
-                  Arsenal · Líder do Grupo B · Partida pendente de confirmação
+                  Arsenal · Líder do Grupo B · Partida aguardando confirmação
                 </p>
               </div>
               <span className="px-2 py-1 rounded-[2px] bg-[#161d2c] text-[#ffdc2b] text-[10px] font-bold">
-                PLAYER
+                TREINADOR
               </span>
             </button>
 
@@ -524,14 +523,14 @@ export function AuthForm({ currentUser }: AuthFormProps) {
               <div>
                 <p className="text-xs font-bold text-[#f4f6fb] flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#ffdc2b]" />
-                  <span>Entrar como Super-Admin: SPOOKY</span>
+                  <span>Diretoria Geral: SPOOKY</span>
                 </p>
                 <p className="text-[11px] text-[#b6c0d4]">
-                  Acesso Root · Criar Torneios, Homologar Prints e Aplicar W.O.
+                  Criar Torneios, Homologar Súmulas e Arbitragem de W.O.
                 </p>
               </div>
               <span className="px-2 py-1 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-bold">
-                ROOT
+                ADMIN
               </span>
             </button>
           </div>

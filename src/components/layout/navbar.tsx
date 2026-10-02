@@ -99,22 +99,13 @@ export async function Navbar() {
           </nav>
         </div>
 
-        {/* Right Operational Telemetry & User Identity */}
+        {/* Right User Identity */}
         <div className="flex items-center gap-2.5">
-          <div
-            title="Instância PostgreSQL isolada no deathstar-server (porta 5433)"
-            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#111622] border border-[#222c40] text-[11px] text-[#78849e]"
-          >
-            <span className="w-2 h-2 rounded-full bg-[#15a34a]" />
-            <Database className="w-3 h-3 text-[#4ade80]" />
-            <span>strike-db:5433</span>
-          </div>
-
           {user ? (
             <>
               <Link
                 href="/auth"
-                title="Clique para trocar de conta ou sair"
+                title="Clique para gerenciar sua conta ou sair"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[#133865]/40 hover:bg-[#133865]/60 border border-[#1c4d8a] text-xs font-medium text-[#f4f6fb] transition-colors"
               >
                 {user.isSuperAdmin ? (
@@ -125,10 +116,10 @@ export async function Navbar() {
                 <span>{user.nickname}</span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#ffdc2b] text-[#0e1312] font-bold uppercase">
                   {user.isSuperAdmin
-                    ? "ROOT"
+                    ? "ADMIN"
                     : user.role === "organizer"
                     ? "ORG"
-                    : "PLAYER"}
+                    : "PRO"}
                 </span>
               </Link>
 

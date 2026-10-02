@@ -156,7 +156,7 @@ export async function submitMatchScoreAction(rawInput: {
       .maybeSingle();
 
     if (findErr || !existingMatch) {
-      return { ok: false, error: "Partida não encontrada no banco de dados." };
+      return { ok: false, error: "Partida não encontrada." };
     }
 
     const winnerId =
@@ -206,7 +206,7 @@ export async function submitMatchScoreAction(rawInput: {
       status: newStatus,
       message:
         newStatus === "completed"
-          ? "Placar homologado imediatamente e tabela recalculada no PostgreSQL!"
+          ? "Placar homologado imediatamente e tabela de classificação atualizada!"
           : requestWalkover
           ? "Pedido de W.O. registrado com comprovante e enviado para mediação."
           : "Placar e comprovante enviados! Aguardando confirmação do adversário ou homologação.",
@@ -217,7 +217,7 @@ export async function submitMatchScoreAction(rawInput: {
       error:
         err instanceof Error
           ? err.message
-          : "Erro ao salvar resultado no banco do Strike Arena.",
+          : "Erro ao salvar resultado da partida.",
     };
   }
 }
@@ -253,20 +253,18 @@ export async function mediateMatchAction(rawInput: {
       homeScore = 3;
       awayScore = 0;
       status = "walkover";
-      notes =
-        "W.O. (3×0 Mandante) aplicado pela Organização / Super-Admin SPOOKY.";
+      notes = "W.O. (3×0 Mandante) homologado pela Diretoria da Liga.";
     } else if (parsed.data.action === "walkover_away") {
       homeScore = 0;
       awayScore = 3;
       status = "walkover";
-      notes =
-        "W.O. (0×3 Visitante) aplicado pela Organização / Super-Admin SPOOKY.";
+      notes = "W.O. (0×3 Visitante) homologado pela Diretoria da Liga.";
     } else if (parsed.data.action === "dispute") {
       status = "disputed";
       notes = "Partida marcada sob contestação para auditoria de print.";
     } else {
       status = "completed";
-      notes = "Placar homologado pela Organização / Super-Admin SPOOKY.";
+      notes = "Placar homologado pela Diretoria da Liga.";
     }
 
     const winnerId =

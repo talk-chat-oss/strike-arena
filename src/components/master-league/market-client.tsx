@@ -210,7 +210,7 @@ export function MarketClient({
               JANELA ABERTA
             </span>
             <span className="text-xs text-[#78849e]">
-              Transações Atômicas • Proteção Anti-Sniper (+2 min) • Multa à Vista
+              Leilões Oficiais • Proteção Anti-Sniper (+2 min) • Multa Rescisória à Vista
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1">
@@ -425,7 +425,7 @@ export function MarketClient({
                   <div className="mt-4 p-3 rounded-[4px] bg-[#0c1018] border border-[#1c2436] flex items-center justify-between">
                     <div>
                       <div className="text-[10px] uppercase font-bold text-[#78849e]">
-                        Lance Atual (Bloqueado em Escrow)
+                        Maior Lance Atual
                       </div>
                       <div className="text-lg font-extrabold text-[#4ade80] tabular-nums">
                         {formatMoney(auc.currentBid)}
