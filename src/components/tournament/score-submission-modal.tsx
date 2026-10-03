@@ -383,7 +383,7 @@ export function ScoreSubmissionPanel({
             <Send className="w-3.5 h-3.5" />
             <span>
               {isPending
-                ? "Enviando súmula..."
+                ? "Enviando placar..."
                 : actAsSuperAdmin
                 ? "Salvar e Homologar Placar"
                 : "Enviar Placar com Comprovante"}

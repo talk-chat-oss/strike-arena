@@ -187,7 +187,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
               </h2>
               <p className="text-xs text-[#78849e] mt-1">
                 Sua conta já cria automaticamente seu Clube na Master Liga e
-                libera inscrição em torneios, check-in e envio de súmulas.
+                libera inscrição em torneios, check-in e envio de resultados.
               </p>
             </div>
 

@@ -1160,7 +1160,7 @@ export function TournamentTabs({
 
             <p className="text-xs text-[#78849e] leading-relaxed">
               Calculado automaticamente pelo comparecimento no horário, ausência
-              de W.O. e confirmação rápida de súmulas no Match Hub.
+              de W.O. e confirmação rápida de resultados no Match Hub.
             </p>
 
             <div className="divide-y divide-[#192131]">

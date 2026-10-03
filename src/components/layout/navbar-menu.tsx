@@ -76,7 +76,7 @@ const MENU_ITEMS: NavItem[] = [
   },
   {
     href: "/freguesometro",
-    label: "Freguesômetro & Súmula",
+    label: "Freguesômetro & Confrontos",
     description: "Histórico H2H, placares e rivalidades",
     icon: Swords,
     matchPaths: ["/freguesometro", "/matches"],

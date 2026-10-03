@@ -265,10 +265,10 @@ export default async function HomePage() {
             >
               <div>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#15a34a]/20 text-[#4ade80]">
-                  RIVALIDADES & SÚMULA
+                  RIVALIDADES & CONFRONTOS
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
-                  Freguesômetro H2H & Súmula com Bônus
+                  Freguesômetro H2H & Partidas com Bônus
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
                   Confronto histórico direto entre treinadores, registro de

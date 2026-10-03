@@ -78,7 +78,7 @@ export default async function OrganizerPage() {
               <div className="p-6 rounded-[4px] bg-[#090c12] border border-[#222c40] text-center space-y-2">
                 <CheckCircle2 className="w-6 h-6 text-[#4ade80] mx-auto" />
                 <p className="text-xs font-semibold text-[#f4f6fb]">
-                  Nenhuma súmula pendente de mediação no momento.
+                  Nenhuma partida pendente de mediação no momento.
                 </p>
                 <p className="text-[11px] text-[#78849e]">
                   Quando jogadores reportarem placares ou pedidos de W.O., eles

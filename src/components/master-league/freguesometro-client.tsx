@@ -597,7 +597,7 @@ export function FreguesometroClient({
             >
               <Flame className="w-4 h-4" />
               <span>
-                Homologar Súmula, Creditar Premiações & Atualizar Freguesômetro
+                Homologar Resultado, Creditar Premiações & Atualizar Freguesômetro
               </span>
             </button>
           </div>
