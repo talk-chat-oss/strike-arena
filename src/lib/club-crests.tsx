@@ -1341,8 +1341,26 @@ export const CLUB_CRESTS: Record<string, ClubVisual> = {
     "primaryColor": "#133865",
     "secondaryColor": "#FFDC2B",
     "country": "INT"
+  },
+  "Parma": {
+    "name": "Parma",
+    "shortName": "PAR",
+    "crestUrl": "https://images.fotmob.com/image_resources/logo/teamlogo/10167.png",
+    "primaryColor": "#003399",
+    "secondaryColor": "#FFDC2B",
+    "country": "ITA"
+  },
+  "San Lorenzo": {
+    "name": "San Lorenzo",
+    "shortName": "SLO",
+    "crestUrl": "https://images.fotmob.com/image_resources/logo/teamlogo/10083.png",
+    "primaryColor": "#003399",
+    "secondaryColor": "#E30613",
+    "country": "ARG"
   }
 };
+
+export const ALL_CLUB_CRESTS_LIST: ClubVisual[] = Object.values(CLUB_CRESTS);
 
 export const GAME_COVERS = {
   ea_fc: {

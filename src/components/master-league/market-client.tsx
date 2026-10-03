@@ -46,6 +46,7 @@ import {
   signFreeAgentAction,
 } from "@/app/actions/master-league-actions";
 import { ClubCrest } from "@/lib/club-crests";
+import { CrestSwitcherModal } from "@/components/master-league/crest-switcher-modal";
 
 interface MarketClientProps {
   athletes: AthleteDTO[];
@@ -679,35 +680,32 @@ export function MarketClient({
         </div>
 
         {currentClub && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full xl:w-auto shrink-0">
-            <div className="h-12 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[200px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 w-full xl:w-auto shrink-0">
+            <div className="h-12 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[195px]">
               <ClubCrest clubName={currentClub.name} size="sm" />
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none">
-                  Operando como:
+                <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
+                  Conta: {currentClub.ownerNickname}
                 </div>
-                <select
-                  value={activeClubId}
-                  onChange={(e) => {
-                    setActiveClubId(e.target.value);
-                    setFeedback(null);
-                  }}
-                  className="w-full bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer truncate mt-0.5"
-                >
-                  {clubs.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-[#111622]">
-                      {c.name} ({c.ownerNickname})
-                    </option>
-                  ))}
-                </select>
+                <div className="text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
+                  {currentClub.name} ({currentClub.acronym})
+                </div>
               </div>
             </div>
 
-            <div className="h-12 px-3.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 flex items-center gap-2.5 sm:min-w-[200px]">
+            <CrestSwitcherModal
+              activeAccount={currentClub}
+              allAccounts={clubs}
+              onSuccessMessage={setFeedback}
+              compactButton
+              buttonClassName="w-full sm:min-w-[175px] h-12 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+            />
+
+            <div className="h-12 px-3.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 flex items-center gap-2.5 sm:min-w-[195px]">
               <Wallet className="w-4 h-4 text-[#4ade80] shrink-0" />
               <div>
                 <div className="text-[10px] text-[#9aa5b8] uppercase font-bold leading-none">
-                  Saldo Disponível
+                  Saldo Global da Conta
                 </div>
                 <div className="text-sm font-extrabold text-[#4ade80] tabular-nums mt-0.5">
                   {formatEscudos(currentClub.balance)}
@@ -717,7 +715,7 @@ export function MarketClient({
 
             <Link
               href="/store/escudos"
-              className="w-full sm:min-w-[200px] h-12 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+              className="w-full sm:min-w-[195px] h-12 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
             >
               <Shield className="w-4 h-4 shrink-0" />
               <span>+ Comprar Escudos</span>

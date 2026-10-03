@@ -33,6 +33,7 @@ import {
   signFreeAgentAction,
 } from "@/app/actions/master-league-actions";
 import { ClubCrest } from "@/lib/club-crests";
+import { CrestSwitcherModal } from "@/components/master-league/crest-switcher-modal";
 
 interface PlayersCatalogClientProps {
   athletes: AthleteDTO[];
@@ -233,32 +234,31 @@ export function PlayersCatalogClient({
 
         <div
           className={`grid grid-cols-1 ${
-            currentClub ? "sm:grid-cols-3" : "sm:grid-cols-2"
+            currentClub ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2"
           } gap-2.5 w-full xl:w-auto shrink-0`}
         >
           {currentClub && (
-            <div className="h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[200px]">
-              <ClubCrest clubName={currentClub.name} size="sm" />
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none">
-                  Clube ({formatEscudos(currentClub.balance)}):
+            <>
+              <div className="h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[200px]">
+                <ClubCrest clubName={currentClub.name} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
+                    Conta {currentClub.ownerNickname} ({formatEscudos(currentClub.balance)}):
+                  </div>
+                  <div className="text-xs font-extrabold text-[#ffdc2b] truncate mt-0.5">
+                    {currentClub.name} ({currentClub.acronym})
+                  </div>
                 </div>
-                <select
-                  value={activeClubId}
-                  onChange={(e) => {
-                    setActiveClubId(e.target.value);
-                    setFeedback(null);
-                  }}
-                  className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer truncate mt-0.5"
-                >
-                  {clubs.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-[#111622]">
-                      {c.name} ({c.ownerNickname})
-                    </option>
-                  ))}
-                </select>
               </div>
-            </div>
+
+              <CrestSwitcherModal
+                activeAccount={currentClub}
+                allAccounts={clubs}
+                onSuccessMessage={setFeedback}
+                compactButton
+                buttonClassName="w-full sm:min-w-[170px] h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+              />
+            </>
           )}
 
           <Link

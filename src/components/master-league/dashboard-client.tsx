@@ -29,6 +29,7 @@ import {
   processSeasonPayrollAction,
 } from "@/app/actions/master-league-actions";
 import { ClubCrest } from "@/lib/club-crests";
+import { CrestSwitcherModal } from "@/components/master-league/crest-switcher-modal";
 
 interface DashboardClientProps {
   clubs: ClubTeamDTO[];
@@ -132,63 +133,50 @@ export function DashboardClient({
 
   return (
     <div className="space-y-6">
-      {/* Top Bar: Seletor de Clube (Simulador de Treinador) + Ações Financeiras em Escudos */}
+      {/* Top Bar: Conta Global do Treinador + Troca Livre de Escudo/Uniforme + Ações */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <ClubCrest clubName={activeClub.name} size="lg" />
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312]">
-                MEU CLUBE • MASTER LIGA
+                CONTA GLOBAL: {activeClub.ownerNickname}
               </span>
               <span className="text-xs text-[#78849e]">
-                Treinador:{" "}
+                Escudo / Uniforme Atual:{" "}
                 <strong className="text-[#f4f6fb]">
-                  {activeClub.ownerNickname}
+                  {activeClub.name} ({activeClub.acronym})
                 </strong>
               </span>
               {activeClub.isDelinquent ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#dc2626]/20 text-[#f87171] border border-[#dc2626]/40">
                   <AlertTriangle className="w-3 h-3" />
-                  CLUBE INADIMPLENTE (PUNIÇÃO ATIVA)
+                  CONTA INADIMPLENTE (PUNIÇÃO ATIVA)
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#15a34a]/20 text-[#4ade80] border border-[#15a34a]/30">
                   <CheckCircle2 className="w-3 h-3" />
-                  FAIR PLAY FINANCEIRO REGULAR
+                  CARTEIRA GLOBAL REGULAR
                 </span>
               )}
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1">
               {activeClub.name}{" "}
               <span className="text-sm font-normal text-[#78849e]">
-                ({activeClub.acronym})
+                • Conta de {activeClub.ownerNickname}
               </span>
             </h1>
           </div>
         </div>
 
-        {/* Seletor rápido de Clube + Botões de Ação Padronizados h-11 */}
+        {/* Botão de Troca de Escudo (170+ Times Livres) + Botões de Ação Padronizados h-11 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 w-full xl:w-auto shrink-0">
-          <div className="h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2 sm:min-w-[190px]">
-            <span className="text-[10px] text-[#78849e] uppercase font-bold shrink-0">
-              Clube:
-            </span>
-            <select
-              value={selectedClubId}
-              onChange={(e) => {
-                setSelectedClubId(e.target.value);
-                setFeedback(null);
-              }}
-              className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer truncate"
-            >
-              {clubs.map((c) => (
-                <option key={c.id} value={c.id} className="bg-[#111622]">
-                  {c.name} ({c.ownerNickname})
-                </option>
-              ))}
-            </select>
-          </div>
+          <CrestSwitcherModal
+            activeAccount={activeClub}
+            allAccounts={clubs}
+            onSuccessMessage={setFeedback}
+            buttonClassName="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+          />
 
           <button
             type="button"
@@ -243,7 +231,7 @@ export function DashboardClient({
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4">
           <div className="flex items-center justify-between text-xs text-[#78849e]">
             <span className="uppercase tracking-wider font-semibold">
-              1. Saldo Disponível (Moeda Oficial)
+              1. Saldo Global da Conta ({activeClub.ownerNickname})
             </span>
             <Wallet className="w-4 h-4 text-[#4ade80]" />
           </div>
@@ -255,7 +243,7 @@ export function DashboardClient({
             {formatEscudos(activeClub.balance)}
           </div>
           <p className="text-[11px] text-[#78849e] mt-1">
-            Livre para Lances em Leilões (5 em 5 Escudos) e Multas Rescisórias
+            Vinculado à sua conta • Permanece intacto mesmo ao trocar de escudo
           </p>
         </div>
 

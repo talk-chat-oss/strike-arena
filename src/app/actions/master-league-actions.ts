@@ -11,12 +11,69 @@ import {
 } from "@/lib/master-league-data";
 
 function revalidateMasterLeaguePaths() {
+  revalidatePath("/", "layout");
   revalidatePath("/market");
   revalidatePath("/auctions");
   revalidatePath("/transfers");
   revalidatePath("/dashboard");
   revalidatePath("/players");
   revalidatePath("/store/escudos");
+}
+
+/**
+ * 0. TROCAR ESCUDO / UNIFORME DA CONTA (PRESERVANDO SALDO GLOBAL E ELENCO)
+ */
+export async function switchAccountCrestAction(input: {
+  clubTeamId: string;
+  newClubName: string;
+  newAcronym?: string;
+}) {
+  if (!input.clubTeamId || !input.newClubName?.trim()) {
+    return {
+      ok: false,
+      error: "Selecione um escudo válido do catálogo oficial.",
+    };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc(
+      "rpc_switch_account_crest",
+      {
+        p_club_team_id: input.clubTeamId,
+        p_new_club_name: input.newClubName.trim(),
+        p_new_acronym: input.newAcronym?.trim() || null,
+      }
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidateMasterLeaguePaths();
+
+    const res = data as {
+      oldClubName: string;
+      newClubName: string;
+      newAcronym: string;
+      balance: number;
+    };
+
+    return {
+      ok: true,
+      message: `🛡️ Escudo da sua conta alterado de ${res.oldClubName} para ${res.newClubName} (${res.newAcronym})! Seu Saldo Global (${formatEscudos(
+        res.balance
+      )}) e todo o seu elenco de jogadores continuam 100% intactos!`,
+      data: res,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao alterar o escudo da conta.",
+    };
+  }
 }
 
 /**

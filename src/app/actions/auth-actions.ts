@@ -84,14 +84,11 @@ export async function registerUserAction(input: {
       throw new Error(error?.message ?? "Falha ao criar conta.");
     }
 
-    // Criar automaticamente o Clube na Master Liga (saldo inicial = 0 Escudos)
-    await supabaseAdmin.from("club_teams").insert({
-      user_id: created.id,
-      name: clubName,
-      acronym,
-      badge_url: clubName,
-      balance: 0,
-      is_delinquent: false,
+    // Garantir criação da Carteira Global da Conta + Escudo escolhido (sem duplicar escudo em uso)
+    await supabaseAdmin.rpc("rpc_ensure_user_account_club", {
+      p_user_id: created.id,
+      p_nickname: created.nickname,
+      p_preferred_crest: clubName,
     });
 
     const cookieStore = await cookies();
@@ -120,7 +117,7 @@ export async function registerUserAction(input: {
 
     return {
       ok: true,
-      message: `Conta "${created.nickname}" e clube "${clubName}" criados com sucesso! Bem-vindo à Strike Arena.`,
+      message: `Conta "${created.nickname}" e escudo "${clubName}" criados com sucesso! Bem-vindo à Strike Arena.`,
     };
   } catch (err) {
     return {
@@ -161,6 +158,13 @@ export async function loginUserAction(input: {
     if (userRow.password_hash && userRow.password_hash !== pwd) {
       return { ok: false, error: "Senha incorreta." };
     }
+
+    // Garantir que a conta do usuário possui Carteira Global + Escudo vinculado
+    await supabaseAdmin.rpc("rpc_ensure_user_account_club", {
+      p_user_id: userRow.id,
+      p_nickname: userRow.nickname,
+      p_preferred_crest: null,
+    });
 
     const cookieStore = await cookies();
     cookieStore.set(

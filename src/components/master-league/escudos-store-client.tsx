@@ -21,6 +21,7 @@ import type {
 import { formatEscudos, formatBrlFromCents } from "@/lib/master-league-data";
 import { createStripeCheckoutSessionAction } from "@/app/actions/master-league-actions";
 import { ClubCrest } from "@/lib/club-crests";
+import { CrestSwitcherModal } from "@/components/master-league/crest-switcher-modal";
 
 interface EscudosStoreClientProps {
   clubs: ClubTeamDTO[];
@@ -40,7 +41,7 @@ export function EscudosStoreClient({
   initialClubId,
   initialFeedback = null,
 }: EscudosStoreClientProps) {
-  const [selectedClubId, setSelectedClubId] = useState(
+  const [selectedClubId] = useState(
     initialClubId || clubs[0]?.id || ""
   );
   const [feedback, setFeedback] = useState<{
@@ -94,45 +95,48 @@ export function EscudosStoreClient({
             Loja Oficial de Escudos • Strike Arena
           </h1>
           <p className="text-xs sm:text-sm text-[#b6c0d4] leading-relaxed">
-            Os <strong className="text-[#ffdc2b]">Escudos</strong> são a moeda
-            exclusiva utilizada pelos clubes para disputar{" "}
-            <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
+            Os <strong className="text-[#ffdc2b]">Escudos</strong> ficam
+            guardados no <strong>Saldo Global da sua Conta</strong> e servem
+            para disputar <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
             <strong>Multas Rescisórias à vista</strong> e quitar a{" "}
-            <strong>Folha Salarial</strong> da temporada. Pagamento processado
-            exclusivamente via <strong>Stripe</strong>.
+            <strong>Folha Salarial</strong>, independentemente de qual escudo de
+            time você escolher usar na temporada.
           </p>
         </div>
 
-        {/* Carteira do Clube Selecionado */}
+        {/* Carteira Global da Conta */}
         {activeClub && (
           <div className="bg-[#090c12] border border-[#2c3852] rounded-[4px] p-4 min-w-[290px] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase text-[#78849e]">
-                Carteira do Clube Destino
+                Carteira Global da Conta: {activeClub.ownerNickname}
               </span>
               <Wallet className="w-4 h-4 text-[#ffdc2b]" />
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <ClubCrest clubName={activeClub.name} size="md" />
-              <select
-                value={selectedClubId}
-                onChange={(e) => {
-                  setSelectedClubId(e.target.value);
-                  setFeedback(null);
-                }}
-                className="w-full h-11 bg-[#111622] border border-[#222c40] rounded-[4px] px-3 text-xs font-bold text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none cursor-pointer"
-              >
-                {clubs.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-[#111622]">
-                    {c.name} ({c.ownerNickname})
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-[4px] bg-[#111622] border border-[#222c40]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <ClubCrest clubName={activeClub.name} size="md" />
+                <div className="min-w-0">
+                  <div className="text-[10px] text-[#78849e] uppercase font-bold">
+                    Escudo Atual:
+                  </div>
+                  <div className="text-xs font-extrabold text-[#f4f6fb] truncate">
+                    {activeClub.name} ({activeClub.acronym})
+                  </div>
+                </div>
+              </div>
+              <CrestSwitcherModal
+                activeAccount={activeClub}
+                allAccounts={clubs}
+                onSuccessMessage={setFeedback}
+                compactButton
+                buttonClassName="h-9 px-3 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[11px] font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+              />
             </div>
 
             <div className="pt-2 border-t border-[#1c2436] flex items-center justify-between">
-              <span className="text-xs text-[#9aa5b8]">Saldo Atual:</span>
+              <span className="text-xs text-[#9aa5b8]">Saldo Global:</span>
               <span className="text-lg font-extrabold text-[#4ade80] tabular-nums">
                 {formatEscudos(activeClub.balance)}
               </span>
