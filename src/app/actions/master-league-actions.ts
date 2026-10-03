@@ -19,7 +19,7 @@ function revalidateMasterLeaguePaths() {
 }
 
 /**
- * 1. MULTA RESCISÓRIA ("ROUBO DE JOGADOR") EM ESCUDOS
+ * 1. MULTA RESCISÓRIA & TRANSFERÊNCIA IMEDIATA EM ESCUDOS
  */
 export async function payBuyoutClauseAction(input: {
   contractId: string;
@@ -53,11 +53,11 @@ export async function payBuyoutClauseAction(input: {
 
     return {
       ok: true,
-      message: `🚨 ROUBO DE ELENCO CONFIRMADO! Multa rescisória de ${formatEscudos(
+      message: `⚡ MULTA RESCISÓRIA PAGA! Transferência imediata confirmada: ${formatEscudos(
         res.buyoutPaid
-      )} paga à vista ao ${res.sellerName}. ${
+      )} pagos à vista ao ${res.sellerName}. ${
         res.athleteName
-      } agora faz parte do seu elenco!`,
+      } saiu do ${res.sellerName} e agora faz parte exclusiva do seu elenco!`,
       data: res,
     };
   } catch (err) {
@@ -67,6 +67,131 @@ export async function payBuyoutClauseAction(input: {
         err instanceof Error
           ? err.message
           : "Erro ao executar pagamento de multa rescisória.",
+    };
+  }
+}
+
+/**
+ * 1.1. CONTRATAR JOGADOR LIVRE (SEM CLUBE / BANCO DA FEDERAÇÃO) COM EXCLUSIVIDADE
+ */
+export async function signFreeAgentAction(input: {
+  athleteId: string;
+  buyerClubId: string;
+}) {
+  if (!input.athleteId || !input.buyerClubId) {
+    return {
+      ok: false,
+      error: "Selecione o atleta e o seu clube para concluir a contratação.",
+    };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc("rpc_sign_free_agent", {
+      p_athlete_id: input.athleteId,
+      p_buyer_club_id: input.buyerClubId,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidateMasterLeaguePaths();
+
+    const res = data as {
+      athleteName: string;
+      clubName: string;
+      signingFee: number;
+      salary: number;
+      buyoutClause: number;
+      newBalance: number;
+    };
+
+    return {
+      ok: true,
+      message: `✍️ CONTRATAÇÃO OFICIAL CONFIRMADA! ${res.athleteName} assinou contrato exclusivo com o ${
+        res.clubName
+      } (Passe: ${formatEscudos(res.signingFee)} • Salário: ${formatEscudos(
+        res.salary,
+        false
+      )} • Multa Rescisória fixada em ${formatEscudos(res.buyoutClause)}).`,
+      data: res,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao contratar atleta livre.",
+    };
+  }
+}
+
+/**
+ * 1.2. CONFIGURAR CALENDÁRIO DE ABERTURA E FECHAMENTO DA JANELA DE TRANSFERÊNCIAS
+ */
+export async function updateTransferWindowSettingsAction(input: {
+  windowName?: string;
+  forceStatus: "AUTO" | "OPEN" | "CLOSED";
+  opensAtIso: string;
+  closesAtIso: string;
+  buyoutEnabled: boolean;
+  tradesEnabled: boolean;
+  freeAgencyEnabled: boolean;
+}) {
+  const opensMs = new Date(input.opensAtIso).getTime();
+  const closesMs = new Date(input.closesAtIso).getTime();
+
+  if (isNaN(opensMs) || isNaN(closesMs) || closesMs <= opensMs) {
+    return {
+      ok: false,
+      error:
+        "A data/hora de fechamento da Janela de Transferências deve ser posterior à data de abertura.",
+    };
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from("transfer_window_settings")
+      .upsert(
+        {
+          id: 1,
+          window_name:
+            input.windowName?.trim() ||
+            "Janela Oficial de Transferências & Multas",
+          force_status: input.forceStatus,
+          opens_at: new Date(opensMs).toISOString(),
+          closes_at: new Date(closesMs).toISOString(),
+          buyout_enabled: input.buyoutEnabled,
+          trades_enabled: input.tradesEnabled,
+          free_agency_enabled: input.freeAgencyEnabled,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) throw new Error(error.message);
+
+    revalidateMasterLeaguePaths();
+
+    const statusLabel =
+      input.forceStatus === "OPEN"
+        ? "ABERTA IMEDIATAMENTE"
+        : input.forceStatus === "CLOSED"
+        ? "FECHADA (Elencos Travados)"
+        : "AGENDADA PELO CALENDÁRIO";
+
+    return {
+      ok: true,
+      message: `📅 Calendário da Janela de Transferências atualizado com sucesso! Status: ${statusLabel}.`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao atualizar calendário da janela de transferências.",
     };
   }
 }
@@ -159,6 +284,43 @@ export async function scheduleAuctionAction(input: {
   const isUpcoming = startsMs > Date.now() + 15000;
 
   try {
+    // Impedir leilão duplicado ou de jogador que já pertence a um clube (quando não listado pelo próprio clube)
+    const { data: existingContract } = await supabaseAdmin
+      .from("contracts")
+      .select("id, club_team_id, club:club_teams!club_team_id(name)")
+      .eq("athlete_id", input.athleteId)
+      .maybeSingle();
+
+    if (
+      existingContract &&
+      (!input.sellerClubId ||
+        existingContract.club_team_id !== input.sellerClubId)
+    ) {
+      const clb = Array.isArray(existingContract.club)
+        ? existingContract.club[0]
+        : existingContract.club;
+      return {
+        ok: false,
+        error: `Este atleta já possui contrato exclusivo com ${
+          clb?.name ?? "outro clube"
+        } e não pode ser colocado em leilão livre da Federação.`,
+      };
+    }
+
+    const { data: existingAuction } = await supabaseAdmin
+      .from("auctions")
+      .select("id")
+      .eq("athlete_id", input.athleteId)
+      .in("status", ["ATIVO", "AGENDADO"])
+      .maybeSingle();
+
+    if (existingAuction) {
+      return {
+        ok: false,
+        error: "Este atleta já possui um leilão ativo ou agendado.",
+      };
+    }
+
     const { data: ath } = await supabaseAdmin
       .from("athletes")
       .select("name")
@@ -432,6 +594,31 @@ export async function respondTransferProposalAction(input: {
     }
 
     if (input.decision === "ACEITA") {
+      const { data: isOpen } = await supabaseAdmin.rpc(
+        "fn_is_transfer_window_open"
+      );
+      if (isOpen === false) {
+        return {
+          ok: false,
+          error:
+            "🔒 A Janela de Transferências está FECHADA no momento. Os jogadores estão travados em seus clubes até a reabertura da janela.",
+        };
+      }
+
+      const { data: winCfg } = await supabaseAdmin
+        .from("transfer_window_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (winCfg && winCfg.trades_enabled === false) {
+        return {
+          ok: false,
+          error:
+            "As trocas e negociações entre clubes estão temporariamente bloqueadas nesta janela.",
+        };
+      }
+
       const { data: fromClub } = await supabaseAdmin
         .from("club_teams")
         .select("*")
@@ -454,6 +641,50 @@ export async function respondTransferProposalAction(input: {
         };
       }
 
+      const offeredIds: string[] = Array.isArray(proposal.offered_athlete_ids)
+        ? proposal.offered_athlete_ids
+        : [];
+      const requestedIds: string[] = Array.isArray(
+        proposal.requested_athlete_ids
+      )
+        ? proposal.requested_athlete_ids
+        : [];
+
+      // Verificar se os atletas ainda pertencem aos respectivos clubes antes de mover
+      if (offeredIds.length > 0) {
+        const { data: offContracts } = await supabaseAdmin
+          .from("contracts")
+          .select("id, club_team_id")
+          .in("athlete_id", offeredIds);
+        if (
+          !offContracts ||
+          offContracts.length !== offeredIds.length ||
+          offContracts.some((c) => c.club_team_id !== fromClub.id)
+        ) {
+          return {
+            ok: false,
+            error: `O atleta oferecido não pertence mais ao elenco do ${fromClub.name}.`,
+          };
+        }
+      }
+
+      if (requestedIds.length > 0) {
+        const { data: reqContracts } = await supabaseAdmin
+          .from("contracts")
+          .select("id, club_team_id")
+          .in("athlete_id", requestedIds);
+        if (
+          !reqContracts ||
+          reqContracts.length !== requestedIds.length ||
+          reqContracts.some((c) => c.club_team_id !== toClub.id)
+        ) {
+          return {
+            ok: false,
+            error: `O atleta solicitado não pertence mais ao elenco do ${toClub.name}.`,
+          };
+        }
+      }
+
       if (proposal.cash_amount > 0) {
         await supabaseAdmin
           .from("club_teams")
@@ -470,26 +701,18 @@ export async function respondTransferProposalAction(input: {
             club_team_id: fromClub.id,
             type: "TRANSFERENCIA",
             amount: -proposal.cash_amount,
-            description: `Volta financeira em Escudos paga em troca de atletas com ${toClub.name}`,
+            description: `Compensação em Escudos paga em transferência com ${toClub.name}`,
           },
           {
             club_team_id: toClub.id,
             type: "TRANSFERENCIA",
             amount: proposal.cash_amount,
-            description: `Volta financeira em Escudos recebida em troca de atletas com ${fromClub.name}`,
+            description: `Compensação em Escudos recebida em transferência com ${fromClub.name}`,
           },
         ]);
       }
 
-      const offeredIds: string[] = Array.isArray(proposal.offered_athlete_ids)
-        ? proposal.offered_athlete_ids
-        : [];
-      const requestedIds: string[] = Array.isArray(
-        proposal.requested_athlete_ids
-      )
-        ? proposal.requested_athlete_ids
-        : [];
-
+      // O atleta sai de um time e vai para o outro (mantendo UNIQUE athlete_id)
       if (offeredIds.length > 0) {
         await supabaseAdmin
           .from("contracts")
@@ -497,7 +720,8 @@ export async function respondTransferProposalAction(input: {
             club_team_id: toClub.id,
             acquired_at: new Date().toISOString(),
           })
-          .in("athlete_id", offeredIds);
+          .in("athlete_id", offeredIds)
+          .eq("club_team_id", fromClub.id);
       }
 
       if (requestedIds.length > 0) {
@@ -507,7 +731,8 @@ export async function respondTransferProposalAction(input: {
             club_team_id: fromClub.id,
             acquired_at: new Date().toISOString(),
           })
-          .in("athlete_id", requestedIds);
+          .in("athlete_id", requestedIds)
+          .eq("club_team_id", toClub.id);
       }
     }
 
@@ -524,7 +749,7 @@ export async function respondTransferProposalAction(input: {
       ok: true,
       message:
         input.decision === "ACEITA"
-          ? "🤝 Troca de atletas e compensação em Escudos concluídas com sucesso!"
+          ? "🤝 Transferência concluída! Os atletas saíram de seus clubes anteriores e já estão integrados aos novos elencos."
           : `Proposta marcada como ${input.decision}.`,
     };
   } catch (err) {
@@ -551,6 +776,17 @@ export async function createTransferProposalAction(input: {
   }
 
   try {
+    const { data: isOpen } = await supabaseAdmin.rpc(
+      "fn_is_transfer_window_open"
+    );
+    if (isOpen === false) {
+      return {
+        ok: false,
+        error:
+          "🔒 A Janela de Transferências está FECHADA no momento. Novas propostas só podem ser enviadas quando a janela abrir.",
+      };
+    }
+
     const { error } = await supabaseAdmin.from("transfer_proposals").insert({
       from_club_id: input.fromClubId,
       to_club_id: input.toClubId,
@@ -569,7 +805,7 @@ export async function createTransferProposalAction(input: {
     revalidateMasterLeaguePaths();
     return {
       ok: true,
-      message: "Proposta de negociação enviada ao treinador adversário!",
+      message: "Proposta de transferência enviada ao treinador adversário!",
     };
   } catch (err) {
     return {

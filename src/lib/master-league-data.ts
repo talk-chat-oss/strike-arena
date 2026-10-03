@@ -202,6 +202,47 @@ export interface HeadToHeadResultDTO {
   }[];
 }
 
+export interface TransferWindowSettingsDTO {
+  windowName: string;
+  forceStatus: "AUTO" | "OPEN" | "CLOSED";
+  opensAt: string;
+  closesAt: string;
+  buyoutEnabled: boolean;
+  tradesEnabled: boolean;
+  freeAgencyEnabled: boolean;
+  isOpenNow: boolean;
+}
+
+export function getFreeAgentSigningCost(overall: number): {
+  signingFee: number;
+  salary: number;
+  buyoutClause: number;
+} {
+  let signingFee = 45;
+  let salary = 12;
+  if (overall >= 90) {
+    signingFee = 220;
+    salary = 50;
+  } else if (overall >= 87) {
+    signingFee = 160;
+    salary = 40;
+  } else if (overall >= 85) {
+    signingFee = 120;
+    salary = 32;
+  } else if (overall >= 82) {
+    signingFee = 85;
+    salary = 24;
+  } else if (overall >= 80) {
+    signingFee = 65;
+    salary = 18;
+  }
+  return {
+    signingFee,
+    salary,
+    buyoutClause: salary * 10,
+  };
+}
+
 export function formatEscudos(value: number, withLabel = true): string {
   const formatted = new Intl.NumberFormat("pt-BR").format(Math.round(value));
   return withLabel ? `${formatted} Escudos` : formatted;
@@ -570,6 +611,7 @@ export async function getMasterLeagueOverviewData() {
       { data: dbH2H },
       { data: dbPackages },
       { data: dbPurchases },
+      { data: dbTransferWindow },
     ] = await Promise.all([
       supabaseAdmin
         .from("athletes")
@@ -619,6 +661,11 @@ export async function getMasterLeagueOverviewData() {
         )
         .order("created_at", { ascending: false })
         .limit(25),
+      supabaseAdmin
+        .from("transfer_window_settings")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle(),
     ]);
 
     const athletesList: AthleteDTO[] =
@@ -839,6 +886,36 @@ export async function getMasterLeagueOverviewData() {
       };
     });
 
+    const nowMs = Date.now();
+    const defaultOpensAt = new Date(nowMs - 3600_000).toISOString();
+    const defaultClosesAt = new Date(nowMs + 7 * 86400_000).toISOString();
+    const forceStatus = (dbTransferWindow?.force_status || "AUTO") as
+      | "AUTO"
+      | "OPEN"
+      | "CLOSED";
+    const opensAt = dbTransferWindow?.opens_at || defaultOpensAt;
+    const closesAt = dbTransferWindow?.closes_at || defaultClosesAt;
+    const isOpenNow =
+      forceStatus === "OPEN"
+        ? true
+        : forceStatus === "CLOSED"
+        ? false
+        : nowMs >= new Date(opensAt).getTime() &&
+          nowMs <= new Date(closesAt).getTime();
+
+    const transferWindow: TransferWindowSettingsDTO = {
+      windowName:
+        dbTransferWindow?.window_name ||
+        "1ª Janela Oficial de Transferências & Multas",
+      forceStatus,
+      opensAt,
+      closesAt,
+      buyoutEnabled: dbTransferWindow?.buyout_enabled ?? true,
+      tradesEnabled: dbTransferWindow?.trades_enabled ?? true,
+      freeAgencyEnabled: dbTransferWindow?.free_agency_enabled ?? true,
+      isOpenNow,
+    };
+
     return {
       athletes: athletesList,
       clubs: clubsList,
@@ -849,8 +926,10 @@ export async function getMasterLeagueOverviewData() {
       h2hRecords,
       escudoPackages: packagesList,
       escudoPurchases: purchasesList,
+      transferWindow,
     };
   } catch {
+    const nowMs = Date.now();
     return {
       athletes: MOCK_ATHLETES,
       clubs: [],
@@ -861,6 +940,16 @@ export async function getMasterLeagueOverviewData() {
       h2hRecords: [],
       escudoPackages: MOCK_ESCUDO_PACKAGES,
       escudoPurchases: [],
+      transferWindow: {
+        windowName: "1ª Janela Oficial de Transferências & Multas",
+        forceStatus: "AUTO" as const,
+        opensAt: new Date(nowMs - 3600_000).toISOString(),
+        closesAt: new Date(nowMs + 7 * 86400_000).toISOString(),
+        buyoutEnabled: true,
+        tradesEnabled: true,
+        freeAgencyEnabled: true,
+        isOpenNow: true,
+      },
     };
   }
 }

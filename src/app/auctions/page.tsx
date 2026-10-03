@@ -12,6 +12,7 @@ export default async function AuctionsCentralPage() {
 
   const myClub =
     data.clubs.find((c) => c.userId === user?.id) ?? data.clubs[0] ?? null;
+  const canManage = Boolean(user?.isSuperAdmin || user?.role === "organizer");
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -21,6 +22,8 @@ export default async function AuctionsCentralPage() {
         contracts={data.contracts}
         auctions={data.auctions}
         proposals={data.proposals}
+        transferWindow={data.transferWindow}
+        canManage={canManage}
         initialClubId={myClub?.id ?? ""}
         defaultSection="auctions"
       />

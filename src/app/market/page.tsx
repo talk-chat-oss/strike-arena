@@ -12,6 +12,7 @@ export default async function MarketPage() {
 
   const userClub =
     data.clubs.find((c) => c.userId === user?.id) ?? data.clubs[0];
+  const canManage = Boolean(user?.isSuperAdmin || user?.role === "organizer");
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -21,6 +22,8 @@ export default async function MarketPage() {
         contracts={data.contracts}
         auctions={data.auctions}
         proposals={data.proposals}
+        transferWindow={data.transferWindow}
+        canManage={canManage}
         initialClubId={userClub?.id ?? ""}
       />
     </main>

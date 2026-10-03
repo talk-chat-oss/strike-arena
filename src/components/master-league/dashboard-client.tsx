@@ -310,8 +310,8 @@ export function DashboardClient({
                 <span>Elenco do Clube & Gestão de Salários / Multas</span>
               </h2>
               <p className="text-xs text-[#78849e] mt-0.5">
-                Ajuste o salário em Escudos para blindar seu craque contra roubo
-                por multa rescisória (Multa = 10× Salário).
+                Ajuste o salário em Escudos para blindar seu craque contra
+                transferência por multa rescisória (Multa = 10× Salário).
               </p>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 rounded-[4px] bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]">
