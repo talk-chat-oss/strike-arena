@@ -255,7 +255,7 @@ export async function updateTransferWindowSettingsAction(input: {
 }
 
 /**
- * 2. SISTEMA DE LEILÃO COM INCREMENTO DE 5 EM 5 ESCUDOS, ESCROW E ANTI-SNIPER (+2 MINUTOS)
+ * 2. SISTEMA DE LEILÃO COM INCREMENTO DE 5 EM 5 STRIKE COIN, ESCROW E ANTI-SNIPER (+2 MINUTOS)
  */
 export async function placeAuctionBidAction(input: {
   auctionId: string;
@@ -263,7 +263,10 @@ export async function placeAuctionBidAction(input: {
   bidAmount: number;
 }) {
   if (!input.auctionId || !input.bidderClubId || input.bidAmount <= 0) {
-    return { ok: false, error: "Informe um valor de lance válido em Escudos." };
+    return {
+      ok: false,
+      error: "Informe um valor de lance válido em Strike Coin.",
+    };
   }
 
   try {
@@ -299,7 +302,7 @@ export async function placeAuctionBidAction(input: {
           } nos últimos 2 minutos prorrogou o término em +02:00!`
         : `✅ Lance de ${formatEscudos(res.newBid)} registrado em ${
             res.athleteName
-          }! Escudos reservados em Custódia (Escrow) e competidor anterior estornado.`,
+          }! Strike Coin reservadas em Custódia (Escrow) e competidor anterior estornado.`,
     };
   } catch (err) {
     return {
@@ -408,7 +411,7 @@ export async function scheduleAuctionAction(input: {
             ath?.name ?? "Atleta"
           }! Lance mínimo: ${formatEscudos(
             startingBid
-          )} (incremento de ${minIncrement} em ${minIncrement} Escudos).`
+          )} (incremento de ${minIncrement} em ${minIncrement} Strike Coin).`
         : `🔥 Leilão de ${
             ath?.name ?? "Atleta"
           } iniciado imediatamente com lance mínimo de ${formatEscudos(
@@ -425,7 +428,7 @@ export async function scheduleAuctionAction(input: {
 }
 
 /**
- * 4. COMPRA / RECARGA DE PACOTE DE ESCUDOS VIA STRIPE (MEIO DE PAGAMENTO ÚNICO E OFICIAL)
+ * 4. COMPRA / RECARGA DE PACOTE DE STRIKE COIN VIA STRIPE (MEIO DE PAGAMENTO ÚNICO E OFICIAL)
  */
 export async function createStripeCheckoutSessionAction(input: {
   clubTeamId: string;
@@ -435,7 +438,7 @@ export async function createStripeCheckoutSessionAction(input: {
   if (!input.clubTeamId || !input.packageId) {
     return {
       ok: false,
-      error: "Selecione o clube destinatário e o pacote de Escudos.",
+      error: "Selecione o clube destinatário e o pacote de Strike Coin.",
     };
   }
 
@@ -460,7 +463,7 @@ export async function createStripeCheckoutSessionAction(input: {
     if (!pkg) {
       return {
         ok: false,
-        error: "Pacote promocional de Escudos não encontrado.",
+        error: "Pacote promocional de Strike Coin não encontrado.",
       };
     }
 
@@ -469,6 +472,11 @@ export async function createStripeCheckoutSessionAction(input: {
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://strike-arena-gg.vercel.app"
     ).replace(/\/$/, "");
+
+    const cleanPkgName = String(pkg.name ?? "").replace(
+      /Escudos?/gi,
+      "Strike Coin"
+    );
 
     const stripe = getStripeServer();
     const session = await stripe.checkout.sessions.create({
@@ -480,8 +488,8 @@ export async function createStripeCheckoutSessionAction(input: {
             currency: "brl",
             unit_amount: Number(pkg.price_brl_cents),
             product_data: {
-              name: `${pkg.name} (+${pkg.escudos_amount} Escudos)`,
-              description: `Recarga oficial de +${pkg.escudos_amount} Escudos para o clube ${club.name} (${club.acronym}) na Strike Arena.`,
+              name: `${cleanPkgName} (+${pkg.escudos_amount} Strike Coin)`,
+              description: `Recarga oficial de +${pkg.escudos_amount} Strike Coin para o clube ${club.name} (${club.acronym}) na Strike Arena.`,
             },
           },
           quantity: 1,
@@ -571,7 +579,7 @@ export async function verifyStripeCheckoutSessionAction(sessionId: string) {
       ok: true,
       message: `🛡️ PAGAMENTO STRIPE CONFIRMADO! +${formatEscudos(
         res.escudosCredited
-      )} creditados instantaneamente na carteira do ${
+      )} creditadas instantaneamente na carteira do ${
         res.clubName
       }. Novo saldo: ${formatEscudos(res.newBalance)}!`,
       data: res,
@@ -595,7 +603,7 @@ export async function purchaseEscudosPackageAction(input: {
   if (!input.clubTeamId || !input.packageId) {
     return {
       ok: false,
-      error: "Selecione o clube destinatário e o pacote de Escudos.",
+      error: "Selecione o clube destinatário e o pacote de Strike Coin.",
     };
   }
 
@@ -625,7 +633,7 @@ export async function purchaseEscudosPackageAction(input: {
       ok: true,
       message: `🛡️ PAGAMENTO STRIPE CONFIRMADO! +${formatEscudos(
         res.escudosCredited
-      )} creditados instantaneamente na carteira do ${
+      )} creditadas instantaneamente na carteira do ${
         res.clubName
       }. Novo saldo: ${formatEscudos(res.newBalance)}!`,
       data: res,
@@ -636,13 +644,13 @@ export async function purchaseEscudosPackageAction(input: {
       error:
         err instanceof Error
           ? err.message
-          : "Erro ao processar recarga de Escudos via Stripe.",
+          : "Erro ao processar recarga de Strike Coin via Stripe.",
     };
   }
 }
 
 /**
- * 5. FOLHA SALARIAL E ENCERRAMENTO DE TEMPORADA EM ESCUDOS
+ * 5. FOLHA SALARIAL E ENCERRAMENTO DE TEMPORADA EM STRIKE COIN
  */
 export async function processSeasonPayrollAction(input?: {
   clubTeamId?: string;
@@ -668,8 +676,8 @@ export async function processSeasonPayrollAction(input?: {
       ok: true,
       message:
         res.delinquentClubs > 0
-          ? `Folha salarial debitada em ${res.processedClubs} clube(s). ⚠️ ${res.delinquentClubs} clube(s) entraram em INADIMPLÊNCIA (saldo negativo em Escudos)!`
-          : `Folha salarial de fim de temporada processada em Escudos para ${res.processedClubs} clube(s)! Todos os clubes estão regulares.`,
+          ? `Folha salarial debitada em ${res.processedClubs} clube(s). ⚠️ ${res.delinquentClubs} clube(s) entraram em INADIMPLÊNCIA (saldo negativo em Strike Coin)!`
+          : `Folha salarial de fim de temporada processada em Strike Coin para ${res.processedClubs} clube(s)! Todos os clubes estão regulares.`,
     };
   } catch (err) {
     return {
@@ -683,7 +691,7 @@ export async function processSeasonPayrollAction(input?: {
 }
 
 /**
- * 6. AJUSTAR SALÁRIO E MULTA RESCISÓRIA PROPORCIONAL (10x SALÁRIO) EM ESCUDOS
+ * 6. AJUSTAR SALÁRIO E MULTA RESCISÓRIA PROPORCIONAL (10x SALÁRIO) EM STRIKE COIN
  */
 export async function updateContractSalaryAction(input: {
   contractId: string;
@@ -692,7 +700,7 @@ export async function updateContractSalaryAction(input: {
   if (!input.contractId || input.newSalary < 10) {
     return {
       ok: false,
-      error: "O salário mínimo permitido na Master Liga é de 10 Escudos.",
+      error: "O salário mínimo permitido na Master Liga é de 10 Strike Coin.",
     };
   }
 
@@ -730,7 +738,7 @@ export async function updateContractSalaryAction(input: {
 }
 
 /**
- * 7. LISTAR JOGADOR DO ELENCO NO LEILÃO ABERTO (EM ESCUDOS)
+ * 7. LISTAR JOGADOR DO ELENCO NO LEILÃO ABERTO (EM STRIKE COIN)
  */
 export async function listAthleteOnAuctionAction(input: {
   contractId: string;
@@ -778,7 +786,7 @@ export async function listAthleteOnAuctionAction(input: {
         ath?.name ?? "Atleta"
       } listado na Central de Leilões com lance inicial de ${formatEscudos(
         minBid
-      )} (incremento de 5 em 5 Escudos)!`,
+      )} (incremento de 5 em 5 Strike Coin)!`,
     };
   } catch (err) {
     return {
@@ -790,7 +798,7 @@ export async function listAthleteOnAuctionAction(input: {
 }
 
 /**
- * 8. RESPONDER OU CRIAR PROPOSTA DE TROCA / NEGOCIAÇÃO DIRETA EM ESCUDOS
+ * 8. RESPONDER OU CRIAR PROPOSTA DE TROCA / NEGOCIAÇÃO DIRETA EM STRIKE COIN
  */
 export async function respondTransferProposalAction(input: {
   proposalId: string;
@@ -855,7 +863,7 @@ export async function respondTransferProposalAction(input: {
       if (proposal.cash_amount > 0 && fromClub.balance < proposal.cash_amount) {
         return {
           ok: false,
-          error: `O clube proponente (${fromClub.name}) não possui Escudos suficientes para a volta financeira.`,
+          error: `O clube proponente (${fromClub.name}) não possui Strike Coin suficiente para a volta financeira.`,
         };
       }
 
@@ -919,13 +927,13 @@ export async function respondTransferProposalAction(input: {
             club_team_id: fromClub.id,
             type: "TRANSFERENCIA",
             amount: -proposal.cash_amount,
-            description: `Compensação em Escudos paga em transferência com ${toClub.name}`,
+            description: `Compensação em Strike Coin paga em transferência com ${toClub.name}`,
           },
           {
             club_team_id: toClub.id,
             type: "TRANSFERENCIA",
             amount: proposal.cash_amount,
-            description: `Compensação em Escudos recebida em transferência com ${fromClub.name}`,
+            description: `Compensação em Strike Coin recebida em transferência com ${fromClub.name}`,
           },
         ]);
       }

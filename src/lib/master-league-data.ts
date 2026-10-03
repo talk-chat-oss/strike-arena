@@ -245,7 +245,7 @@ export function getFreeAgentSigningCost(overall: number): {
 
 export function formatEscudos(value: number, withLabel = true): string {
   const formatted = new Intl.NumberFormat("pt-BR").format(Math.round(value));
-  return withLabel ? `${formatted} Escudos` : formatted;
+  return withLabel ? `${formatted} Strike Coin` : formatted;
 }
 
 export function formatBrlFromCents(cents: number): string {
@@ -256,13 +256,13 @@ export function formatBrlFromCents(cents: number): string {
 }
 
 // ============================================================================
-// MOCK DATA COMPLETO (FALLBACK + SEED BASE EM ESCUDOS)
+// MOCK DATA COMPLETO (FALLBACK + SEED BASE EM STRIKE COIN)
 // ============================================================================
 
 export const MOCK_ESCUDO_PACKAGES: EscudoPackageDTO[] = [
   {
     id: "e0000000-0000-4000-8000-000000000001",
-    name: "Pacote Tático 200 Escudos",
+    name: "Pacote Tático 200 Strike Coin",
     escudosAmount: 200,
     priceBrlCents: 2000,
     badgeLabel: "ENTRADA RÁPIDA",
@@ -271,7 +271,7 @@ export const MOCK_ESCUDO_PACKAGES: EscudoPackageDTO[] = [
   },
   {
     id: "e0000000-0000-4000-8000-000000000002",
-    name: "Pacote Craque 500 Escudos",
+    name: "Pacote Craque 500 Strike Coin",
     escudosAmount: 500,
     priceBrlCents: 3000,
     badgeLabel: "MAIS VENDIDO • +25% BÔNUS",
@@ -280,7 +280,7 @@ export const MOCK_ESCUDO_PACKAGES: EscudoPackageDTO[] = [
   },
   {
     id: "e0000000-0000-4000-8000-000000000003",
-    name: "Cofre Galáctico 1000 Escudos",
+    name: "Cofre Galáctico 1000 Strike Coin",
     escudosAmount: 1000,
     priceBrlCents: 5000,
     badgeLabel: "MELHOR CUSTO-BENEFÍCIO • 2X",
@@ -829,7 +829,10 @@ export async function getMasterLeagueOverviewData() {
         clubName: clb?.name ?? "Clube",
         type: tx.type as FinancialTxType,
         amount: tx.amount,
-        description: tx.description,
+        description: String(tx.description ?? "").replace(
+          /Escudos?/gi,
+          "Strike Coin"
+        ),
         createdAt: tx.created_at,
       };
     });
@@ -881,7 +884,7 @@ export async function getMasterLeagueOverviewData() {
       dbPackages && dbPackages.length > 0
         ? dbPackages.map((p) => ({
             id: p.id,
-            name: p.name,
+            name: String(p.name ?? "").replace(/Escudos?/gi, "Strike Coin"),
             escudosAmount: p.escudos_amount,
             priceBrlCents: p.price_brl_cents,
             badgeLabel: p.badge_label,
@@ -898,7 +901,10 @@ export async function getMasterLeagueOverviewData() {
         clubTeamId: p.club_team_id,
         clubName: clb?.name ?? "Clube",
         packageId: p.package_id,
-        packageName: pkg?.name ?? "Pacote de Escudos",
+        packageName: String(pkg?.name ?? "Pacote de Strike Coin").replace(
+          /Escudos?/gi,
+          "Strike Coin"
+        ),
         escudosCredited: p.escudos_credited,
         amountPaidBrlCents: p.amount_paid_brl_cents,
         paymentMethod: p.payment_method,

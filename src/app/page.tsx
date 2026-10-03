@@ -161,7 +161,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Módulos da Master Liga Online (Economia Fechada em Escudos & Gestão de Clubes) */}
+          {/* Módulos da Master Liga Online (Economia Fechada em Strike Coin & Gestão de Clubes) */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-10">
             <Link
               href="/auctions"
@@ -175,7 +175,7 @@ export default async function HomePage() {
                   Leilões Agendados, Ao Vivo & Anti-Sniper
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
-                  Calendário de craques Bola Preta, lances de 5 em 5 Escudos com
+                  Calendário de craques Bola Preta, lances de 5 em 5 Strike Coin com
                   Escrow e +2 min Anti-Sniper.
                 </p>
               </div>
@@ -210,10 +210,10 @@ export default async function HomePage() {
                   MOEDA OFICIAL
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
-                  Loja de Escudos & Pacotes Promocionais
+                  Loja de Strike Coin & Pacotes Promocionais
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
-                  Pacotes de 200 (R$ 20), 500 (R$ 30) e 1.000 Escudos (R$ 50)
+                  Pacotes de 200 (R$ 20), 500 (R$ 30) e 1.000 Strike Coin (R$ 50)
                   com crédito instantâneo.
                 </p>
               </div>
@@ -233,7 +233,7 @@ export default async function HomePage() {
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
                   Confronto histórico direto entre treinadores, registro de
-                  artilheiros e bônus em Escudos.
+                  artilheiros e bônus em Strike Coin.
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-[#78849e] group-hover:text-[#ffdc2b] shrink-0 mt-1" />

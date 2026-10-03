@@ -58,7 +58,7 @@ export async function Navbar() {
             <>
               <Link
                 href="/dashboard"
-                title="Minha Conta Global, Saldo de Escudos e Troca de Escudo"
+                title="Meu Clube, Saldo em Strike Coin e Troca de Escudo"
                 className="inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-2.5 sm:px-3.5 rounded-[4px] bg-[#133865]/40 hover:bg-[#133865]/60 border border-[#1c4d8a] text-xs font-bold text-[#f4f6fb] transition-colors whitespace-nowrap"
               >
                 {accountClub ? (
@@ -73,7 +73,7 @@ export async function Navbar() {
                 </span>
                 {accountClub && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-[2px] bg-[#15a34a]/25 border border-[#15a34a]/50 text-[#4ade80] font-extrabold tabular-nums leading-none">
-                    {accountClub.balance} E$
+                    {accountClub.balance.toLocaleString("pt-BR")} Strike Coin
                   </span>
                 )}
                 <span className="hidden lg:inline-flex text-[10px] px-1.5 py-0.5 rounded-full bg-[#ffdc2b] text-[#0e1312] font-extrabold uppercase leading-none">

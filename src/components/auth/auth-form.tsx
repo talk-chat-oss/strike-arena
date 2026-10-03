@@ -483,7 +483,7 @@ export function AuthForm({ currentUser }: AuthFormProps) {
             <li className="flex items-start gap-2">
               <ShieldCheck className="w-3.5 h-3.5 text-[#4ade80] shrink-0 mt-0.5" />
               <span>
-                Economia fechada em Escudos com auditoria completa de lances,
+                Economia fechada em Strike Coin com auditoria completa de lances,
                 multas rescisórias e premiações por partida.
               </span>
             </li>

@@ -84,20 +84,20 @@ export function EscudosStoreClient({
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner da Loja de Escudos */}
+      {/* Hero Banner da Loja de Strike Coin */}
       <div className="bg-gradient-to-r from-[#111622] via-[#132038] to-[#111622] border border-[#ffdc2b]/40 rounded-[4px] p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
             <Shield className="w-3.5 h-3.5" />
-            <span>MOEDA OFICIAL FECHADA DA LIGA • STRIPE CHECKOUT</span>
+            <span>MOEDA OFICIAL DA LIGA: STRIKE COIN • STRIPE CHECKOUT</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#f4f6fb]">
-            Loja Oficial de Escudos • Strike Arena
+            Loja Oficial de Strike Coin • Strike Arena
           </h1>
           <p className="text-xs sm:text-sm text-[#b6c0d4] leading-relaxed">
-            Os <strong className="text-[#ffdc2b]">Escudos</strong> ficam
-            guardados no <strong>Saldo Global da sua Conta</strong> e servem
-            para disputar <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
+            As <strong className="text-[#ffdc2b]">Strike Coin</strong> ficam
+            vinculadas à sua conta e servem para disputar{" "}
+            <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
             <strong>Multas Rescisórias à vista</strong> e quitar a{" "}
             <strong>Folha Salarial</strong>, independentemente de qual escudo de
             time você escolher usar na temporada.
@@ -185,7 +185,7 @@ export function EscudosStoreClient({
             <p className="text-[11px] text-[#78849e] mt-0.5">
               Ao escolher um pacote abaixo, você será redirecionado ao ambiente
               seguro oficial da Stripe para concluir o pagamento com liberação
-              automática de Escudos.
+              automática de Strike Coin.
             </p>
           </div>
         </div>
@@ -196,7 +196,7 @@ export function EscudosStoreClient({
         </div>
       </div>
 
-      {/* 3 Cards de Pacotes Promocionais de Escudos */}
+      {/* 3 Cards de Pacotes Promocionais de Strike Coin */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {packages.map((pkg) => {
           const unitPriceBrl = (
@@ -233,7 +233,7 @@ export function EscudosStoreClient({
                   {pkg.name}
                 </h2>
 
-                {/* Quantidade de Escudos */}
+                {/* Quantidade de Strike Coin */}
                 <div className="mt-3 p-4 rounded-[4px] bg-[#090c12] border border-[#1c2436] flex items-center justify-between">
                   <div>
                     <div className="text-[10px] uppercase font-bold text-[#78849e]">
@@ -241,7 +241,7 @@ export function EscudosStoreClient({
                     </div>
                     <div className="text-2xl sm:text-3xl font-extrabold text-[#ffdc2b] tabular-nums mt-0.5">
                       +{pkg.escudosAmount}{" "}
-                      <span className="text-sm font-bold">Escudos</span>
+                      <span className="text-sm font-bold">Strike Coin</span>
                     </div>
                   </div>
                   <Sparkles className="w-6 h-6 text-[#ffdc2b]" />
@@ -258,7 +258,7 @@ export function EscudosStoreClient({
                     </span>
                   </div>
                   <span className="text-[11px] text-[#9aa5b8] tabular-nums">
-                    R$ {unitPriceBrl} / Escudo
+                    R$ {unitPriceBrl} / Strike Coin
                   </span>
                 </div>
 
@@ -266,7 +266,7 @@ export function EscudosStoreClient({
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#4ade80] shrink-0" />
                     <span>
-                      Disponível na hora para lances em leilões (5 em 5 Escudos)
+                      Disponível na hora para lances em leilões (5 em 5 Strike Coin)
                     </span>
                   </li>
                   <li className="flex items-center gap-2">
@@ -309,14 +309,14 @@ export function EscudosStoreClient({
         })}
       </div>
 
-      {/* Log Transacional Auditável de Compras de Escudos */}
+      {/* Log Transacional Auditável de Compras de Strike Coin */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
         <div className="p-4 border-b border-[#222c40] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-[#ffdc2b]" />
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
-                Histórico Auditável de Recargas de Escudos (Stripe)
+                Histórico Auditável de Recargas de Strike Coin (Stripe)
               </h2>
               <p className="text-xs text-[#78849e]">
                 Registro transparente de todas as confirmações de pacotes via
@@ -342,7 +342,7 @@ export function EscudosStoreClient({
                 <th className="py-3 px-3">Pacote Adquirido</th>
                 <th className="py-3 px-3 text-center">Gateway Oficial</th>
                 <th className="py-3 px-3 text-right">Valor Pago (R$)</th>
-                <th className="py-3 px-3 text-right">Escudos Creditados</th>
+                <th className="py-3 px-3 text-right">Strike Coin Creditadas</th>
                 <th className="py-3 px-4 text-right">Referência Stripe</th>
               </tr>
             </thead>
@@ -353,7 +353,7 @@ export function EscudosStoreClient({
                     colSpan={6}
                     className="py-6 text-center text-[#78849e] text-xs"
                   >
-                    Selecione um dos pacotes acima para adquirir Escudos via
+                    Selecione um dos pacotes acima para adquirir Strike Coin via
                     Stripe Checkout Oficial.
                   </td>
                 </tr>
