@@ -17,7 +17,7 @@ function revalidateMasterLeaguePaths() {
   revalidatePath("/transfers");
   revalidatePath("/dashboard");
   revalidatePath("/players");
-  revalidatePath("/store/escudos");
+  revalidatePath("/store/strike-coins");
 }
 
 /**
@@ -501,8 +501,8 @@ export async function createStripeCheckoutSessionAction(input: {
         escudosAmount: String(pkg.escudos_amount),
         clubName: String(club.name),
       },
-      success_url: `${baseUrl}/store/escudos?stripe_session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/store/escudos?canceled=1`,
+      success_url: `${baseUrl}/store/strike-coins?stripe_session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/store/strike-coins?canceled=1`,
     });
 
     if (!session.url) {
@@ -699,8 +699,8 @@ export async function createLeaguePassStripeCheckoutAction(input: {
         clubName: String(club.name),
         planType: input.billingMode,
       },
-      success_url: `${baseUrl}/store/escudos?stripe_session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}${input.returnPath || "/store/escudos"}?canceled=1`,
+      success_url: `${baseUrl}/store/strike-coins?stripe_session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}${input.returnPath || "/store/strike-coins"}?canceled=1`,
     });
 
     if (!session.url) {

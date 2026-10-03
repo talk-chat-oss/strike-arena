@@ -157,7 +157,7 @@ export function DashboardClient({
                 </span>
               ) : (
                 <Link
-                  href="/store/escudos"
+                  href="/store/strike-coins"
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/40 hover:bg-[#ffdc2b]/25 transition-colors"
                 >
                   Ativar Passe de Liga (R$ 30/mês) →
@@ -199,7 +199,7 @@ export function DashboardClient({
           </button>
 
           <Link
-            href="/store/escudos"
+            href="/store/strike-coins"
             className="w-full xl:w-auto h-11 px-4 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/40 text-[#4ade80] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
           >
             <Shield className="w-3.5 h-3.5 shrink-0" />
@@ -536,7 +536,7 @@ export function DashboardClient({
                       </div>
                       <div>
                         <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded-[2px] bg-[#161d2c] text-[#9aa5b8] mb-1">
-                          {tx.type.replace(/_/g, " ").replace(/ESCUDOS/gi, "STRIKE COIN")}
+                          {tx.type.replace(/_/g, " ").replace(/ESCUDOS/gi, "STRIKER COINS")}
                         </span>
                         <p className="text-xs text-[#f4f6fb] leading-snug">
                           {tx.description}

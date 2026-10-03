@@ -714,7 +714,7 @@ export function MarketClient({
             </div>
 
             <Link
-              href="/store/escudos"
+              href="/store/strike-coins"
               className="w-full sm:min-w-[195px] h-12 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
             >
               <Shield className="w-4 h-4 shrink-0" />

@@ -202,7 +202,7 @@ export default async function HomePage() {
             </Link>
 
             <Link
-              href="/store/escudos"
+              href="/store/strike-coins"
               className="group p-4 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] hover:border-[#ffdc2b]/50 transition-all flex items-start justify-between gap-3"
             >
               <div>

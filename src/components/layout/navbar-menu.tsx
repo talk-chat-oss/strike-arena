@@ -67,12 +67,12 @@ const MENU_ITEMS: NavItem[] = [
     matchPaths: ["/dashboard"],
   },
   {
-    href: "/store/escudos",
+    href: "/store/strike-coins",
     label: "Loja de Striker Coins",
     description: "Pacotes oficiais com pagamento via Stripe",
     badge: "PROMO",
     icon: Shield,
-    matchPaths: ["/store/escudos"],
+    matchPaths: ["/store/strike-coins"],
   },
   {
     href: "/freguesometro",
@@ -255,7 +255,7 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
 
           <div className="p-2.5 border-t border-[#222c40] bg-[#111622]/70">
             <Link
-              href="/store/escudos"
+              href="/store/strike-coins"
               onClick={() => setOpen(false)}
               className="flex items-center justify-between gap-2 px-3 py-2 rounded-[4px] bg-gradient-to-r from-[#ffdc2b]/20 to-[#133865]/30 border border-[#ffdc2b]/40 hover:border-[#ffdc2b] text-xs font-bold text-[#f4f6fb] transition-colors"
             >

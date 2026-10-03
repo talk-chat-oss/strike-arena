@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default async function LegacyEscudosStoreRedirect({
+export default async function StrikerCoinsStoreAliasRedirect({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

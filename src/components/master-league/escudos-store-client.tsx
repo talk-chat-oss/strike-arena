@@ -120,7 +120,7 @@ export function EscudosStoreClient({
       const res = await createLeaguePassStripeCheckoutAction({
         clubTeamId: activeClub.id,
         billingMode,
-        returnPath: "/store/escudos",
+        returnPath: "/store/strike-coins",
         originUrl,
       });
 

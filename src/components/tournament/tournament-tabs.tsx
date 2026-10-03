@@ -225,7 +225,7 @@ export function TournamentTabs({
     billingMode: "RECURRING_STRIPE" | "MONTHLY_PIX"
   ) {
     if (!passClubTeamId) {
-      router.push("/store/escudos");
+      router.push("/store/strike-coins");
       return;
     }
     setJoinError(null);
