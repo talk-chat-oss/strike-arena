@@ -146,6 +146,23 @@ export function DashboardClient({
                   ({activeClub.acronym})
                 </span>
               </h1>
+              {activeClub.hasActiveLeaguePass ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase bg-[#15a34a]/20 text-[#4ade80] border border-[#15a34a]/40">
+                  Passe de Liga Ativo · Venc:{" "}
+                  {activeClub.leaguePassExpiresAt
+                    ? new Date(
+                        activeClub.leaguePassExpiresAt
+                      ).toLocaleDateString("pt-BR")
+                    : "Vitalício"}
+                </span>
+              ) : (
+                <Link
+                  href="/store/escudos"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/40 hover:bg-[#ffdc2b]/25 transition-colors"
+                >
+                  Ativar Passe de Liga (R$ 30/mês) →
+                </Link>
+              )}
               {activeClub.isDelinquent && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#dc2626]/20 text-[#f87171] border border-[#dc2626]/40">
                   <AlertTriangle className="w-3 h-3" />

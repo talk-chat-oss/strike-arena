@@ -39,11 +39,14 @@ export interface ClubTeamDTO {
   name: string;
   acronym: string;
   badgeUrl: string;
-  balance: number; // Em Escudos
+  balance: number; // Em Striker Coins
   isDelinquent: boolean;
-  payrollTotal: number; // Em Escudos
-  estimatedSquadValue: number; // Em Escudos
+  payrollTotal: number; // Em Striker Coins
+  estimatedSquadValue: number; // Em Striker Coins
   rosterCount: number;
+  leaguePassExpiresAt?: string | null;
+  leaguePassMode?: string;
+  hasActiveLeaguePass?: boolean;
 }
 
 export interface ContractRosterItemDTO {
@@ -764,6 +767,14 @@ export async function getMasterLeagueOverviewData() {
               (acc, r) => acc + r.buyoutClause,
               0
             );
+            const expiresAtIso = c.league_pass_expires_at
+              ? String(c.league_pass_expires_at)
+              : null;
+            const isSuper = c.user_id === SPOOKY_SUPER_ADMIN_ID;
+            const hasPass =
+              isSuper ||
+              (expiresAtIso !== null &&
+                new Date(expiresAtIso).getTime() > Date.now());
             return {
               id: c.id,
               leagueId: c.league_id,
@@ -777,6 +788,13 @@ export async function getMasterLeagueOverviewData() {
               payrollTotal,
               estimatedSquadValue,
               rosterCount: clubRoster.length,
+              leaguePassExpiresAt: isSuper
+                ? expiresAtIso || "2099-12-31T23:59:59.000Z"
+                : expiresAtIso,
+              leaguePassMode: isSuper
+                ? "ADMIN_GRANTED"
+                : String(c.league_pass_mode || "NONE"),
+              hasActiveLeaguePass: hasPass,
             };
           })
         : [];

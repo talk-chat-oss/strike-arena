@@ -149,6 +149,31 @@ export async function submitMatchScoreAction(rawInput: {
     const sessionUser = await getCurrentUser();
     const actorId = sessionUser?.id ?? rawInput.actorUserId;
 
+    // Verificar Passe de Liga ativo para jogadores comuns (Super-Admin SPOOKY e Organizadores têm imunidade)
+    if (
+      sessionUser &&
+      !isSuperAdmin(sessionUser.id) &&
+      sessionUser.role !== "organizer"
+    ) {
+      const { data: userClub } = await supabaseAdmin
+        .from("club_teams")
+        .select("league_pass_expires_at")
+        .eq("user_id", sessionUser.id)
+        .maybeSingle();
+
+      const hasPass =
+        userClub?.league_pass_expires_at &&
+        new Date(userClub.league_pass_expires_at).getTime() > Date.now();
+
+      if (!hasPass) {
+        return {
+          ok: false,
+          error:
+            "🎟️ Passe de Liga Obrigatório: Seu Passe de Liga (R$ 30,00/mês) está inativo ou vencido. Ative ou renove seu Passe de Liga na Loja Oficial para disputar partidas nos torneios.",
+        };
+      }
+    }
+
     const { data: existingMatch, error: findErr } = await supabaseAdmin
       .from("matches")
       .select("*")
@@ -416,6 +441,58 @@ export async function joinTournamentAction(input: {
   }
 
   try {
+    // Buscar (ou criar se ainda não existir) o clube da conta do usuário para checar o Passe de Liga
+    let { data: userClub } = await supabaseAdmin
+      .from("club_teams")
+      .select("id, balance, league_pass_expires_at, league_pass_mode")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!userClub) {
+      const acronym =
+        club
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 3)
+          .toUpperCase() || "CLB";
+
+      const { data: createdClub } = await supabaseAdmin
+        .from("club_teams")
+        .insert({
+          league_id: input.tournamentId,
+          user_id: user.id,
+          name: club,
+          acronym,
+          badge_url: club,
+          balance: 500,
+          is_delinquent: false,
+          league_pass_expires_at: isSuperAdmin(user.id)
+            ? "2099-12-31T23:59:59.000Z"
+            : null,
+          league_pass_mode: isSuperAdmin(user.id) ? "ADMIN_GRANTED" : "NONE",
+        })
+        .select("id, balance, league_pass_expires_at, league_pass_mode")
+        .single();
+
+      userClub = createdClub ?? null;
+    }
+
+    const hasActiveLeaguePass =
+      isSuperAdmin(user.id) ||
+      Boolean(
+        userClub?.league_pass_expires_at &&
+          new Date(userClub.league_pass_expires_at).getTime() > Date.now()
+      );
+
+    if (!hasActiveLeaguePass) {
+      return {
+        ok: false,
+        requireLeaguePass: true,
+        clubTeamId: userClub?.id ?? null,
+        error:
+          "🎟️ Passe de Liga Obrigatório: Só pode jogar torneios da Master League quem tiver o Passe de Liga ativo (R$ 30,00/mês — Assinatura Mensal Recorrente via Stripe ou pagamento via PIX todo mês com vencimento estipulado).",
+      };
+    }
+
     // Verificar se já está inscrito
     const { data: existing } = await supabaseAdmin
       .from("participants")

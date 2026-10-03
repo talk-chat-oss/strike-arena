@@ -6,10 +6,12 @@ import {
   Users,
   ShieldCheck,
   ChevronRight,
-  Database,
+  CalendarClock,
 } from "lucide-react";
 import { getTournamentBySlug } from "@/lib/queries/tournaments";
 import { getCurrentUser } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
+import { isSuperAdmin } from "@/db";
 import { GAME_COVERS } from "@/lib/club-crests";
 import { TournamentStatusBadge } from "@/components/tournament/status-badge";
 import { TournamentTabs } from "@/components/tournament/tournament-tabs";
@@ -45,7 +47,48 @@ export default async function TournamentPage({
     notFound();
   }
 
-  const { tournament, groups, participants, standings, matches, source } = data;
+  let userLeaguePass: {
+    hasActivePass: boolean;
+    expiresAt: string | null;
+    mode: string;
+    clubTeamId: string | null;
+  } = {
+    hasActivePass: false,
+    expiresAt: null,
+    mode: "NONE",
+    clubTeamId: null,
+  };
+
+  if (currentUser) {
+    try {
+      const { data: clubRow } = await supabaseAdmin
+        .from("club_teams")
+        .select("id, league_pass_expires_at, league_pass_mode")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+
+      const isSuper = isSuperAdmin(currentUser.id);
+      const expIso = clubRow?.league_pass_expires_at
+        ? String(clubRow.league_pass_expires_at)
+        : null;
+      const active =
+        isSuper ||
+        Boolean(expIso && new Date(expIso).getTime() > Date.now());
+
+      userLeaguePass = {
+        hasActivePass: active,
+        expiresAt: isSuper ? expIso || "2099-12-31T23:59:59.000Z" : expIso,
+        mode: isSuper
+          ? "ADMIN_GRANTED"
+          : String(clubRow?.league_pass_mode || "NONE"),
+        clubTeamId: clubRow?.id ?? null,
+      };
+    } catch {
+      // ignore fallback
+    }
+  }
+
+  const { tournament, groups, participants, standings, matches } = data;
   const gameVisual =
     tournament.game === "ea_fc" ? GAME_COVERS.ea_fc : GAME_COVERS.efootball;
 
@@ -104,9 +147,9 @@ export default async function TournamentPage({
                 <span className="px-2.5 py-0.5 rounded-[2px] bg-[#161d2c] border border-[#222c40] text-[11px] text-[#b6c0d4]">
                   {PLATFORM_LABELS[tournament.platform] ?? tournament.platform}
                 </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[11px] text-[#4ade80]">
-                  <ShieldCheck className="w-3 h-3" />
-                  Liga Oficial Verificada
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#ffdc2b]/15 border border-[#ffdc2b]/40 text-[11px] font-extrabold text-[#ffdc2b]">
+                  <CalendarClock className="w-3 h-3" />
+                  Passe de Liga Obrigatório (R$ 30,00/mês)
                 </span>
               </div>
 
@@ -127,7 +170,7 @@ export default async function TournamentPage({
             </div>
           </div>
 
-          {/* Prize Pool Highlight Box */}
+          {/* Prize Pool & League Pass Highlight Box */}
           <div className="bg-[#090c12] border border-[#ffdc2b]/50 rounded-[4px] px-5 py-3.5 text-right tabular-nums">
             <span className="text-[10px] uppercase tracking-wider text-[#78849e] block">
               Premiação Oficial
@@ -135,8 +178,8 @@ export default async function TournamentPage({
             <p className="text-2xl font-bold text-[#ffdc2b]">
               R$ {tournament.prizePoolBrl},00
             </p>
-            <span className="text-[11px] text-[#b6c0d4]">
-              Inscrição: R$ {tournament.entryFeeBrl},00
+            <span className="text-[11px] text-[#4ade80] font-bold block">
+              Requisito: Passe de Liga (R$ 30,00/mês)
             </span>
           </div>
         </div>
@@ -197,6 +240,7 @@ export default async function TournamentPage({
         standings={standings}
         matches={matches}
         currentUser={currentUser}
+        userLeaguePass={userLeaguePass}
       />
     </div>
   );

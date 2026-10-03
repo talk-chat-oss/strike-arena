@@ -526,7 +526,7 @@ export async function createStripeCheckoutSessionAction(input: {
 }
 
 /**
- * 4.1. VERIFICAÇÃO E CRÉDITO IDEMPOTENTE DE SESSÃO STRIPE PAGA
+ * 4.1. VERIFICAÇÃO E CRÉDITO IDEMPOTENTE DE SESSÃO STRIPE PAGA (STRIKER COINS OU PASSE DE LIGA)
  */
 export async function verifyStripeCheckoutSessionAction(sessionId: string) {
   if (!sessionId || !sessionId.startsWith("cs_")) {
@@ -544,7 +544,50 @@ export async function verifyStripeCheckoutSessionAction(sessionId: string) {
       };
     }
 
+    const checkoutKind = session.metadata?.checkoutKind;
     const clubTeamId = session.metadata?.clubTeamId;
+
+    // Caso 1: Ativação / Renovação do Passe de Liga (R$ 30,00 / mês)
+    if (checkoutKind === "LEAGUE_PASS") {
+      if (!clubTeamId) {
+        return {
+          ok: false,
+          error: "Metadados do clube ausentes na sessão do Passe de Liga.",
+        };
+      }
+
+      const planType = session.metadata?.planType || "RECURRING_STRIPE";
+      const { data, error } = await supabaseAdmin.rpc(
+        "rpc_activate_league_pass",
+        {
+          p_club_team_id: clubTeamId,
+          p_plan_type: planType,
+          p_external_ref: String(session.subscription || session.id),
+        }
+      );
+
+      if (error) throw new Error(error.message);
+
+      revalidateMasterLeaguePaths();
+
+      const res = data as {
+        clubName: string;
+        planType: string;
+        expiresAt: string;
+      };
+
+      const formattedExpiry = new Date(res.expiresAt).toLocaleDateString(
+        "pt-BR"
+      );
+
+      return {
+        ok: true,
+        message: `🎟️ PASSE DE LIGA ATIVADO COM SUCESSO! O clube ${res.clubName} está habilitado para disputar torneios da Master League até o vencimento em ${formattedExpiry}.`,
+        data: res,
+      };
+    }
+
+    // Caso 2: Recarga de Pacote de Striker Coins
     const packageId = session.metadata?.packageId;
 
     if (!clubTeamId || !packageId) {
@@ -591,6 +634,164 @@ export async function verifyStripeCheckoutSessionAction(sessionId: string) {
         err instanceof Error
           ? err.message
           : "Erro ao validar pagamento junto à Stripe.",
+    };
+  }
+}
+
+/**
+ * 4.2. PASSE DE LIGA OFICIAL (R$ 30,00 / MÊS) — ASSINATURA RECORRENTE OU MENSAL AVULSO / PIX
+ */
+export async function createLeaguePassStripeCheckoutAction(input: {
+  clubTeamId: string;
+  billingMode: "RECURRING_STRIPE" | "MONTHLY_PIX";
+  returnPath?: string;
+  originUrl?: string;
+}) {
+  if (!input.clubTeamId) {
+    return {
+      ok: false,
+      error: "Selecione ou cadastre seu clube para ativar o Passe de Liga.",
+    };
+  }
+
+  try {
+    const { data: club } = await supabaseAdmin
+      .from("club_teams")
+      .select("id, name, acronym")
+      .eq("id", input.clubTeamId)
+      .maybeSingle();
+
+    if (!club) {
+      return { ok: false, error: "Clube não encontrado para ativar o Passe de Liga." };
+    }
+
+    const baseUrl = (
+      input.originUrl ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://strike-arena-gg.vercel.app"
+    ).replace(/\/$/, "");
+
+    const isRecurring = input.billingMode === "RECURRING_STRIPE";
+    const stripe = getStripeServer();
+
+    const session = await stripe.checkout.sessions.create({
+      mode: isRecurring ? "subscription" : "payment",
+      currency: "brl",
+      line_items: [
+        {
+          price_data: {
+            currency: "brl",
+            unit_amount: 3000, // R$ 30,00
+            ...(isRecurring ? { recurring: { interval: "month" } } : {}),
+            product_data: {
+              name: isRecurring
+                ? `Passe de Liga Master League — Assinatura Mensal Recorrente (R$ 30,00/mês)`
+                : `Passe de Liga Master League — Mensalidade 30 Dias (R$ 30,00)`,
+              description: `Acesso oficial para o clube ${club.name} (${club.acronym}) disputar os torneios da Master League por 30 dias.`,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        checkoutKind: "LEAGUE_PASS",
+        clubTeamId: String(club.id),
+        clubName: String(club.name),
+        planType: input.billingMode,
+      },
+      success_url: `${baseUrl}/store/escudos?stripe_session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}${input.returnPath || "/store/escudos"}?canceled=1`,
+    });
+
+    if (!session.url) {
+      throw new Error("A Stripe não retornou uma URL válida de checkout para o Passe de Liga.");
+    }
+
+    return {
+      ok: true,
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao iniciar checkout do Passe de Liga na Stripe.",
+    };
+  }
+}
+
+/**
+ * 4.3. ESTIPULAR VENCIMENTO DO PASSE DE LIGA / CONFIRMAR PIX MENSAL (ORGANIZADOR / SUPER-ADMIN)
+ */
+export async function setClubLeaguePassExpiryAction(input: {
+  clubTeamId: string;
+  planType: "MONTHLY_PIX" | "RECURRING_STRIPE" | "ADMIN_GRANTED" | "REVOKE";
+  customExpiresAtIso?: string;
+  notes?: string;
+}) {
+  if (!input.clubTeamId) {
+    return { ok: false, error: "Selecione o clube/treinador." };
+  }
+
+  try {
+    if (input.planType === "REVOKE") {
+      const { error } = await supabaseAdmin
+        .from("club_teams")
+        .update({
+          league_pass_expires_at: null,
+          league_pass_mode: "NONE",
+        })
+        .eq("id", input.clubTeamId);
+
+      if (error) throw new Error(error.message);
+      revalidateMasterLeaguePaths();
+      return {
+        ok: true,
+        message: "Passe de Liga encerrado/revogado. O jogador precisará renovar para disputar torneios.",
+      };
+    }
+
+    const customDate = input.customExpiresAtIso
+      ? new Date(input.customExpiresAtIso).toISOString()
+      : new Date(Date.now() + 30 * 86400000).toISOString();
+
+    const { data, error } = await supabaseAdmin.rpc("rpc_activate_league_pass", {
+      p_club_team_id: input.clubTeamId,
+      p_plan_type: input.planType,
+      p_external_ref: null,
+      p_custom_expires_at: customDate,
+      p_notes:
+        input.notes ||
+        `Vencimento do Passe de Liga estipulado (${input.planType}) até ${new Date(
+          customDate
+        ).toLocaleDateString("pt-BR")}.`,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidateMasterLeaguePaths();
+
+    const res = data as {
+      clubName: string;
+      expiresAt: string;
+    };
+
+    const formattedExpiry = new Date(res.expiresAt).toLocaleDateString("pt-BR");
+
+    return {
+      ok: true,
+      message: `✅ Passe de Liga atualizado para ${res.clubName}! Vencimento estipulado para ${formattedExpiry} (R$ 30,00/mês).`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao estipular vencimento do Passe de Liga.",
     };
   }
 }

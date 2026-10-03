@@ -420,6 +420,15 @@ export const clubTeams = pgTable(
     badgeUrl: text("badge_url"),
     balance: integer("balance").default(500).notNull(), // Moeda oficial: Striker Coins (500 no ato da inscrição)
     isDelinquent: boolean("is_delinquent").default(false).notNull(), // Status de inadimplência/punição
+    leaguePassExpiresAt: timestamp("league_pass_expires_at", {
+      withTimezone: true,
+    }), // Vencimento do Passe de Liga (R$ 30,00 / mês)
+    leaguePassMode: varchar("league_pass_mode", { length: 32 })
+      .default("NONE")
+      .notNull(), // RECURRING_STRIPE | MONTHLY_PIX | ADMIN_GRANTED | NONE
+    leaguePassSubscriptionId: varchar("league_pass_subscription_id", {
+      length: 120,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

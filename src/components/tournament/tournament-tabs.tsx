@@ -39,6 +39,7 @@ import {
   getMatchMessagesAction,
   sendMatchMessageAction,
 } from "@/app/actions/tournament-actions";
+import { createLeaguePassStripeCheckoutAction } from "@/app/actions/master-league-actions";
 
 interface TournamentTabsProps {
   tournament: MockTournament;
@@ -47,6 +48,12 @@ interface TournamentTabsProps {
   standings: MockStanding[];
   matches: MockMatch[];
   currentUser: SessionUser | null;
+  userLeaguePass?: {
+    hasActivePass: boolean;
+    expiresAt: string | null;
+    mode: string;
+    clubTeamId: string | null;
+  };
 }
 
 type ActiveTab = "standings" | "bracket" | "matches" | "h2h" | "rules";
@@ -70,6 +77,7 @@ export function TournamentTabs({
   standings,
   matches,
   currentUser,
+  userLeaguePass,
 }: TournamentTabsProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>("standings");
@@ -82,6 +90,9 @@ export function TournamentTabs({
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [selectedClub, setSelectedClub] = useState("Real Madrid");
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [passClubTeamId, setPassClubTeamId] = useState<string | null>(
+    userLeaguePass?.clubTeamId ?? null
+  );
 
   // Match Chat state
   const [chatMatch, setChatMatch] = useState<MockMatch | null>(null);
@@ -198,12 +209,43 @@ export function TournamentTabs({
           router.push("/auth");
           return;
         }
+        if ("clubTeamId" in res && res.clubTeamId) {
+          setPassClubTeamId(String(res.clubTeamId));
+        }
         setJoinError(res.error ?? "Erro ao inscrever-se.");
         return;
       }
       setJoinModalOpen(false);
       setActionBanner(res.message ?? "Inscrição realizada com sucesso!");
       router.refresh();
+    });
+  }
+
+  function handleBuyPassFromTournament(
+    billingMode: "RECURRING_STRIPE" | "MONTHLY_PIX"
+  ) {
+    if (!passClubTeamId) {
+      router.push("/store/escudos");
+      return;
+    }
+    setJoinError(null);
+    startTransition(async () => {
+      const originUrl =
+        typeof window !== "undefined" ? window.location.origin : undefined;
+      const res = await createLeaguePassStripeCheckoutAction({
+        clubTeamId: passClubTeamId,
+        billingMode,
+        returnPath: `/tournaments/${tournament.slug}`,
+        originUrl,
+      });
+      if (res.ok && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+      setJoinError(
+        res.error ||
+          "Não foi possível iniciar o pagamento do Passe de Liga. Acesse a Loja Oficial."
+      );
     });
   }
 
@@ -1284,19 +1326,19 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * MODAL DE INSCRIÇÃO NO TORNEIO (SELETOR VISUAL DE ESCUDOS / BRASÕES)
+       * MODAL DE INSCRIÇÃO NO TORNEIO (SELETOR VISUAL DE ESCUDOS + PASSE DE LIGA)
        * ===================================================================== */}
       {joinModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 overflow-y-auto"
         >
           <div className="w-full max-w-lg bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
               <div>
                 <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                  Selecione o Escudo de sua Preferência
+                  Passe de Liga Obrigatório (R$ 30,00/mês) · +500 Striker Coins
                 </span>
                 <h3 className="text-base font-bold text-[#f4f6fb]">
                   Inscrever-se em {tournament.name}
@@ -1309,6 +1351,64 @@ export function TournamentTabs({
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Card de Status do Passe de Liga (R$ 30,00 / mês) */}
+            <div
+              className={`p-3.5 rounded-[4px] border text-xs space-y-2.5 ${
+                userLeaguePass?.hasActivePass
+                  ? "bg-[#15a34a]/15 border-[#15a34a]/50 text-[#4ade80]"
+                  : "bg-[#ffdc2b]/10 border-[#ffdc2b]/50 text-[#f4f6fb]"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-extrabold uppercase tracking-wider">
+                  {userLeaguePass?.hasActivePass
+                    ? "✔ Passe de Liga Ativo"
+                    : "🎟️ Passe de Liga Obrigatório (R$ 30,00 / mês)"}
+                </span>
+                {userLeaguePass?.expiresAt && (
+                  <span className="text-[11px] font-bold">
+                    Vencimento:{" "}
+                    {new Date(userLeaguePass.expiresAt).toLocaleDateString(
+                      "pt-BR"
+                    )}
+                  </span>
+                )}
+              </div>
+
+              {!userLeaguePass?.hasActivePass && (
+                <>
+                  <p className="text-[11px] text-[#b6c0d4] leading-relaxed">
+                    Só pode jogar torneios da Master League quem tiver o{" "}
+                    <strong className="text-[#ffdc2b]">
+                      Passe de Liga ativo (R$ 30,00/mês)
+                    </strong>{" "}
+                    via assinatura mensal recorrente ou pagamento mensal via PIX
+                    com vencimento estipulado.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() =>
+                        handleBuyPassFromTournament("RECURRING_STRIPE")
+                      }
+                      className="h-10 px-3 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-[11px] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Assinar Recorrente (R$ 30/mês)</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleBuyPassFromTournament("MONTHLY_PIX")}
+                      className="h-10 px-3 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-extrabold text-[11px] inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Mensal 30 Dias / PIX (R$ 30)</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {joinError && (
