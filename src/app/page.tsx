@@ -1,9 +1,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  Swords,
   CheckCircle2,
-  UserPlus,
   Shield,
   Zap,
   Scale,
@@ -80,45 +78,6 @@ export default async function HomePage() {
                 grupos + mata-mata ou torneios relâmpago com Freguesômetro
                 (Head-to-Head), Ranking Fair Play e homologação por print.
               </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl pt-2">
-                <Link
-                  href="/auctions"
-                  className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
-                >
-                  <Zap className="w-4 h-4 shrink-0" />
-                  <span className="truncate">Leilões Bola Preta & Calendário</span>
-                  <ArrowRight className="w-4 h-4 shrink-0" />
-                </Link>
-
-                <Link
-                  href="/store/escudos"
-                  className="w-full h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
-                >
-                  <Shield className="w-4 h-4 text-[#ffdc2b] shrink-0" />
-                  <span className="truncate">Loja de Escudos (200 / 500 / 1000)</span>
-                </Link>
-
-                <Link
-                  href="/players"
-                  className="w-full h-11 px-4 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
-                >
-                  <Swords className="w-4 h-4 text-[#ffdc2b] shrink-0" />
-                  <span className="truncate">Database de Jogadores (999)</span>
-                </Link>
-
-                <Link
-                  href={currentUser ? "/transfers" : "/auth"}
-                  className="w-full h-11 px-4 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
-                >
-                  <UserPlus className="w-4 h-4 text-[#ffdc2b] shrink-0" />
-                  <span className="truncate">
-                    {currentUser
-                      ? "Janela de Transferências & Multas"
-                      : "Entrar / Criar Conta"}
-                  </span>
-                </Link>
-              </div>
             </div>
 
             {/* Card Destaque da Temporada */}
@@ -129,11 +88,11 @@ export default async function HomePage() {
                     ? "Campeonato em Destaque"
                     : "Temporada Oficial · Inscrições Abertas"}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-[#15a34a]/20 text-[#4ade80] text-[10px] font-bold">
-                  {featuredTournament
-                    ? `PRÊMIO R$ ${featuredTournament.prizePoolBrl}`
-                    : "PRODUÇÃO ATIVA"}
-                </span>
+                {featuredTournament && (
+                  <span className="px-2 py-0.5 rounded-full bg-[#15a34a]/20 text-[#4ade80] text-[10px] font-bold">
+                    PRÊMIO R$ {featuredTournament.prizePoolBrl}
+                  </span>
+                )}
               </div>
 
               {featuredTournament ? (

@@ -148,7 +148,7 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label="Abrir menu de navegação"
-        className={`inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-[4px] border text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap ${
+        className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 h-10 px-2.5 sm:px-3.5 rounded-[4px] border text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap ${
           open
             ? "bg-[#ffdc2b] text-[#0e1312] border-[#ffdc2b]"
             : "bg-[#111622] hover:bg-[#161d2c] text-[#f4f6fb] border-[#222c40] hover:border-[#ffdc2b]/50"
@@ -175,22 +175,22 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
         <div
           role="menu"
           aria-label="Menu principal Strike Arena"
-          className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[4px] bg-[#0b0f18] border border-[#222c40] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 overflow-hidden"
+          className="fixed left-3 right-3 top-[68px] w-auto max-w-[calc(100vw-1.5rem)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 sm:max-w-none rounded-[4px] bg-[#0b0f18] border border-[#222c40] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 overflow-hidden"
         >
-          <div className="px-3.5 py-2.5 border-b border-[#222c40] bg-[#111622] flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="px-3.5 py-2.5 border-b border-[#222c40] bg-[#111622] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logo-strike-arena.png"
                 alt="Strike Arena"
                 className="w-5 h-5 object-contain shrink-0"
               />
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#78849e]">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#78849e] truncate">
                 Navegação · Master Liga Online
               </span>
             </div>
             {canManage && (
-              <span className="text-[10px] font-bold text-[#ffdc2b]">
+              <span className="text-[10px] font-bold text-[#ffdc2b] shrink-0">
                 Acesso Organizador
               </span>
             )}
@@ -207,13 +207,13 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
                   href={item.href}
                   role="menuitem"
                   onClick={() => setOpen(false)}
-                  className={`flex items-start justify-between gap-3 p-2.5 rounded-[4px] transition-colors ${
+                  className={`flex items-start justify-between gap-2.5 p-2.5 rounded-[4px] transition-colors overflow-hidden ${
                     active
                       ? "bg-[#ffdc2b] text-[#0e1312]"
                       : "text-[#b6c0d4] hover:text-[#f4f6fb] hover:bg-[#161d2c]"
                   }`}
                 >
-                  <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
                     <div
                       className={`w-7 h-7 rounded-[4px] flex items-center justify-center shrink-0 mt-0.5 ${
                         active
@@ -223,7 +223,7 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-extrabold truncate">
                         {item.label}
                       </div>
@@ -257,13 +257,13 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
             <Link
               href="/store/escudos"
               onClick={() => setOpen(false)}
-              className="flex items-center justify-between px-3 py-2 rounded-[4px] bg-gradient-to-r from-[#ffdc2b]/20 to-[#133865]/30 border border-[#ffdc2b]/40 hover:border-[#ffdc2b] text-xs font-bold text-[#f4f6fb] transition-colors"
+              className="flex items-center justify-between gap-2 px-3 py-2 rounded-[4px] bg-gradient-to-r from-[#ffdc2b]/20 to-[#133865]/30 border border-[#ffdc2b]/40 hover:border-[#ffdc2b] text-xs font-bold text-[#f4f6fb] transition-colors"
             >
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b]" />
-                <span>Recarregar Escudos via PIX</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
+                <span className="truncate">Recarregar Escudos via PIX</span>
               </div>
-              <span className="text-[10px] font-extrabold text-[#ffdc2b]">
+              <span className="text-[10px] font-extrabold text-[#ffdc2b] shrink-0">
                 A partir de R$ 20
               </span>
             </Link>
