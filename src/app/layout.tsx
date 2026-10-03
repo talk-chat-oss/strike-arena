@@ -27,10 +27,13 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <footer className="border-t border-[#222c40] bg-[#090c12] py-8 mt-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#78849e]">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-[11px] inline-flex items-center justify-center">
-                S
-              </span>
+            <div className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-strike-arena.png"
+                alt="Strike Arena Logo Oficial"
+                className="w-7 h-7 object-contain shrink-0"
+              />
               <span className="font-semibold text-[#f4f6fb]">
                 STRIKE ARENA
               </span>

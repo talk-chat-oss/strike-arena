@@ -62,23 +62,12 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111622] border border-[#222c40] text-xs">
-                <span className="w-2 h-2 rounded-full bg-[#ffdc2b]" />
-                <span className="font-semibold text-[#ffdc2b]">
-                  TEMPORADA 2026 ATIVA
-                </span>
-                <span className="text-[#78849e]">·</span>
-                <span className="text-[#b6c0d4]">
-                  EA FC 26 & eFootball · Crossplay PS5, Xbox & PC
-                </span>
-              </div>
-
               <div className="flex items-center gap-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo-strike-arena.svg"
-                  alt="Strike Arena Escudo"
-                  className="w-14 h-14 sm:w-16 sm:h-16 shrink-0"
+                  src="/logo-strike-arena.png"
+                  alt="Strike Arena Escudo Oficial"
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0 drop-shadow-[0_0_20px_rgba(255,220,43,0.2)]"
                 />
                 <h1 className="text-3xl sm:text-5xl font-bold text-[#f4f6fb] tracking-tight leading-[1.08]">
                   A Arena Oficial de{" "}

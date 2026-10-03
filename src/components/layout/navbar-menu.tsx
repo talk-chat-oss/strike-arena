@@ -178,9 +178,17 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
           className="absolute right-0 mt-2 w-80 sm:w-96 rounded-[4px] bg-[#0b0f18] border border-[#222c40] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 overflow-hidden"
         >
           <div className="px-3.5 py-2.5 border-b border-[#222c40] bg-[#111622] flex items-center justify-between">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#78849e]">
-              Navegação · Master Liga Online
-            </span>
+            <div className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-strike-arena.png"
+                alt="Strike Arena"
+                className="w-5 h-5 object-contain shrink-0"
+              />
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#78849e]">
+                Navegação · Master Liga Online
+              </span>
+            </div>
             {canManage && (
               <span className="text-[10px] font-bold text-[#ffdc2b]">
                 Acesso Organizador

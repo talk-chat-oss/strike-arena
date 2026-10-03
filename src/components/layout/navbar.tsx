@@ -17,9 +17,9 @@ export async function Navbar() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-strike-arena.svg"
-            alt="Strike Arena Logo"
-            className="w-7 h-7 object-contain shrink-0"
+            src="/logo-strike-arena.png"
+            alt="Strike Arena Logo Oficial"
+            className="w-9 h-9 object-contain shrink-0"
           />
           <span className="font-bold tracking-wider whitespace-nowrap">
             STRIKE ARENA
