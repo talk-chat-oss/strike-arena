@@ -574,7 +574,8 @@ export async function getMasterLeagueOverviewData() {
       supabaseAdmin
         .from("athletes")
         .select("*")
-        .order("overall", { ascending: false }),
+        .order("overall", { ascending: false })
+        .limit(2000),
       supabaseAdmin
         .from("club_teams")
         .select("*, user:profiles!user_id(nickname)")

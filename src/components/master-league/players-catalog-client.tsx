@@ -10,6 +10,7 @@ import {
   Gavel,
   Flame,
   Users,
+  ChevronDown,
 } from "lucide-react";
 import type {
   AthleteDTO,
@@ -27,6 +28,8 @@ interface PlayersCatalogClientProps {
 
 type SortMode = "OVERALL_DESC" | "OVERALL_ASC" | "NAME_ASC" | "NAME_DESC";
 
+const PAGE_SIZE = 48;
+
 export function PlayersCatalogClient({
   athletes,
   contracts,
@@ -34,10 +37,11 @@ export function PlayersCatalogClient({
 }: PlayersCatalogClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [ballFilter, setBallFilter] = useState<
-    "ALL" | "BOLA_PRETA" | "BOLA_OURO"
+    "ALL" | "BOLA_PRETA" | "BOLA_OURO" | "BOLA_PRATA"
   >("ALL");
   const [posFilter, setPosFilter] = useState<string>("ALL");
   const [sortMode, setSortMode] = useState<SortMode>("OVERALL_DESC");
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
 
   const contractByAthleteId = useMemo(() => {
     const map = new Map<string, ContractRosterItemDTO>();
@@ -84,11 +88,37 @@ export function PlayersCatalogClient({
       }
       return b.name.localeCompare(a.name, "pt-BR");
     });
-  }, [athletes, ballFilter, posFilter, searchQuery, sortMode, contractByAthleteId]);
+  }, [
+    athletes,
+    ballFilter,
+    posFilter,
+    searchQuery,
+    sortMode,
+    contractByAthleteId,
+  ]);
 
-  const blackBallCount = athletes.filter(
-    (a) => a.ballType === "BOLA_PRETA"
-  ).length;
+  const displayedAthletes = useMemo(
+    () => filteredAndSortedAthletes.slice(0, visibleCount),
+    [filteredAndSortedAthletes, visibleCount]
+  );
+
+  const blackBallCount = useMemo(
+    () => athletes.filter((a) => a.ballType === "BOLA_PRETA").length,
+    [athletes]
+  );
+  const goldBallCount = useMemo(
+    () => athletes.filter((a) => a.ballType === "BOLA_OURO").length,
+    [athletes]
+  );
+  const silverBallCount = useMemo(
+    () => athletes.filter((a) => a.ballType === "BOLA_PRATA").length,
+    [athletes]
+  );
+
+  function handleFilterChange<T>(setter: (val: T) => void, val: T) {
+    setter(val);
+    setVisibleCount(PAGE_SIZE);
+  }
 
   return (
     <div className="space-y-6">
@@ -97,20 +127,24 @@ export function PlayersCatalogClient({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
-              DATABASE GLOBAL DE ATLETAS
+              DATABASE GLOBAL DE ATLETAS ({athletes.length})
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[11px] font-bold text-[#f4f6fb]">
               <span className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#ffdc2b] inline-block" />
-              {blackBallCount} Craques Bola Preta
+              {blackBallCount} Bola Preta
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[11px] font-bold text-[#ffdc2b]">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#facc15] inline-block" />
+              {goldBallCount} Bola Ouro
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1.5">
             Catálogo Oficial de Jogadores da Master Liga
           </h1>
           <p className="text-xs text-[#78849e] mt-0.5">
-            Consulte todos os atletas cadastrados, categoria de raridade (Bola
-            Preta / Bola Ouro), clube detentor, multa em Escudos e status de
-            leilão.
+            Consulte todos os {athletes.length} atletas oficiais do futebol
+            mundial com fotos recortadas, escudos dos clubes, categoria de
+            raridade e status de leilão.
           </p>
         </div>
 
@@ -140,14 +174,16 @@ export function PlayersCatalogClient({
             <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Buscar jogador ou clube (ex: Messi, Yamal, Real)..."
+              placeholder="Buscar jogador ou clube (ex: Mbappé, Real Madrid, Arsenal)..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) =>
+                handleFilterChange(setSearchQuery, e.target.value)
+              }
               className="w-full pl-9 pr-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
             />
           </div>
 
-          {/* Filtro por Categoria (Bola Preta / Bola Ouro) */}
+          {/* Filtro por Categoria (Bola Preta / Bola Ouro / Bola Prata) */}
           <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-2">
             <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
             <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
@@ -156,8 +192,13 @@ export function PlayersCatalogClient({
             <select
               value={ballFilter}
               onChange={(e) =>
-                setBallFilter(
-                  e.target.value as "ALL" | "BOLA_PRETA" | "BOLA_OURO"
+                handleFilterChange(
+                  setBallFilter,
+                  e.target.value as
+                    | "ALL"
+                    | "BOLA_PRETA"
+                    | "BOLA_OURO"
+                    | "BOLA_PRATA"
                 )
               }
               className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
@@ -166,10 +207,13 @@ export function PlayersCatalogClient({
                 Todas as Categorias ({athletes.length})
               </option>
               <option value="BOLA_PRETA" className="bg-[#111622]">
-                ⚫ Bola Preta — Craques Elite 85+ ({blackBallCount})
+                ⚫ Bola Preta — Elite 85+ ({blackBallCount})
               </option>
               <option value="BOLA_OURO" className="bg-[#111622]">
-                🟡 Bola Ouro — Destaques (&lt; 85 OVR)
+                🟡 Bola Ouro — 80 a 84 OVR ({goldBallCount})
+              </option>
+              <option value="BOLA_PRATA" className="bg-[#111622]">
+                ⚪ Bola Prata — 77 a 79 OVR ({silverBallCount})
               </option>
             </select>
           </div>
@@ -182,7 +226,7 @@ export function PlayersCatalogClient({
             </span>
             <select
               value={posFilter}
-              onChange={(e) => setPosFilter(e.target.value)}
+              onChange={(e) => handleFilterChange(setPosFilter, e.target.value)}
               className="w-full bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
             >
               <option value="ALL" className="bg-[#111622]">
@@ -192,10 +236,10 @@ export function PlayersCatalogClient({
                 ATA — Centroavante / Atacante
               </option>
               <option value="PE" className="bg-[#111622]">
-                PE — Ponta Esquerda
+                PE — Ponta / Meia Esquerda
               </option>
               <option value="PD" className="bg-[#111622]">
-                PD — Ponta Direita
+                PD — Ponta / Meia Direita
               </option>
               <option value="MEI" className="bg-[#111622]">
                 MEI — Meia Armador
@@ -208,6 +252,12 @@ export function PlayersCatalogClient({
               </option>
               <option value="ZAG" className="bg-[#111622]">
                 ZAG — Zagueiro
+              </option>
+              <option value="LE" className="bg-[#111622]">
+                LE — Lateral Esquerdo
+              </option>
+              <option value="LD" className="bg-[#111622]">
+                LD — Lateral Direito
               </option>
               <option value="GOL" className="bg-[#111622]">
                 GOL — Goleiro
@@ -223,14 +273,16 @@ export function PlayersCatalogClient({
             </span>
             <select
               value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              onChange={(e) =>
+                handleFilterChange(setSortMode, e.target.value as SortMode)
+              }
               className="w-full bg-transparent text-xs font-bold text-[#4ade80] focus:outline-none cursor-pointer"
             >
               <option value="OVERALL_DESC" className="bg-[#111622]">
-                Overall: Maior ao Menor (92 → 80)
+                Overall: Maior ao Menor (92 → 77)
               </option>
               <option value="OVERALL_ASC" className="bg-[#111622]">
-                Overall: Menor ao Maior (80 → 92)
+                Overall: Menor ao Maior (77 → 92)
               </option>
               <option value="NAME_ASC" className="bg-[#111622]">
                 Ordem Alfabética: A → Z
@@ -247,7 +299,7 @@ export function PlayersCatalogClient({
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setBallFilter("ALL")}
+              onClick={() => handleFilterChange(setBallFilter, "ALL")}
               className={`px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
                 ballFilter === "ALL"
                   ? "bg-[#ffdc2b] text-[#0e1312]"
@@ -258,7 +310,7 @@ export function PlayersCatalogClient({
             </button>
             <button
               type="button"
-              onClick={() => setBallFilter("BOLA_PRETA")}
+              onClick={() => handleFilterChange(setBallFilter, "BOLA_PRETA")}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
                 ballFilter === "BOLA_PRETA"
                   ? "bg-[#ffdc2b] text-[#0e1312]"
@@ -266,11 +318,11 @@ export function PlayersCatalogClient({
               }`}
             >
               <span className="w-2.5 h-2.5 rounded-full bg-black border border-[#ffdc2b]" />
-              <span>Somente Bola Preta</span>
+              <span>Bola Preta ({blackBallCount})</span>
             </button>
             <button
               type="button"
-              onClick={() => setBallFilter("BOLA_OURO")}
+              onClick={() => handleFilterChange(setBallFilter, "BOLA_OURO")}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
                 ballFilter === "BOLA_OURO"
                   ? "bg-[#ffdc2b] text-[#0e1312]"
@@ -278,7 +330,19 @@ export function PlayersCatalogClient({
               }`}
             >
               <span className="w-2.5 h-2.5 rounded-full bg-[#facc15]" />
-              <span>Bola Ouro</span>
+              <span>Bola Ouro ({goldBallCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFilterChange(setBallFilter, "BOLA_PRATA")}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
+                ballFilter === "BOLA_PRATA"
+                  ? "bg-[#ffdc2b] text-[#0e1312]"
+                  : "bg-[#090c12] text-[#9aa5b8] border border-[#222c40]"
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1]" />
+              <span>Bola Prata ({silverBallCount})</span>
             </button>
           </div>
 
@@ -287,9 +351,13 @@ export function PlayersCatalogClient({
             <span>
               Exibindo{" "}
               <strong className="text-[#f4f6fb]">
+                {displayedAthletes.length}
+              </strong>{" "}
+              de{" "}
+              <strong className="text-[#f4f6fb]">
                 {filteredAndSortedAthletes.length}
               </strong>{" "}
-              de {athletes.length} atletas
+              atletas filtrados
             </span>
           </div>
         </div>
@@ -297,10 +365,11 @@ export function PlayersCatalogClient({
 
       {/* Grid de Cards Visuais dos Jogadores */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredAndSortedAthletes.map((athlete) => {
+        {displayedAthletes.map((athlete) => {
           const contract = contractByAthleteId.get(athlete.id);
           const auction = auctionByAthleteId.get(athlete.id);
           const isBlackBall = athlete.ballType === "BOLA_PRETA";
+          const isGoldBall = athlete.ballType === "BOLA_OURO";
 
           return (
             <div
@@ -319,13 +388,16 @@ export function PlayersCatalogClient({
                   <img
                     src={athlete.photoUrl}
                     alt={athlete.name}
+                    loading="lazy"
                     className="w-20 h-20 rounded-[6px] bg-gradient-to-b from-[#0f172a] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom pt-1"
                   />
                   <span
                     className={`absolute -top-1.5 -left-1.5 px-1.5 py-0.5 rounded-[3px] text-xs font-extrabold tabular-nums shadow ${
-                      athlete.overall >= 90
+                      athlete.overall >= 88
                         ? "bg-[#ffdc2b] text-[#0e1312]"
-                        : "bg-[#15a34a] text-[#090c12]"
+                        : athlete.overall >= 84
+                        ? "bg-[#15a34a] text-[#090c12]"
+                        : "bg-[#38bdf8] text-[#090c12]"
                     }`}
                   >
                     {athlete.overall}
@@ -341,17 +413,25 @@ export function PlayersCatalogClient({
                       className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase ${
                         isBlackBall
                           ? "bg-black text-[#ffdc2b] border border-[#ffdc2b]/50"
-                          : "bg-[#ffdc2b]/20 text-[#ffdc2b]"
+                          : isGoldBall
+                          ? "bg-[#ffdc2b]/20 text-[#ffdc2b]"
+                          : "bg-[#cbd5e1]/20 text-[#cbd5e1]"
                       }`}
                     >
                       <span
                         className={`w-2 h-2 rounded-full ${
                           isBlackBall
                             ? "bg-[#111] border border-[#ffdc2b]"
-                            : "bg-[#ffdc2b]"
+                            : isGoldBall
+                            ? "bg-[#ffdc2b]"
+                            : "bg-[#cbd5e1]"
                         }`}
                       />
-                      {isBlackBall ? "Bola Preta" : "Bola Ouro"}
+                      {isBlackBall
+                        ? "Bola Preta"
+                        : isGoldBall
+                        ? "Bola Ouro"
+                        : "Bola Prata"}
                     </span>
                   </div>
 
@@ -428,6 +508,31 @@ export function PlayersCatalogClient({
           );
         })}
       </div>
+
+      {/* Paginação / Carregar Mais */}
+      {visibleCount < filteredAndSortedAthletes.length && (
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            className="inline-flex items-center gap-2 min-h-11 px-6 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs cursor-pointer transition-colors"
+          >
+            <ChevronDown className="w-4 h-4" />
+            <span>
+              Carregar mais {PAGE_SIZE} atletas (Restam{" "}
+              {filteredAndSortedAthletes.length - visibleCount})
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setVisibleCount(filteredAndSortedAthletes.length)}
+            className="inline-flex items-center gap-2 min-h-11 px-4 py-2.5 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[#f4f6fb] font-bold text-xs cursor-pointer transition-colors"
+          >
+            <span>Mostrar todos ({filteredAndSortedAthletes.length})</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

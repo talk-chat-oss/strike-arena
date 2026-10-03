@@ -294,8 +294,8 @@ export default async function HomePage() {
               },
               {
                 label: "Database de Atletas",
-                value: "24 Craques",
-                sub: "Bola Preta & Bola Ouro",
+                value: "999 Craques",
+                sub: "166 Clubes & Escudos Oficiais",
               },
               {
                 label: "Índice Fair Play",
