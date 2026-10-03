@@ -626,7 +626,7 @@ export const escudoPurchases = pgTable(
     escudosCredited: integer("escudos_credited").notNull(),
     amountPaidBrlCents: integer("amount_paid_brl_cents").notNull(),
     paymentMethod: varchar("payment_method", { length: 32 })
-      .default("PIX")
+      .default("STRIPE")
       .notNull(),
     paymentStatus: varchar("payment_status", { length: 32 })
       .default("CONFIRMED")

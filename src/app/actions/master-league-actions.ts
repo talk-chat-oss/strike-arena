@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getStripeServer } from "@/lib/stripe";
 import {
   getMasterLeagueOverviewData,
   computeHeadToHeadBetweenClubs,
@@ -367,12 +368,12 @@ export async function scheduleAuctionAction(input: {
 }
 
 /**
- * 4. COMPRA / RECARGA DE PACOTE DE ESCUDOS (CONFIRMAÇÃO INSTANTÂNEA AUDITÁVEL)
+ * 4. COMPRA / RECARGA DE PACOTE DE ESCUDOS VIA STRIPE (MEIO DE PAGAMENTO ÚNICO E OFICIAL)
  */
-export async function purchaseEscudosPackageAction(input: {
+export async function createStripeCheckoutSessionAction(input: {
   clubTeamId: string;
   packageId: string;
-  paymentMethod?: "PIX" | "CARTAO";
+  originUrl?: string;
 }) {
   if (!input.clubTeamId || !input.packageId) {
     return {
@@ -382,13 +383,119 @@ export async function purchaseEscudosPackageAction(input: {
   }
 
   try {
+    const [{ data: club }, { data: pkg }] = await Promise.all([
+      supabaseAdmin
+        .from("club_teams")
+        .select("id, name, acronym")
+        .eq("id", input.clubTeamId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("escudo_packages")
+        .select("*")
+        .eq("id", input.packageId)
+        .eq("active", true)
+        .maybeSingle(),
+    ]);
+
+    if (!club) {
+      return { ok: false, error: "Clube destinatário não encontrado." };
+    }
+    if (!pkg) {
+      return {
+        ok: false,
+        error: "Pacote promocional de Escudos não encontrado.",
+      };
+    }
+
+    const baseUrl = (
+      input.originUrl ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "https://strike-arena-gg.vercel.app"
+    ).replace(/\/$/, "");
+
+    const stripe = getStripeServer();
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      currency: "brl",
+      line_items: [
+        {
+          price_data: {
+            currency: "brl",
+            unit_amount: Number(pkg.price_brl_cents),
+            product_data: {
+              name: `${pkg.name} (+${pkg.escudos_amount} Escudos)`,
+              description: `Recarga oficial de +${pkg.escudos_amount} Escudos para o clube ${club.name} (${club.acronym}) na Strike Arena.`,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        clubTeamId: String(club.id),
+        packageId: String(pkg.id),
+        escudosAmount: String(pkg.escudos_amount),
+        clubName: String(club.name),
+      },
+      success_url: `${baseUrl}/store/escudos?stripe_session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/store/escudos?canceled=1`,
+    });
+
+    if (!session.url) {
+      throw new Error("A Stripe não retornou uma URL válida de checkout.");
+    }
+
+    return {
+      ok: true,
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao iniciar sessão de pagamento na Stripe.",
+    };
+  }
+}
+
+/**
+ * 4.1. VERIFICAÇÃO E CRÉDITO IDEMPOTENTE DE SESSÃO STRIPE PAGA
+ */
+export async function verifyStripeCheckoutSessionAction(sessionId: string) {
+  if (!sessionId || !sessionId.startsWith("cs_")) {
+    return { ok: false, error: "Sessão Stripe inválida." };
+  }
+
+  try {
+    const stripe = getStripeServer();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== "paid") {
+      return {
+        ok: false,
+        error: "O pagamento desta sessão Stripe ainda não consta como pago.",
+      };
+    }
+
+    const clubTeamId = session.metadata?.clubTeamId;
+    const packageId = session.metadata?.packageId;
+
+    if (!clubTeamId || !packageId) {
+      return {
+        ok: false,
+        error: "Metadados do clube/pacote ausentes na sessão da Stripe.",
+      };
+    }
+
     const { data, error } = await supabaseAdmin.rpc(
       "rpc_purchase_escudos_package",
       {
-        p_club_team_id: input.clubTeamId,
-        p_package_id: input.packageId,
-        p_payment_method: input.paymentMethod ?? "PIX",
-        p_external_ref: `STRIKE-${Date.now().toString(36).toUpperCase()}`,
+        p_club_team_id: clubTeamId,
+        p_package_id: packageId,
+        p_payment_method: "STRIPE",
+        p_external_ref: session.id,
       }
     );
 
@@ -405,7 +512,7 @@ export async function purchaseEscudosPackageAction(input: {
 
     return {
       ok: true,
-      message: `🛡️ PAGAMENTO CONFIRMADO! +${formatEscudos(
+      message: `🛡️ PAGAMENTO STRIPE CONFIRMADO! +${formatEscudos(
         res.escudosCredited
       )} creditados instantaneamente na carteira do ${
         res.clubName
@@ -418,7 +525,61 @@ export async function purchaseEscudosPackageAction(input: {
       error:
         err instanceof Error
           ? err.message
-          : "Erro ao processar recarga de Escudos.",
+          : "Erro ao validar pagamento junto à Stripe.",
+    };
+  }
+}
+
+export async function purchaseEscudosPackageAction(input: {
+  clubTeamId: string;
+  packageId: string;
+  paymentMethod?: "STRIPE";
+}) {
+  if (!input.clubTeamId || !input.packageId) {
+    return {
+      ok: false,
+      error: "Selecione o clube destinatário e o pacote de Escudos.",
+    };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin.rpc(
+      "rpc_purchase_escudos_package",
+      {
+        p_club_team_id: input.clubTeamId,
+        p_package_id: input.packageId,
+        p_payment_method: "STRIPE",
+        p_external_ref: `STRIPE-${Date.now().toString(36).toUpperCase()}`,
+      }
+    );
+
+    if (error) throw new Error(error.message);
+
+    revalidateMasterLeaguePaths();
+
+    const res = data as {
+      clubName: string;
+      packageName: string;
+      escudosCredited: number;
+      newBalance: number;
+    };
+
+    return {
+      ok: true,
+      message: `🛡️ PAGAMENTO STRIPE CONFIRMADO! +${formatEscudos(
+        res.escudosCredited
+      )} creditados instantaneamente na carteira do ${
+        res.clubName
+      }. Novo saldo: ${formatEscudos(res.newBalance)}!`,
+      data: res,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao processar recarga de Escudos via Stripe.",
     };
   }
 }

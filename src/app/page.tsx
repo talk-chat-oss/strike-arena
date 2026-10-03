@@ -251,7 +251,7 @@ export default async function HomePage() {
               {
                 label: "Premiação em Disputa",
                 value: `R$ ${totalPrizePool}`,
-                sub: "Via PIX automatizado",
+                sub: "Checkout Oficial Stripe",
               },
               {
                 label: "Database de Atletas",

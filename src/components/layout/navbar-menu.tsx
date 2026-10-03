@@ -69,7 +69,7 @@ const MENU_ITEMS: NavItem[] = [
   {
     href: "/store/escudos",
     label: "Loja de Escudos",
-    description: "Pacotes oficiais com liberação via PIX",
+    description: "Pacotes oficiais com pagamento via Stripe",
     badge: "PROMO",
     icon: Shield,
     matchPaths: ["/store/escudos"],
@@ -261,7 +261,7 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-                <span className="truncate">Recarregar Escudos via PIX</span>
+                <span className="truncate">Recarregar Escudos via Stripe</span>
               </div>
               <span className="text-[10px] font-extrabold text-[#ffdc2b] shrink-0">
                 A partir de R$ 20

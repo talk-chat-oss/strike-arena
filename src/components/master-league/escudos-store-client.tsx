@@ -6,13 +6,12 @@ import {
   Shield,
   Sparkles,
   CheckCircle2,
-  QrCode,
   CreditCard,
   ArrowUpRight,
-  Gavel,
   Wallet,
   History,
   Lock,
+  ExternalLink,
 } from "lucide-react";
 import type {
   ClubTeamDTO,
@@ -20,7 +19,7 @@ import type {
   EscudoPurchaseDTO,
 } from "@/lib/master-league-data";
 import { formatEscudos, formatBrlFromCents } from "@/lib/master-league-data";
-import { purchaseEscudosPackageAction } from "@/app/actions/master-league-actions";
+import { createStripeCheckoutSessionAction } from "@/app/actions/master-league-actions";
 import { ClubCrest } from "@/lib/club-crests";
 
 interface EscudosStoreClientProps {
@@ -28,6 +27,10 @@ interface EscudosStoreClientProps {
   packages: EscudoPackageDTO[];
   purchases: EscudoPurchaseDTO[];
   initialClubId: string;
+  initialFeedback?: {
+    ok: boolean;
+    text: string;
+  } | null;
 }
 
 export function EscudosStoreClient({
@@ -35,32 +38,45 @@ export function EscudosStoreClient({
   packages,
   purchases,
   initialClubId,
+  initialFeedback = null,
 }: EscudosStoreClientProps) {
   const [selectedClubId, setSelectedClubId] = useState(
     initialClubId || clubs[0]?.id || ""
   );
-  const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CARTAO">("PIX");
   const [feedback, setFeedback] = useState<{
     ok: boolean;
     text: string;
-  } | null>(null);
+  } | null>(initialFeedback);
+  const [loadingPkgId, setLoadingPkgId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const activeClub =
     clubs.find((c) => c.id === selectedClubId) ?? clubs[0] ?? null;
 
-  function handleBuyPackage(pkg: EscudoPackageDTO) {
+  function handleBuyPackageWithStripe(pkg: EscudoPackageDTO) {
     if (!activeClub) return;
     setFeedback(null);
+    setLoadingPkgId(pkg.id);
+
     startTransition(async () => {
-      const res = await purchaseEscudosPackageAction({
+      const originUrl =
+        typeof window !== "undefined" ? window.location.origin : undefined;
+
+      const res = await createStripeCheckoutSessionAction({
         clubTeamId: activeClub.id,
         packageId: pkg.id,
-        paymentMethod,
+        originUrl,
       });
+
+      if (res.ok && res.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
+        return;
+      }
+
+      setLoadingPkgId(null);
       setFeedback({
-        ok: res.ok,
-        text: res.ok ? res.message! : res.error!,
+        ok: false,
+        text: res.error || "Não foi possível redirecionar para a Stripe.",
       });
     });
   }
@@ -72,7 +88,7 @@ export function EscudosStoreClient({
         <div className="space-y-2 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
             <Shield className="w-3.5 h-3.5" />
-            <span>MOEDA OFICIAL FECHADA DA LIGA</span>
+            <span>MOEDA OFICIAL FECHADA DA LIGA • STRIPE CHECKOUT</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#f4f6fb]">
             Loja Oficial de Escudos • Strike Arena
@@ -82,7 +98,8 @@ export function EscudosStoreClient({
             exclusiva utilizada pelos clubes para disputar{" "}
             <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
             <strong>Multas Rescisórias à vista</strong> e quitar a{" "}
-            <strong>Folha Salarial</strong> da temporada.
+            <strong>Folha Salarial</strong> da temporada. Pagamento processado
+            exclusivamente via <strong>Stripe</strong>.
           </p>
         </div>
 
@@ -137,49 +154,41 @@ export function EscudosStoreClient({
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{feedback.text}</span>
           </div>
-          <Link
-            href="/auctions"
-            className="w-full sm:w-auto h-10 px-4 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center whitespace-nowrap"
-          >
-            Usar nos Leilões →
-          </Link>
+          {feedback.ok && (
+            <Link
+              href="/auctions"
+              className="w-full sm:w-auto h-10 px-4 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center whitespace-nowrap"
+            >
+              Usar nos Leilões →
+            </Link>
+          )}
         </div>
       )}
 
-      {/* Seletor de Método de Pagamento (Botões h-11 Padronizados) */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs text-[#b6c0d4]">
-          <Lock className="w-4 h-4 text-[#4ade80] shrink-0" />
-          <span>
-            Liberação automática e instantânea após confirmação do pagamento:
-          </span>
+      {/* Barra Oficial do Gateway Único: STRIPE CHECKOUT */}
+      <div className="bg-[#111622] border border-[#635bff]/40 rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5 text-xs text-[#b6c0d4]">
+          <div className="w-9 h-9 rounded-[4px] bg-[#635bff]/20 border border-[#635bff]/50 flex items-center justify-center text-[#a5b4fc] shrink-0">
+            <Lock className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-extrabold text-[#f4f6fb] flex items-center gap-2">
+              <span>Meio de Pagamento Único e Oficial: STRIPE</span>
+              <span className="px-2 py-0.5 rounded-[2px] bg-[#15a34a]/20 text-[#4ade80] text-[10px] font-extrabold uppercase">
+                SSL 256-BITS ATIVO
+              </span>
+            </div>
+            <p className="text-[11px] text-[#78849e] mt-0.5">
+              Ao escolher um pacote abaixo, você será redirecionado ao ambiente
+              seguro oficial da Stripe para concluir o pagamento com liberação
+              automática de Escudos.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("PIX")}
-            className={`w-full sm:min-w-[180px] h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
-              paymentMethod === "PIX"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
-            }`}
-          >
-            <QrCode className="w-3.5 h-3.5 shrink-0" />
-            <span>PIX Instantâneo</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("CARTAO")}
-            className={`w-full sm:min-w-[180px] h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
-              paymentMethod === "CARTAO"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5 shrink-0" />
-            <span>Cartão de Crédito</span>
-          </button>
+        <div className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-[4px] bg-[#635bff] text-white text-xs font-extrabold whitespace-nowrap shrink-0">
+          <CreditCard className="w-4 h-4 shrink-0" />
+          <span>Powered by Stripe</span>
         </div>
       </div>
 
@@ -191,6 +200,7 @@ export function EscudosStoreClient({
             100 /
             pkg.escudosAmount
           ).toFixed(2);
+          const isThisPkgLoading = isPending && loadingPkgId === pkg.id;
 
           return (
             <div
@@ -223,7 +233,7 @@ export function EscudosStoreClient({
                 <div className="mt-3 p-4 rounded-[4px] bg-[#090c12] border border-[#1c2436] flex items-center justify-between">
                   <div>
                     <div className="text-[10px] uppercase font-bold text-[#78849e]">
-                      Crédito Imediato
+                      Crédito Imediato via Stripe
                     </div>
                     <div className="text-2xl sm:text-3xl font-extrabold text-[#ffdc2b] tabular-nums mt-0.5">
                       +{pkg.escudosAmount}{" "}
@@ -264,7 +274,7 @@ export function EscudosStoreClient({
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#4ade80] shrink-0" />
                     <span>
-                      Comprovante auditável no Fluxo de Caixa do clube
+                      Checkout oficial criptografado pela Stripe
                     </span>
                   </li>
                 </ul>
@@ -273,18 +283,22 @@ export function EscudosStoreClient({
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => handleBuyPackage(pkg)}
-                className={`mt-6 w-full h-11 px-4 rounded-[4px] font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 ${
+                onClick={() => handleBuyPackageWithStripe(pkg)}
+                className={`mt-6 w-full h-11 px-4 rounded-[4px] font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap ${
                   pkg.isFeatured
                     ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
-                    : "bg-[#161d2c] hover:bg-[#ffdc2b] text-[#f4f6fb] hover:text-[#0e1312] border border-[#2c3852]"
+                    : "bg-[#635bff] hover:bg-[#5249e5] text-white"
                 }`}
               >
-                <Shield className="w-4 h-4 shrink-0" />
+                <CreditCard className="w-4 h-4 shrink-0" />
                 <span>
-                  Comprar {pkg.escudosAmount} Escudos por{" "}
-                  {formatBrlFromCents(pkg.priceBrlCents)}
+                  {isThisPkgLoading
+                    ? "Abrindo Checkout Stripe..."
+                    : `Pagar com Stripe • ${formatBrlFromCents(
+                        pkg.priceBrlCents
+                      )}`}
                 </span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
           );
@@ -298,11 +312,11 @@ export function EscudosStoreClient({
             <History className="w-4 h-4 text-[#ffdc2b]" />
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
-                Histórico Auditável de Recargas de Escudos
+                Histórico Auditável de Recargas de Escudos (Stripe)
               </h2>
               <p className="text-xs text-[#78849e]">
-                Registro transparente de todas as confirmações de pacotes na
-                liga
+                Registro transparente de todas as confirmações de pacotes via
+                Stripe na liga
               </p>
             </div>
           </div>
@@ -322,10 +336,10 @@ export function EscudosStoreClient({
               <tr className="border-b border-[#222c40] bg-[#0c1018] text-[11px] font-bold uppercase text-[#78849e]">
                 <th className="py-3 px-4">Clube Beneficiário</th>
                 <th className="py-3 px-3">Pacote Adquirido</th>
-                <th className="py-3 px-3 text-center">Método</th>
+                <th className="py-3 px-3 text-center">Gateway Oficial</th>
                 <th className="py-3 px-3 text-right">Valor Pago (R$)</th>
                 <th className="py-3 px-3 text-right">Escudos Creditados</th>
-                <th className="py-3 px-4 text-right">Referência</th>
+                <th className="py-3 px-4 text-right">Referência Stripe</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#1c2436] text-xs">
@@ -335,8 +349,8 @@ export function EscudosStoreClient({
                     colSpan={6}
                     className="py-6 text-center text-[#78849e] text-xs"
                   >
-                    Selecione um dos pacotes acima para testar a confirmação
-                    instantânea de Escudos.
+                    Selecione um dos pacotes acima para adquirir Escudos via
+                    Stripe Checkout Oficial.
                   </td>
                 </tr>
               ) : (
@@ -352,8 +366,8 @@ export function EscudosStoreClient({
                       {p.packageName}
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[10px]">
-                        {p.paymentMethod}
+                      <span className="px-2 py-0.5 rounded-[2px] bg-[#635bff]/20 border border-[#635bff]/40 text-[#a5b4fc] font-extrabold text-[10px]">
+                        STRIPE
                       </span>
                     </td>
                     <td className="py-3 px-3 text-right font-semibold text-[#f4f6fb] tabular-nums">
@@ -363,7 +377,7 @@ export function EscudosStoreClient({
                       +{formatEscudos(p.escudosCredited)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-[11px] text-[#78849e]">
-                      {p.externalReference || "CONFIRMADO"}
+                      {p.externalReference || "STRIPE-CONFIRMED"}
                     </td>
                   </tr>
                 ))
