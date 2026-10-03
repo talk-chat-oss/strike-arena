@@ -431,14 +431,14 @@ export function MarketClient({
       {/* CALENDÁRIO OFICIAL DA JANELA DE TRANSFERÊNCIAS (ABRE / FECHA)         */}
       {/* ==================================================================== */}
       <div
-        className={`rounded-[4px] border p-4 transition-colors ${
+        className={`rounded-[4px] border p-4 sm:p-5 transition-colors ${
           isWindowOpen
             ? "bg-gradient-to-r from-[#0d1f17] via-[#111622] to-[#111622] border-[#15a34a]/50"
             : "bg-gradient-to-r from-[#241115] via-[#111622] to-[#111622] border-[#dc2626]/50"
         }`}
       >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               {isWindowOpen ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#15a34a] text-[#090c12] text-[11px] font-extrabold uppercase">
@@ -480,30 +480,35 @@ export function MarketClient({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <div className="px-3 py-1.5 rounded-[4px] bg-[#090c12] border border-[#222c40] text-right">
-              <div className="text-[10px] uppercase font-bold text-[#78849e]">
-                {isWindowOpen ? "Fecha em" : "Status do Calendário"}
-              </div>
-              <div className="text-xs font-mono font-extrabold text-[#ffdc2b]">
+          {/* Controles Padronizados h-11 (Mesmo tamanho em Mobile e Web) */}
+          <div
+            className={`grid grid-cols-1 ${
+              canManage ? "sm:grid-cols-3" : "sm:grid-cols-1"
+            } gap-2.5 w-full xl:w-auto shrink-0`}
+          >
+            <div className="h-11 px-4 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center justify-between sm:justify-center gap-2.5 sm:min-w-[190px]">
+              <span className="text-[10px] uppercase font-bold text-[#78849e]">
+                {isWindowOpen ? "Fecha em:" : "Calendário:"}
+              </span>
+              <span className="text-xs font-mono font-extrabold text-[#ffdc2b] whitespace-nowrap">
                 {transferWindow.forceStatus === "OPEN"
-                  ? "ABERTA MANUALMENTE"
+                  ? "ABERTA MANUAL"
                   : transferWindow.forceStatus === "CLOSED"
-                  ? "FECHADA MANUALMENTE"
+                  ? "FECHADA MANUAL"
                   : windowTimer.formatted}
-              </div>
+              </span>
             </div>
 
             {canManage && (
-              <div className="flex flex-wrap items-center gap-2">
+              <>
                 {!isWindowOpen ? (
                   <button
                     type="button"
                     disabled={isPending}
                     onClick={() => handleSaveTransferWindow(undefined, "OPEN")}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-[#090c12] text-xs font-extrabold cursor-pointer transition-colors"
+                    className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-[#090c12] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
                   >
-                    <Unlock className="w-3.5 h-3.5" />
+                    <Unlock className="w-3.5 h-3.5 shrink-0" />
                     <span>Abrir Janela Agora</span>
                   </button>
                 ) : (
@@ -513,9 +518,9 @@ export function MarketClient({
                     onClick={() =>
                       handleSaveTransferWindow(undefined, "CLOSED")
                     }
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-extrabold cursor-pointer transition-colors"
+                    className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
                   >
-                    <Lock className="w-3.5 h-3.5" />
+                    <Lock className="w-3.5 h-3.5 shrink-0" />
                     <span>Fechar Janela (Travar)</span>
                   </button>
                 )}
@@ -523,12 +528,12 @@ export function MarketClient({
                 <button
                   type="button"
                   onClick={() => setShowWindowSettings((v) => !v)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] cursor-pointer transition-colors"
+                  className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
                 >
-                  <Settings2 className="w-3.5 h-3.5 text-[#ffdc2b]" />
+                  <Settings2 className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
                   <span>Calendário da Janela</span>
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -558,7 +563,7 @@ export function MarketClient({
                   type="text"
                   value={winName}
                   onChange={(e) => setWinName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
                 />
               </div>
 
@@ -570,7 +575,7 @@ export function MarketClient({
                   type="datetime-local"
                   value={winOpensLocal}
                   onChange={(e) => setWinOpensLocal(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
+                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
                 />
               </div>
 
@@ -582,7 +587,7 @@ export function MarketClient({
                   type="datetime-local"
                   value={winClosesLocal}
                   onChange={(e) => setWinClosesLocal(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f87171]"
+                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f87171]"
                 />
               </div>
 
@@ -597,7 +602,7 @@ export function MarketClient({
                       e.target.value as "AUTO" | "OPEN" | "CLOSED"
                     )
                   }
-                  className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
+                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
                 >
                   <option value="AUTO" className="bg-[#111622]">
                     Automático pelo Calendário (Abre/Fecha nas datas)
@@ -612,7 +617,7 @@ export function MarketClient({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
               <div className="flex flex-wrap items-center gap-4 text-xs text-[#b6c0d4]">
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
@@ -646,7 +651,7 @@ export function MarketClient({
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto sm:min-w-[220px] h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
               >
                 Salvar Calendário da Janela
               </button>
@@ -655,8 +660,8 @@ export function MarketClient({
         )}
       </div>
 
-      {/* Header do Mercado com Saldo do Clube Comprador em Escudos */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Header do Mercado com Saldo do Clube Comprador em Escudos (3 Blocos h-12 Idênticos) */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
@@ -674,11 +679,11 @@ export function MarketClient({
         </div>
 
         {currentClub && (
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full xl:w-auto shrink-0">
+            <div className="h-12 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[200px]">
               <ClubCrest clubName={currentClub.name} size="sm" />
-              <div>
-                <div className="text-[10px] text-[#78849e] uppercase font-bold">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none">
                   Operando como:
                 </div>
                 <select
@@ -687,7 +692,7 @@ export function MarketClient({
                     setActiveClubId(e.target.value);
                     setFeedback(null);
                   }}
-                  className="bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
+                  className="w-full bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer truncate mt-0.5"
                 >
                   {clubs.map((c) => (
                     <option key={c.id} value={c.id} className="bg-[#111622]">
@@ -698,13 +703,13 @@ export function MarketClient({
               </div>
             </div>
 
-            <div className="bg-[#15a34a]/15 border border-[#15a34a]/40 rounded-[4px] px-3.5 py-2 flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[#4ade80]" />
+            <div className="h-12 px-3.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 flex items-center gap-2.5 sm:min-w-[200px]">
+              <Wallet className="w-4 h-4 text-[#4ade80] shrink-0" />
               <div>
-                <div className="text-[10px] text-[#9aa5b8] uppercase font-bold">
+                <div className="text-[10px] text-[#9aa5b8] uppercase font-bold leading-none">
                   Saldo Disponível
                 </div>
-                <div className="text-sm font-extrabold text-[#4ade80] tabular-nums">
+                <div className="text-sm font-extrabold text-[#4ade80] tabular-nums mt-0.5">
                   {formatEscudos(currentClub.balance)}
                 </div>
               </div>
@@ -712,9 +717,9 @@ export function MarketClient({
 
             <Link
               href="/store/escudos"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold transition-colors"
+              className="w-full sm:min-w-[200px] h-12 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
             >
-              <Shield className="w-3.5 h-3.5" />
+              <Shield className="w-4 h-4 shrink-0" />
               <span>+ Comprar Escudos</span>
             </Link>
           </div>
@@ -741,69 +746,71 @@ export function MarketClient({
         </div>
       )}
 
-      {/* Navegação Principal do Mercado / Leilões / Transferências */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#222c40] pb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab("auctions")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-              activeTab === "auctions"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
-            }`}
-          >
-            <Gavel className="w-3.5 h-3.5" />
-            <span>1. Central de Leilões (Agendados & Ao Vivo)</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
-              {auctions.length}
-            </span>
-          </button>
+      {/* Navegação Principal Padronizada (Grid Uniforme h-11 em Mobile e Web) */}
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 ${
+          activeTab === "auctions" ? "xl:grid-cols-4" : "xl:grid-cols-3"
+        } gap-2.5 border-b border-[#222c40] pb-4`}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveTab("auctions")}
+          className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === "auctions"
+              ? "bg-[#ffdc2b] text-[#0e1312]"
+              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+          }`}
+        >
+          <Gavel className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">1. Central de Leilões</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/20 leading-none shrink-0">
+            {auctions.length}
+          </span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("buyout")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-              activeTab === "buyout"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>2. Multa Rescisória & Transferência Imediata</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
-              {contracts.length}
-            </span>
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("buyout")}
+          className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === "buyout"
+              ? "bg-[#ffdc2b] text-[#0e1312]"
+              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+          }`}
+        >
+          <Flame className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">2. Multa Rescisória & Transferência</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/20 leading-none shrink-0">
+            {contracts.length}
+          </span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("proposals")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-              activeTab === "proposals"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
-            }`}
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-            <span>3. Propostas Diretas & Trocas</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20">
-              {proposals.length}
-            </span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab("proposals")}
+          className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+            activeTab === "proposals"
+              ? "bg-[#ffdc2b] text-[#0e1312]"
+              : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
+          }`}
+        >
+          <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">3. Propostas Diretas & Trocas</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/20 leading-none shrink-0">
+            {proposals.length}
+          </span>
+        </button>
 
         {activeTab === "auctions" && (
           <button
             type="button"
             onClick={() => setShowScheduleForm((v) => !v)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#2b6cb0] text-xs font-bold text-[#f4f6fb] cursor-pointer"
+            className="w-full h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#2b6cb0] text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
           >
-            <PlusCircle className="w-3.5 h-3.5 text-[#ffdc2b]" />
-            <span>
+            <PlusCircle className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
+            <span className="truncate">
               {showScheduleForm
                 ? "Fechar Agendador"
-                : "+ Agendar Novo Leilão (Organizador)"}
+                : "+ Agendar Novo Leilão"}
             </span>
           </button>
         )}
@@ -844,7 +851,7 @@ export function MarketClient({
                   <select
                     value={schedAthleteId}
                     onChange={(e) => setSchedAthleteId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                    className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
                   >
                     {athletes
                       .filter((a) => !contractedAthleteIds.has(a.id))
@@ -872,7 +879,7 @@ export function MarketClient({
                     min={10}
                     value={schedStartBid}
                     onChange={(e) => setSchedStartBid(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
+                    className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
                   />
                 </div>
 
@@ -885,7 +892,7 @@ export function MarketClient({
                     onChange={(e) =>
                       setSchedMinIncrement(Number(e.target.value))
                     }
-                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
+                    className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
                   >
                     <option value={5} className="bg-[#111622]">
                       5 em 5 Escudos (Padrão)
@@ -908,7 +915,7 @@ export function MarketClient({
                     onChange={(e) =>
                       setSchedStartsInMinutes(Number(e.target.value))
                     }
-                    className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                    className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
                   >
                     <option value={0} className="bg-[#111622]">
                       Iniciar Agora (ATIVO)
@@ -929,7 +936,7 @@ export function MarketClient({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                 <span className="text-[11px] text-[#78849e]">
                   Duração da janela de lances após abrir:{" "}
                   <strong className="text-[#f4f6fb]">
@@ -940,7 +947,7 @@ export function MarketClient({
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto sm:min-w-[240px] h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                 >
                   Confirmar Publicação no Calendário
                 </button>
@@ -951,7 +958,7 @@ export function MarketClient({
           {/* Vitrine e Divulgação Antecipada de Craques "Bola Preta" */}
           <div className="bg-gradient-to-r from-[#111622] via-[#151e32] to-[#111622] border border-[#ffdc2b]/35 rounded-[4px] p-4 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-black text-[#ffdc2b] border border-[#ffdc2b] text-[11px] font-extrabold uppercase">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#ffdc2b]" />
                   <span>VITRINE BOLA PRETA • CALENDÁRIO OFICIAL</span>
@@ -963,76 +970,78 @@ export function MarketClient({
               </div>
               <Link
                 href="/players"
-                className="text-xs font-bold text-[#ffdc2b] hover:underline"
+                className="text-xs font-bold text-[#ffdc2b] hover:underline whitespace-nowrap"
               >
                 Ver Database Completo de Jogadores →
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {[...upcomingAuctions, ...activeAuctions]
-                .slice(0, 5)
-                .map((item) => {
-                  const isUpcoming =
-                    item.status === "AGENDADO" &&
-                    new Date(item.startsAt).getTime() > nowMs;
-                  const timer = formatCountdown(
-                    isUpcoming ? item.startsAt : item.endsAt,
-                    nowMs
-                  );
+            {[...upcomingAuctions, ...activeAuctions].length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {[...upcomingAuctions, ...activeAuctions]
+                  .slice(0, 5)
+                  .map((item) => {
+                    const isUpcoming =
+                      item.status === "AGENDADO" &&
+                      new Date(item.startsAt).getTime() > nowMs;
+                    const timer = formatCountdown(
+                      isUpcoming ? item.startsAt : item.endsAt,
+                      nowMs
+                    );
 
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() =>
-                        setAuctionSubTab(isUpcoming ? "upcoming" : "active")
-                      }
-                      className="p-3 rounded-[4px] bg-[#090c12] border border-[#222c40] hover:border-[#ffdc2b] transition-colors cursor-pointer flex items-center gap-3"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.photoUrl}
-                        alt={item.athleteName}
-                        className="w-12 h-12 rounded-[4px] bg-[#111622] border border-[#ffdc2b]/40 object-contain object-bottom shrink-0 pt-0.5"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="px-1.5 py-0.2 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-extrabold">
-                            {item.overall}
-                          </span>
-                          <span className="text-[10px] font-bold text-[#60a5fa]">
-                            {item.position}
-                          </span>
-                        </div>
-                        <div className="text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
-                          {item.athleteName}
-                        </div>
-                        <div className="text-[10px] text-[#9aa5b8] truncate">
-                          {isUpcoming
-                            ? `Abre em ${timer.formatted}`
-                            : `Ao Vivo • ${formatEscudos(item.currentBid)}`}
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() =>
+                          setAuctionSubTab(isUpcoming ? "upcoming" : "active")
+                        }
+                        className="p-3 rounded-[4px] bg-[#090c12] border border-[#222c40] hover:border-[#ffdc2b] transition-colors cursor-pointer flex items-center gap-3"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.photoUrl}
+                          alt={item.athleteName}
+                          className="w-12 h-12 rounded-[4px] bg-[#111622] border border-[#ffdc2b]/40 object-contain object-bottom shrink-0 pt-0.5"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-1.5 py-0.2 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] font-extrabold">
+                              {item.overall}
+                            </span>
+                            <span className="text-[10px] font-bold text-[#60a5fa]">
+                              {item.position}
+                            </span>
+                          </div>
+                          <div className="text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
+                            {item.athleteName}
+                          </div>
+                          <div className="text-[10px] text-[#9aa5b8] truncate">
+                            {isUpcoming
+                              ? `Abre em ${timer.formatted}`
+                              : `Ao Vivo • ${formatEscudos(item.currentBid)}`}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
 
-          {/* 3 Sub-Abas de Leilões */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* 3 Sub-Abas de Leilões Padronizadas (Grid 3 Colunas Iguais h-11) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button
               type="button"
               onClick={() => setAuctionSubTab("active")}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
+              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap ${
                 auctionSubTab === "active"
                   ? "bg-[#15a34a] text-[#090c12]"
-                  : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
+                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Em Andamento (Ao Vivo)</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/25">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Em Andamento (Ao Vivo)</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/25 leading-none shrink-0">
                 {activeAuctions.length}
               </span>
             </button>
@@ -1040,15 +1049,15 @@ export function MarketClient({
             <button
               type="button"
               onClick={() => setAuctionSubTab("upcoming")}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
+              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap ${
                 auctionSubTab === "upcoming"
                   ? "bg-[#ffdc2b] text-[#0e1312]"
-                  : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
+                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Próximos Leilões (Agendados)</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/25">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Próximos Leilões (Agendados)</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/25 leading-none shrink-0">
                 {upcomingAuctions.length}
               </span>
             </button>
@@ -1056,15 +1065,15 @@ export function MarketClient({
             <button
               type="button"
               onClick={() => setAuctionSubTab("finished")}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
+              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap ${
                 auctionSubTab === "finished"
                   ? "bg-[#60a5fa] text-[#090c12]"
-                  : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
+                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
               }`}
             >
-              <Trophy className="w-3.5 h-3.5" />
-              <span>Finalizados (Histórico de Arremates)</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/25">
+              <Trophy className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Finalizados (Histórico)</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/25 leading-none shrink-0">
                 {finishedAuctions.length}
               </span>
             </button>
@@ -1197,10 +1206,7 @@ export function MarketClient({
                     </div>
 
                     <div className="pt-2 border-t border-[#1c2436] space-y-2.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase text-[#78849e] mr-1">
-                          Atalhos (+{step} em +{step}):
-                        </span>
+                      <div className="grid grid-cols-3 gap-2">
                         {[minNextBid, minNextBid + step, minNextBid + step * 2].map(
                           (quickVal) => (
                             <button
@@ -1214,19 +1220,18 @@ export function MarketClient({
                                 }));
                                 handleQuickBid(auc, quickVal);
                               }}
-                              className="px-2.5 py-1 rounded-[4px] bg-[#161d2c] hover:bg-[#ffdc2b] text-[#ffdc2b] hover:text-[#0e1312] border border-[#ffdc2b]/40 text-[11px] font-extrabold transition-colors cursor-pointer tabular-nums"
+                              className="w-full h-9 px-2 rounded-[4px] bg-[#161d2c] hover:bg-[#ffdc2b] text-[#ffdc2b] hover:text-[#0e1312] border border-[#ffdc2b]/40 text-[11px] font-extrabold inline-flex items-center justify-center transition-colors cursor-pointer tabular-nums"
                             >
-                              {formatEscudos(quickVal)}
+                              +{formatEscudos(quickVal)}
                             </button>
                           )
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
+                        <div>
                           <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
-                            Seu Lance em Escudos (Mínimo:{" "}
-                            {formatEscudos(minNextBid)})
+                            Seu Lance (Mín: {formatEscudos(minNextBid)})
                           </label>
                           <input
                             type="number"
@@ -1239,14 +1244,14 @@ export function MarketClient({
                                 [auc.id]: Number(e.target.value),
                               }))
                             }
-                            className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] tabular-nums focus:border-[#ffdc2b] focus:outline-none"
+                            className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] tabular-nums focus:border-[#ffdc2b] focus:outline-none"
                           />
                         </div>
                         <button
                           type="button"
                           disabled={isPending || diffSec === 0}
                           onClick={() => handleQuickBid(auc)}
-                          className="mt-4 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50"
+                          className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
                         >
                           Confirmar Lance
                         </button>
@@ -1349,7 +1354,7 @@ export function MarketClient({
                       </div>
                     </div>
 
-                    <div className="p-3 rounded-[4px] bg-[#ffdc2b]/10 border border-[#ffdc2b]/30 flex items-center justify-between">
+                    <div className="h-11 px-3 rounded-[4px] bg-[#ffdc2b]/10 border border-[#ffdc2b]/30 flex items-center justify-between">
                       <span className="text-[11px] font-bold uppercase text-[#ffdc2b]">
                         Abre automaticamente em:
                       </span>
@@ -1422,72 +1427,61 @@ export function MarketClient({
       {/* ==================================================================== */}
       {activeTab === "buyout" && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setBuyoutSubMode("contracted")}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
-                  buyoutSubMode === "contracted"
-                    ? "bg-[#dc2626] text-white"
-                    : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
-                }`}
-              >
-                <Flame className="w-3.5 h-3.5" />
-                <span>
-                  Jogadores em Clubes • Pagar Multa & Transferir (
-                  {contracts.length})
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setBuyoutSubMode("free")}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-extrabold cursor-pointer transition-colors ${
-                  buyoutSubMode === "free"
-                    ? "bg-[#15a34a] text-[#090c12]"
-                    : "bg-[#111622] text-[#b6c0d4] border border-[#222c40]"
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>
-                  Jogadores Livres no Banco da Federação (
-                  {athletes.length - contracts.length})
-                </span>
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs text-[#ffdc2b]">
-              <ShieldAlert className="w-4 h-4" />
-              <span>
-                {isWindowOpen
-                  ? "Janela Aberta: Pagamento da multa transfere o jogador imediatamente!"
-                  : "Janela Fechada: Jogadores estão travados em seus clubes."}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setBuyoutSubMode("contracted")}
+              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                buyoutSubMode === "contracted"
+                  ? "bg-[#dc2626] text-white"
+                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                Jogadores em Clubes • Pagar Multa & Transferir (
+                {contracts.length})
               </span>
-            </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setBuyoutSubMode("free")}
+              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+                buyoutSubMode === "free"
+                  ? "bg-[#15a34a] text-[#090c12]"
+                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">
+                Jogadores Livres no Banco da Federação (
+                {athletes.length - contracts.length})
+              </span>
+            </button>
           </div>
 
-          <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-2.5" />
+          <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Buscar atleta ou clube detentor..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
+                  className="w-full h-11 pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-1.5">
-                <span className="text-[11px] text-[#78849e] font-semibold">
+              <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
+                <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
                   Overall Mínimo:
                 </span>
                 <select
                   value={minOverall}
                   onChange={(e) => setMinOverall(Number(e.target.value))}
-                  className="bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
+                  className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
                 >
                   <option value={77} className="bg-[#111622]">
                     77+ OVR (Todos)
@@ -1504,17 +1498,17 @@ export function MarketClient({
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-1.5">
-                <span className="text-[11px] text-[#78849e] font-semibold">
+              <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
+                <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
                   Posição:
                 </span>
                 <select
                   value={posFilter}
                   onChange={(e) => setPosFilter(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
+                  className="w-full bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
                 >
                   <option value="ALL" className="bg-[#111622]">
-                    Todas
+                    Todas as Posições
                   </option>
                   <option value="ATA" className="bg-[#111622]">
                     ATA (Atacante)
@@ -1539,6 +1533,15 @@ export function MarketClient({
                   </option>
                 </select>
               </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-[#ffdc2b]">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <span>
+                {isWindowOpen
+                  ? "Janela Aberta: Pagamento da multa transfere o jogador imediatamente para o seu elenco!"
+                  : "Janela Fechada: Jogadores estão travados em seus clubes até a próxima abertura."}
+              </span>
             </div>
           </div>
 
@@ -1656,12 +1659,12 @@ export function MarketClient({
 
                             <td className="py-3 px-4 text-right">
                               {isOwnPlayer ? (
-                                <span className="px-2.5 py-1 rounded-[4px] bg-[#161d2c] text-[#4ade80] text-[11px] font-bold">
+                                <span className="inline-flex items-center justify-center min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] text-[#4ade80] text-xs font-bold">
                                   Atleta do Seu Clube
                                 </span>
                               ) : !isWindowOpen ||
                                 !transferWindow.buyoutEnabled ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
+                                <span className="inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
                                   <Lock className="w-3.5 h-3.5 text-[#f87171]" />
                                   <span>Travado (Janela Fechada)</span>
                                 </span>
@@ -1670,13 +1673,13 @@ export function MarketClient({
                                   type="button"
                                   disabled={isPending || !canExecuteBuyout}
                                   onClick={() => handlePayBuyout(c)}
-                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
+                                  className={`inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
                                     canAfford
                                       ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
                                       : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
                                   }`}
                                 >
-                                  <Flame className="w-3.5 h-3.5" />
+                                  <Flame className="w-3.5 h-3.5 shrink-0" />
                                   <span>
                                     {canAfford
                                       ? "Pagar Multa & Transferir"
@@ -1776,7 +1779,7 @@ export function MarketClient({
                           <td className="py-3 px-4 text-right">
                             {!isWindowOpen ||
                             !transferWindow.freeAgencyEnabled ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
+                              <span className="inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
                                 <Lock className="w-3.5 h-3.5 text-[#f87171]" />
                                 <span>Janela Fechada</span>
                               </span>
@@ -1787,13 +1790,13 @@ export function MarketClient({
                                   isPending || !currentClub || !canAfford
                                 }
                                 onClick={() => handleSignFreeAgent(a)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
+                                className={`inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
                                   canAfford
                                     ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
                                     : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
                                 }`}
                               >
-                                <UserPlus className="w-3.5 h-3.5" />
+                                <UserPlus className="w-3.5 h-3.5 shrink-0" />
                                 <span>
                                   {canAfford
                                     ? "Contratar Agora"
@@ -1886,7 +1889,7 @@ export function MarketClient({
                   </div>
 
                   {p.status === "PENDENTE" && (
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="grid grid-cols-2 gap-2 shrink-0">
                       <button
                         type="button"
                         disabled={
@@ -1895,7 +1898,7 @@ export function MarketClient({
                           !transferWindow.tradesEnabled
                         }
                         onClick={() => handleRespondProposal(p.id, "ACEITA")}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-white font-bold text-xs cursor-pointer disabled:opacity-50"
+                        className="min-w-[130px] h-10 px-3 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-white font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>Aceitar Troca</span>
@@ -1904,7 +1907,7 @@ export function MarketClient({
                         type="button"
                         disabled={isPending}
                         onClick={() => handleRespondProposal(p.id, "RECUSADA")}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-[4px] bg-[#dc2626]/20 hover:bg-[#dc2626]/30 border border-[#dc2626]/40 text-[#f87171] font-bold text-xs cursor-pointer"
+                        className="min-w-[130px] h-10 px-3 rounded-[4px] bg-[#dc2626]/20 hover:bg-[#dc2626]/30 border border-[#dc2626]/40 text-[#f87171] font-bold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>Recusar</span>
@@ -1940,7 +1943,7 @@ export function MarketClient({
                   setTargetClubId(e.target.value);
                   setRequestedAthleteId("");
                 }}
-                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
               >
                 {clubs
                   .filter((c) => c.id !== currentClub?.id)
@@ -1959,7 +1962,7 @@ export function MarketClient({
               <select
                 value={offeredAthleteId}
                 onChange={(e) => setOfferedAthleteId(e.target.value)}
-                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+                className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
               >
                 {myContracts.map((c) => (
                   <option
@@ -1980,7 +1983,7 @@ export function MarketClient({
               <select
                 value={requestedAthleteId}
                 onChange={(e) => setRequestedAthleteId(e.target.value)}
-                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
+                className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb]"
               >
                 {targetClubContracts.map((c) => (
                   <option
@@ -2004,7 +2007,7 @@ export function MarketClient({
                 min={0}
                 value={cashOffer}
                 onChange={(e) => setCashOffer(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
+                className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
               />
             </div>
 
@@ -2013,7 +2016,7 @@ export function MarketClient({
               disabled={
                 isPending || !isWindowOpen || !transferWindow.tradesEnabled
               }
-              className="w-full py-2.5 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
               <span>

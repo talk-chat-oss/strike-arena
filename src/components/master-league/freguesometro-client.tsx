@@ -165,12 +165,12 @@ export function FreguesometroClient({
             </h1>
           </div>
 
-          {/* Seletores dos 2 Adversários */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Seletores dos 2 Adversários Padronizados h-11 */}
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2 w-full md:w-auto">
             <select
               value={teamAId}
               onChange={(e) => setTeamAId(e.target.value)}
-              className="px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#ffdc2b]"
+              className="w-full sm:min-w-[200px] h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#ffdc2b]"
             >
               {clubs.map((c) => (
                 <option key={c.id} value={c.id} className="bg-[#111622]">
@@ -179,14 +179,14 @@ export function FreguesometroClient({
               ))}
             </select>
 
-            <span className="text-xs font-extrabold text-[#78849e] px-1">
+            <span className="text-xs font-extrabold text-[#78849e] text-center px-1">
               VS
             </span>
 
             <select
               value={teamBId}
               onChange={(e) => setTeamBId(e.target.value)}
-              className="px-3 py-2 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#60a5fa]"
+              className="w-full sm:min-w-[200px] h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#2c3852] text-xs font-bold text-[#60a5fa]"
             >
               {clubs.map((c) => (
                 <option key={c.id} value={c.id} className="bg-[#111622]">
@@ -489,7 +489,7 @@ export function FreguesometroClient({
                 <select
                   value={newHomeScorerName}
                   onChange={(e) => setNewHomeScorerName(e.target.value)}
-                  className="flex-1 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#2c3852] text-xs text-[#f4f6fb]"
+                  className="flex-1 h-11 px-3 rounded-[4px] bg-[#111622] border border-[#2c3852] text-xs text-[#f4f6fb]"
                 >
                   {teamARoster.map((r) => (
                     <option
@@ -504,9 +504,10 @@ export function FreguesometroClient({
                 <button
                   type="button"
                   onClick={handleAddHomeScorer}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-bold text-[#ffdc2b] cursor-pointer"
+                  className="h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-extrabold text-[#ffdc2b] inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Gol
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>Add Gol</span>
                 </button>
               </div>
               <div className="space-y-1.5">
@@ -543,7 +544,7 @@ export function FreguesometroClient({
                 <select
                   value={newAwayScorerName}
                   onChange={(e) => setNewAwayScorerName(e.target.value)}
-                  className="flex-1 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#2c3852] text-xs text-[#f4f6fb]"
+                  className="flex-1 h-11 px-3 rounded-[4px] bg-[#111622] border border-[#2c3852] text-xs text-[#f4f6fb]"
                 >
                   {teamBRoster.map((r) => (
                     <option
@@ -558,9 +559,10 @@ export function FreguesometroClient({
                 <button
                   type="button"
                   onClick={handleAddAwayScorer}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-bold text-[#60a5fa] cursor-pointer"
+                  className="h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-extrabold text-[#60a5fa] inline-flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Gol
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>Add Gol</span>
                 </button>
               </div>
               <div className="space-y-1.5">
@@ -593,9 +595,9 @@ export function FreguesometroClient({
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto sm:min-w-[320px] h-11 px-6 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <Flame className="w-4 h-4" />
+              <Flame className="w-4 h-4 shrink-0" />
               <span>
                 Homologar Resultado, Creditar Premiações & Atualizar Freguesômetro
               </span>

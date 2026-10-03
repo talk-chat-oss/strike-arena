@@ -104,7 +104,7 @@ export function EscudosStoreClient({
                   setSelectedClubId(e.target.value);
                   setFeedback(null);
                 }}
-                className="w-full bg-[#111622] border border-[#222c40] rounded-[4px] px-2.5 py-1.5 text-xs font-bold text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none cursor-pointer"
+                className="w-full h-11 bg-[#111622] border border-[#222c40] rounded-[4px] px-3 text-xs font-bold text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none cursor-pointer"
               >
                 {clubs.map((c) => (
                   <option key={c.id} value={c.id} className="bg-[#111622]">
@@ -127,7 +127,7 @@ export function EscudosStoreClient({
       {/* Feedback de Confirmação de Pagamento */}
       {feedback && (
         <div
-          className={`p-4 rounded-[4px] border text-xs sm:text-sm font-bold flex items-center justify-between ${
+          className={`p-4 rounded-[4px] border text-xs sm:text-sm font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
             feedback.ok
               ? "bg-[#15a34a]/15 border-[#15a34a]/50 text-[#4ade80]"
               : "bg-[#dc2626]/15 border-[#dc2626]/50 text-[#f87171]"
@@ -139,45 +139,45 @@ export function EscudosStoreClient({
           </div>
           <Link
             href="/auctions"
-            className="px-3 py-1.5 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] text-xs font-extrabold whitespace-nowrap ml-4"
+            className="w-full sm:w-auto h-10 px-4 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center whitespace-nowrap"
           >
             Usar nos Leilões →
           </Link>
         </div>
       )}
 
-      {/* Seletor de Método de Pagamento */}
+      {/* Seletor de Método de Pagamento (Botões h-11 Padronizados) */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-xs text-[#b6c0d4]">
-          <Lock className="w-4 h-4 text-[#4ade80]" />
+          <Lock className="w-4 h-4 text-[#4ade80] shrink-0" />
           <span>
             Liberação automática e instantânea após confirmação do pagamento:
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setPaymentMethod("PIX")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-bold cursor-pointer transition-colors ${
+            className={`w-full sm:min-w-[180px] h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
               paymentMethod === "PIX"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] text-[#9aa5b8] border border-[#222c40]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <QrCode className="w-3.5 h-3.5" />
+            <QrCode className="w-3.5 h-3.5 shrink-0" />
             <span>PIX Instantâneo</span>
           </button>
           <button
             type="button"
             onClick={() => setPaymentMethod("CARTAO")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[4px] text-xs font-bold cursor-pointer transition-colors ${
+            className={`w-full sm:min-w-[180px] h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
               paymentMethod === "CARTAO"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] text-[#9aa5b8] border border-[#222c40]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <CreditCard className="w-3.5 h-3.5" />
+            <CreditCard className="w-3.5 h-3.5 shrink-0" />
             <span>Cartão de Crédito</span>
           </button>
         </div>
@@ -274,13 +274,13 @@ export function EscudosStoreClient({
                 type="button"
                 disabled={isPending}
                 onClick={() => handleBuyPackage(pkg)}
-                className={`mt-6 w-full py-3 px-4 rounded-[4px] font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 ${
+                className={`mt-6 w-full h-11 px-4 rounded-[4px] font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 ${
                   pkg.isFeatured
                     ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
                     : "bg-[#161d2c] hover:bg-[#ffdc2b] text-[#f4f6fb] hover:text-[#0e1312] border border-[#2c3852]"
                 }`}
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4 shrink-0" />
                 <span>
                   Comprar {pkg.escudosAmount} Escudos por{" "}
                   {formatBrlFromCents(pkg.priceBrlCents)}

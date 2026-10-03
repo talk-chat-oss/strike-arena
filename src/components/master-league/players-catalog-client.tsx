@@ -13,7 +13,6 @@ import {
   ChevronDown,
   Lock,
   Unlock,
-  Wallet,
   UserPlus,
   CheckCircle2,
   Calendar,
@@ -194,8 +193,8 @@ export function PlayersCatalogClient({
 
   return (
     <div className="space-y-6">
-      {/* Header do Catálogo Global + Status da Janela de Transferências */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Header do Catálogo Global + Status da Janela (Botões Padronizados h-11) */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
@@ -232,13 +231,17 @@ export function PlayersCatalogClient({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div
+          className={`grid grid-cols-1 ${
+            currentClub ? "sm:grid-cols-3" : "sm:grid-cols-2"
+          } gap-2.5 w-full xl:w-auto shrink-0`}
+        >
           {currentClub && (
-            <div className="flex items-center gap-2.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-1.5">
+            <div className="h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[200px]">
               <ClubCrest clubName={currentClub.name} size="sm" />
-              <div>
-                <div className="text-[10px] text-[#78849e] uppercase font-bold">
-                  Seu Clube ({formatEscudos(currentClub.balance)}):
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none">
+                  Clube ({formatEscudos(currentClub.balance)}):
                 </div>
                 <select
                   value={activeClubId}
@@ -246,7 +249,7 @@ export function PlayersCatalogClient({
                     setActiveClubId(e.target.value);
                     setFeedback(null);
                   }}
-                  className="bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
+                  className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer truncate mt-0.5"
                 >
                   {clubs.map((c) => (
                     <option key={c.id} value={c.id} className="bg-[#111622]">
@@ -260,17 +263,18 @@ export function PlayersCatalogClient({
 
           <Link
             href="/transfers"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold transition-colors"
+            className="w-full sm:min-w-[200px] h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
           >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Calendário da Janela & Multas</span>
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span>Janela & Multas</span>
           </Link>
+
           <Link
             href="/auctions"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] transition-colors"
+            className="w-full sm:min-w-[200px] h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
           >
-            <Gavel className="w-3.5 h-3.5 text-[#ffdc2b]" />
-            <span>Leilões</span>
+            <Gavel className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
+            <span>Central de Leilões</span>
           </Link>
         </div>
       </div>
@@ -295,25 +299,25 @@ export function PlayersCatalogClient({
         </div>
       )}
 
-      {/* Barra de Filtros Dinâmicos e Seletores de Ordenação */}
+      {/* Barra de Filtros Dinâmicos e Seletores de Ordenação (Todos h-11 / h-10 Uniformes) */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
           {/* Busca Textual */}
           <div className="relative">
-            <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar jogador ou clube (ex: Mbappé, Real Madrid, Arsenal)..."
+              placeholder="Buscar jogador ou clube (ex: Mbappé, Real Madrid)..."
               value={searchQuery}
               onChange={(e) =>
                 handleFilterChange(setSearchQuery, e.target.value)
               }
-              className="w-full pl-9 pr-3 py-2 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
+              className="w-full h-11 pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
             />
           </div>
 
-          {/* Filtro por Categoria (Bola Preta / Bola Ouro / Bola Prata) */}
-          <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-2">
+          {/* Filtro por Categoria */}
+          <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
             <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
             <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
               Categoria:
@@ -348,7 +352,7 @@ export function PlayersCatalogClient({
           </div>
 
           {/* Filtro por Posição */}
-          <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-2">
+          <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#60a5fa] shrink-0" />
             <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
               Posição:
@@ -395,7 +399,7 @@ export function PlayersCatalogClient({
           </div>
 
           {/* Seletor de Ordenação */}
-          <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3 py-2">
+          <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
             <ArrowUpDown className="w-3.5 h-3.5 text-[#4ade80] shrink-0" />
             <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
               Ordenar:
@@ -423,101 +427,106 @@ export function PlayersCatalogClient({
           </div>
         </div>
 
-        {/* Chips rápidos de filtro */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleFilterChange(setBallFilter, "ALL")}
-              className={`px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
-                ballFilter === "ALL"
-                  ? "bg-[#ffdc2b] text-[#0e1312]"
-                  : "bg-[#090c12] text-[#9aa5b8] border border-[#222c40]"
-              }`}
-            >
-              Todos ({athletes.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFilterChange(setBallFilter, "BOLA_PRETA")}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
-                ballFilter === "BOLA_PRETA"
-                  ? "bg-[#ffdc2b] text-[#0e1312]"
-                  : "bg-[#090c12] text-[#f4f6fb] border border-[#2c3852]"
-              }`}
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-black border border-[#ffdc2b]" />
-              <span>Bola Preta ({blackBallCount})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFilterChange(setBallFilter, "BOLA_OURO")}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
-                ballFilter === "BOLA_OURO"
-                  ? "bg-[#ffdc2b] text-[#0e1312]"
-                  : "bg-[#090c12] text-[#9aa5b8] border border-[#222c40]"
-              }`}
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-[#facc15]" />
-              <span>Bola Ouro ({goldBallCount})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFilterChange(setBallFilter, "BOLA_PRATA")}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
-                ballFilter === "BOLA_PRATA"
-                  ? "bg-[#ffdc2b] text-[#0e1312]"
-                  : "bg-[#090c12] text-[#9aa5b8] border border-[#222c40]"
-              }`}
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1]" />
-              <span>Bola Prata ({silverBallCount})</span>
-            </button>
+        {/* Botões Rápidos de Filtro Padronizados em Grid 6 Colunas (Mesmo Tamanho h-10) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              handleFilterChange(setBallFilter, "ALL");
+              handleFilterChange(setAvailabilityFilter, "ALL");
+            }}
+            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              ballFilter === "ALL" && availabilityFilter === "ALL"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
+            }`}
+          >
+            <span>Todos ({athletes.length})</span>
+          </button>
 
-            <span className="mx-1 text-[#222c40]">|</span>
+          <button
+            type="button"
+            onClick={() => handleFilterChange(setBallFilter, "BOLA_PRETA")}
+            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              ballFilter === "BOLA_PRETA"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#f4f6fb] border border-[#2c3852]"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-black border border-[#ffdc2b] shrink-0" />
+            <span className="truncate">Bola Preta ({blackBallCount})</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                handleFilterChange(setAvailabilityFilter, "FREE_AGENTS")
-              }
-              className={`px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
-                availabilityFilter === "FREE_AGENTS"
-                  ? "bg-[#15a34a] text-[#090c12]"
-                  : "bg-[#090c12] text-[#4ade80] border border-[#15a34a]/40"
-              }`}
-            >
-              Livres para Contratar ({athletes.length - contracts.length})
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                handleFilterChange(setAvailabilityFilter, "CONTRACTED")
-              }
-              className={`px-2.5 py-1 rounded-[4px] text-[11px] font-bold cursor-pointer transition-colors ${
-                availabilityFilter === "CONTRACTED"
-                  ? "bg-[#dc2626] text-white"
-                  : "bg-[#090c12] text-[#f87171] border border-[#dc2626]/40"
-              }`}
-            >
-              Em Clubes / Multa Rescisória ({contracts.length})
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleFilterChange(setBallFilter, "BOLA_OURO")}
+            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              ballFilter === "BOLA_OURO"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[#facc15] shrink-0" />
+            <span className="truncate">Bola Ouro ({goldBallCount})</span>
+          </button>
 
-          <div className="text-[11px] text-[#78849e] flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-[#ffdc2b]" />
-            <span>
-              Exibindo{" "}
-              <strong className="text-[#f4f6fb]">
-                {displayedAthletes.length}
-              </strong>{" "}
-              de{" "}
-              <strong className="text-[#f4f6fb]">
-                {filteredAndSortedAthletes.length}
-              </strong>{" "}
-              atletas filtrados
+          <button
+            type="button"
+            onClick={() => handleFilterChange(setBallFilter, "BOLA_PRATA")}
+            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              ballFilter === "BOLA_PRATA"
+                ? "bg-[#ffdc2b] text-[#0e1312]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1] shrink-0" />
+            <span className="truncate">Bola Prata ({silverBallCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleFilterChange(setAvailabilityFilter, "FREE_AGENTS")
+            }
+            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              availabilityFilter === "FREE_AGENTS"
+                ? "bg-[#15a34a] text-[#090c12]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#4ade80] border border-[#15a34a]/40"
+            }`}
+          >
+            <span className="truncate">
+              Livres ({athletes.length - contracts.length})
             </span>
-          </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleFilterChange(setAvailabilityFilter, "CONTRACTED")
+            }
+            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              availabilityFilter === "CONTRACTED"
+                ? "bg-[#dc2626] text-white"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#f87171] border border-[#dc2626]/40"
+            }`}
+          >
+            <span className="truncate">Em Clubes ({contracts.length})</span>
+          </button>
+        </div>
+
+        <div className="flex items-center justify-end text-[11px] text-[#78849e] pt-1 gap-1.5">
+          <Users className="w-3.5 h-3.5 text-[#ffdc2b]" />
+          <span>
+            Exibindo{" "}
+            <strong className="text-[#f4f6fb]">
+              {displayedAthletes.length}
+            </strong>{" "}
+            de{" "}
+            <strong className="text-[#f4f6fb]">
+              {filteredAndSortedAthletes.length}
+            </strong>{" "}
+            atletas filtrados
+          </span>
         </div>
       </div>
 
@@ -618,25 +627,26 @@ export function PlayersCatalogClient({
                 </div>
               </div>
 
-              {/* Status Contratual Exclusivo / Multa Rescisória / Contratação */}
+              {/* Status Contratual Exclusivo / Multa Rescisória / Contratação (Botões h-10 Idênticos) */}
               <div className="p-3.5 space-y-2.5 text-xs bg-[#111622]">
                 {auction ? (
-                  <div className="p-2.5 rounded-[4px] bg-[#ffdc2b]/10 border border-[#ffdc2b]/40 flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-extrabold uppercase text-[#ffdc2b]">
+                  <div className="p-2.5 rounded-[4px] bg-[#ffdc2b]/10 border border-[#ffdc2b]/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase text-[#ffdc2b]">
                         {auction.status === "AGENDADO"
                           ? "📅 LEILÃO AGENDADO"
                           : "🔥 EM LEILÃO AO VIVO"}
-                      </div>
-                      <div className="text-xs font-extrabold text-[#f4f6fb] mt-0.5">
-                        Lance: {formatEscudos(auction.currentBid)}
-                      </div>
+                      </span>
+                      <span className="text-xs font-extrabold text-[#f4f6fb]">
+                        {formatEscudos(auction.currentBid)}
+                      </span>
                     </div>
                     <Link
                       href="/auctions"
-                      className="px-2.5 py-1.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-[11px]"
+                      className="w-full h-10 px-3 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-[11px] inline-flex items-center justify-center gap-1.5"
                     >
-                      Ir ao Leilão
+                      <Gavel className="w-3.5 h-3.5 shrink-0" />
+                      <span>Ir ao Leilão Oficial</span>
                     </Link>
                   </div>
                 ) : contract ? (
@@ -661,8 +671,8 @@ export function PlayersCatalogClient({
                     </div>
 
                     {isMyPlayer ? (
-                      <div className="w-full py-1.5 px-2.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 text-[#4ade80] font-bold text-[11px] flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      <div className="w-full h-10 px-3 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 text-[#4ade80] font-bold text-[11px] flex items-center justify-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                         <span>Atleta do Seu Elenco</span>
                       </div>
                     ) : isWindowOpen && transferWindow.buyoutEnabled ? (
@@ -670,14 +680,14 @@ export function PlayersCatalogClient({
                         type="button"
                         disabled={isPending || !currentClub || !canAffordBuyout}
                         onClick={() => handlePayBuyoutAndTransfer(contract)}
-                        className={`w-full py-1.5 px-2.5 rounded-[4px] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                        className={`w-full h-10 px-3 rounded-[4px] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                           canAffordBuyout
                             ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
                             : "bg-[#161d2c] text-[#78849e] border border-[#222c40] cursor-not-allowed"
                         }`}
                       >
-                        <Flame className="w-3.5 h-3.5" />
-                        <span>
+                        <Flame className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">
                           {!currentClub
                             ? "Crie um Clube para Contratar"
                             : canAffordBuyout
@@ -686,12 +696,12 @@ export function PlayersCatalogClient({
                               )}) & Transferir`
                             : `Multa: ${formatEscudos(
                                 contract.buyoutClause
-                              )} (Saldo Insuficiente)`}
+                              )} (Saldo Insuf.)`}
                         </span>
                       </button>
                     ) : (
-                      <div className="w-full py-1.5 px-2.5 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] font-bold text-[11px] flex items-center justify-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-[#f87171]" />
+                      <div className="w-full h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] font-bold text-[11px] flex items-center justify-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-[#f87171] shrink-0" />
                         <span>Travado no Clube (Janela Fechada)</span>
                       </div>
                     )}
@@ -714,14 +724,14 @@ export function PlayersCatalogClient({
                           isPending || !currentClub || !canAffordFreeAgent
                         }
                         onClick={() => handleSignFreeAgent(athlete)}
-                        className={`w-full py-1.5 px-2.5 rounded-[4px] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                        className={`w-full h-10 px-3 rounded-[4px] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                           canAffordFreeAgent
                             ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
                             : "bg-[#161d2c] text-[#78849e] border border-[#222c40] cursor-not-allowed"
                         }`}
                       >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>
+                        <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">
                           {!currentClub
                             ? "Crie um Clube para Contratar"
                             : canAffordFreeAgent
@@ -730,12 +740,12 @@ export function PlayersCatalogClient({
                               )})`
                             : `Passe: ${formatEscudos(
                                 freeAgentCost
-                              )} (Saldo Insuficiente)`}
+                              )} (Saldo Insuf.)`}
                         </span>
                       </button>
                     ) : (
-                      <div className="w-full py-1.5 px-2.5 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] font-bold text-[11px] flex items-center justify-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-[#f87171]" />
+                      <div className="w-full h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] font-bold text-[11px] flex items-center justify-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-[#f87171] shrink-0" />
                         <span>Contratações Pausadas (Janela Fechada)</span>
                       </div>
                     )}
@@ -747,17 +757,17 @@ export function PlayersCatalogClient({
         })}
       </div>
 
-      {/* Paginação / Carregar Mais */}
+      {/* Paginação / Carregar Mais (Botões h-11 de mesmo tamanho) */}
       {visibleCount < filteredAndSortedAthletes.length && (
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto pt-4">
           <button
             type="button"
             onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-            className="inline-flex items-center gap-2 min-h-11 px-6 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs cursor-pointer transition-colors"
+            className="w-full h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-4 h-4 shrink-0" />
             <span>
-              Carregar mais {PAGE_SIZE} atletas (Restam{" "}
+              Carregar +{PAGE_SIZE} (Restam{" "}
               {filteredAndSortedAthletes.length - visibleCount})
             </span>
           </button>
@@ -765,9 +775,9 @@ export function PlayersCatalogClient({
           <button
             type="button"
             onClick={() => setVisibleCount(filteredAndSortedAthletes.length)}
-            className="inline-flex items-center gap-2 min-h-11 px-4 py-2.5 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[#f4f6fb] font-bold text-xs cursor-pointer transition-colors"
+            className="w-full h-11 px-5 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[#f4f6fb] font-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
-            <span>Mostrar todos ({filteredAndSortedAthletes.length})</span>
+            <span>Mostrar Todos ({filteredAndSortedAthletes.length})</span>
           </button>
         </div>
       )}

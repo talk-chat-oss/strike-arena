@@ -148,7 +148,7 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label="Abrir menu de navegação"
-        className={`inline-flex items-center gap-2.5 min-h-9 px-3 py-1.5 rounded-[4px] border text-xs font-bold transition-colors cursor-pointer ${
+        className={`inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-[4px] border text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap ${
           open
             ? "bg-[#ffdc2b] text-[#0e1312] border-[#ffdc2b]"
             : "bg-[#111622] hover:bg-[#161d2c] text-[#f4f6fb] border-[#222c40] hover:border-[#ffdc2b]/50"

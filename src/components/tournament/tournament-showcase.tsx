@@ -83,12 +83,9 @@ export function TournamentShowcase({
         </div>
       </div>
 
-      {/* Barra de Filtros da Vitrine (Jogo, Console e Busca) */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] uppercase tracking-wider text-[#78849e] font-semibold mr-1">
-            Jogo:
-          </span>
+      {/* Barra de Filtros da Vitrine (Botões Padronizados h-10) */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="grid grid-cols-3 gap-2 w-full lg:w-auto">
           {[
             { id: "all", label: "Todos" },
             { id: "ea_fc", label: "EA SPORTS FC 26" },
@@ -100,10 +97,10 @@ export function TournamentShowcase({
               onClick={() =>
                 setGameFilter(g.id as "all" | "ea_fc" | "efootball")
               }
-              className={`px-3 py-1.5 rounded-[4px] text-xs font-semibold transition-colors cursor-pointer ${
+              className={`w-full sm:min-w-[135px] h-10 px-3 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center transition-colors cursor-pointer whitespace-nowrap ${
                 gameFilter === g.id
                   ? "bg-[#ffdc2b] text-[#0e1312]"
-                  : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb]"
+                  : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb] border border-[#222c40]"
               }`}
             >
               {g.label}
@@ -111,42 +108,41 @@ export function TournamentShowcase({
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] uppercase tracking-wider text-[#78849e] font-semibold mr-1">
-            Plataforma:
-          </span>
-          {[
-            { id: "all", label: "Todas" },
-            { id: "crossplay", label: "Crossplay" },
-            { id: "ps5", label: "PS5" },
-            { id: "xbox", label: "Xbox" },
-          ].map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() =>
-                setPlatformFilter(
-                  p.id as "all" | "crossplay" | "ps5" | "xbox" | "pc"
-                )
-              }
-              className={`px-2.5 py-1.5 rounded-[4px] text-xs font-medium transition-colors cursor-pointer ${
-                platformFilter === p.id
-                  ? "bg-[#133865] text-[#ffdc2b] border border-[#ffdc2b]/50"
-                  : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb]"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { id: "all", label: "Todas" },
+              { id: "crossplay", label: "Crossplay" },
+              { id: "ps5", label: "PS5" },
+              { id: "xbox", label: "Xbox" },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() =>
+                  setPlatformFilter(
+                    p.id as "all" | "crossplay" | "ps5" | "xbox" | "pc"
+                  )
+                }
+                className={`w-full sm:min-w-[85px] h-10 px-2.5 rounded-[4px] text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer ${
+                  platformFilter === p.id
+                    ? "bg-[#133865] text-[#ffdc2b] border border-[#ffdc2b]/50"
+                    : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb] border border-[#222c40]"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
-          <div className="relative">
+          <div className="relative flex-1 sm:w-52">
             <Search className="w-3.5 h-3.5 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar campeonato..."
-              className="h-8 pl-8 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
+              className="w-full h-10 pl-8 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
             />
           </div>
         </div>
@@ -166,7 +162,7 @@ export function TournamentShowcase({
           <div className="pt-2">
             <Link
               href="/organizer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs transition-colors"
+              className="inline-flex items-center justify-center gap-2 min-w-[240px] h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs transition-colors"
             >
               <span>Criar Primeiro Campeonato</span>
               <ArrowRight className="w-3.5 h-3.5" />

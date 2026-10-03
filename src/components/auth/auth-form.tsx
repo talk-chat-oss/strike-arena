@@ -124,21 +124,21 @@ export function AuthForm({ currentUser }: AuthFormProps) {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       {/* Coluna Principal (7 cols): Cadastro e Login Real */}
       <div className="lg:col-span-7 bg-[#111622] border border-[#222c40] rounded-[4px] p-6 sm:p-8 space-y-6">
-        {/* Seletor de Abas (Cadastro / Login) */}
-        <div className="flex items-center gap-2 border-b border-[#222c40] pb-4">
+        {/* Seletor de Abas Padronizado h-11 (Cadastro / Login) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-b border-[#222c40] pb-4">
           <button
             type="button"
             onClick={() => {
               setMode("register");
               setFeedback(null);
             }}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-bold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer ${
               mode === "register"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-4 h-4 shrink-0" />
             <span>Criar Conta de Jogador</span>
           </button>
 
@@ -148,13 +148,13 @@ export function AuthForm({ currentUser }: AuthFormProps) {
               setMode("login");
               setFeedback(null);
             }}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-bold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer ${
               mode === "login"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#161d2c] text-[#b6c0d4] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <LogIn className="w-4 h-4" />
+            <LogIn className="w-4 h-4 shrink-0" />
             <span>Entrar com Conta Existente</span>
           </button>
         </div>

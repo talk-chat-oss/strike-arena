@@ -251,55 +251,55 @@ export function TournamentTabs({
 
   return (
     <div className="space-y-6">
-      {/* Kinetic Filled Tabs Bar + Botões de Inscrição e Envio de Placar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#222c40] pb-4">
+      {/* Kinetic Filled Tabs Bar + Botões de Inscrição e Envio de Placar (Padronizados h-11) */}
+      <div className="space-y-2.5 border-b border-[#222c40] pb-4">
         <div
           role="tablist"
           aria-label="Seções do torneio"
-          className="flex flex-wrap items-center gap-2"
+          className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-5 gap-2"
         >
           <button
             role="tab"
             aria-selected={activeTab === "standings"}
             onClick={() => setActiveTab("standings")}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-3.5 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === "standings"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <Table2 className="w-4 h-4" />
-            <span>Tabela & Classificação</span>
+            <Table2 className="w-4 h-4 shrink-0" />
+            <span className="truncate">Tabela & Classificação</span>
           </button>
 
           <button
             role="tab"
             aria-selected={activeTab === "bracket"}
             onClick={() => setActiveTab("bracket")}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-3.5 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === "bracket"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <GitBranch className="w-4 h-4" />
-            <span>Chaveamento (Playoffs)</span>
+            <GitBranch className="w-4 h-4 shrink-0" />
+            <span className="truncate">Chaveamento (Playoffs)</span>
           </button>
 
           <button
             role="tab"
             aria-selected={activeTab === "matches"}
             onClick={() => setActiveTab("matches")}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-3.5 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === "matches"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <Swords className="w-4 h-4" />
-            <span>Partidas & Match Hub</span>
+            <Swords className="w-4 h-4 shrink-0" />
+            <span className="truncate">Partidas & Match Hub</span>
             <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold leading-none shrink-0 ${
                 activeTab === "matches"
                   ? "bg-[#0e1312] text-[#ffdc2b]"
                   : "bg-[#1d2639] text-[#ffdc2b]"
@@ -313,41 +313,43 @@ export function TournamentTabs({
             role="tab"
             aria-selected={activeTab === "h2h"}
             onClick={() => setActiveTab("h2h")}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-3.5 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === "h2h"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <Scale className="w-4 h-4" />
-            <span>Freguesômetro & Fair Play</span>
+            <Scale className="w-4 h-4 shrink-0" />
+            <span className="truncate">Freguesômetro & Fair Play</span>
           </button>
 
           <button
             role="tab"
             aria-selected={activeTab === "rules"}
             onClick={() => setActiveTab("rules")}
-            className={`min-h-10 px-4 py-2 rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer ${
+            className={`w-full h-11 px-3.5 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === "rules"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] hover:text-[#f4f6fb] border border-[#222c40]"
             }`}
           >
-            <FileText className="w-4 h-4" />
-            <span>Inscritos & Check-in ({participants.length})</span>
+            <FileText className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              Inscritos & Check-in ({participants.length})
+            </span>
           </button>
         </div>
 
-        {/* Botões Rápidos: Inscrever-se + Enviar Placar */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Botões Rápidos: Inscrever-se + Enviar Placar (Mesmo Tamanho h-11) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {myParticipant ? (
             <button
               type="button"
               onClick={() => handleToggleCheckin(myParticipant)}
-              className="min-h-10 px-3.5 py-2 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/50 text-[#4ade80] text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+              className="w-full h-11 px-4 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/50 text-[#4ade80] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               <ClubCrest clubName={myParticipant.clubName} size="sm" />
-              <span>
+              <span className="truncate">
                 Inscrito ({myParticipant.clubName}) ·{" "}
                 {myParticipant.checkinStatus === "checked_in"
                   ? "Check-in OK"
@@ -364,9 +366,9 @@ export function TournamentTabs({
                   setJoinModalOpen(true);
                 }
               }}
-              className="min-h-10 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
-              <UserPlus className="w-3.5 h-3.5" />
+              <UserPlus className="w-4 h-4 shrink-0" />
               <span>Inscrever-se / Escolher Escudo</span>
             </button>
           )}
@@ -380,9 +382,9 @@ export function TournamentTabs({
                   null
               )
             }
-            className="min-h-10 px-4 py-2 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
+            className="w-full h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
-            <Upload className="w-3.5 h-3.5 text-[#ffdc2b]" />
+            <Upload className="w-4 h-4 text-[#ffdc2b] shrink-0" />
             <span>Enviar Placar / Print</span>
           </button>
         </div>

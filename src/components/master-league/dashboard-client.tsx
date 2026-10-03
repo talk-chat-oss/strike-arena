@@ -168,11 +168,11 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* Seletor rápido de Clube + Botões de Ação */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 py-1.5">
-            <span className="text-[11px] text-[#78849e] uppercase font-semibold">
-              Visão do Clube:
+        {/* Seletor rápido de Clube + Botões de Ação Padronizados h-11 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 w-full xl:w-auto shrink-0">
+          <div className="h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2 sm:min-w-[190px]">
+            <span className="text-[10px] text-[#78849e] uppercase font-bold shrink-0">
+              Clube:
             </span>
             <select
               value={selectedClubId}
@@ -180,7 +180,7 @@ export function DashboardClient({
                 setSelectedClubId(e.target.value);
                 setFeedback(null);
               }}
-              className="bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer truncate"
             >
               {clubs.map((c) => (
                 <option key={c.id} value={c.id} className="bg-[#111622]">
@@ -194,25 +194,25 @@ export function DashboardClient({
             type="button"
             disabled={isPending}
             onClick={handleRunSeasonPayroll}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-semibold text-[#f4f6fb] transition-colors cursor-pointer disabled:opacity-50"
+            className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
           >
-            <Banknote className="w-3.5 h-3.5 text-[#ffdc2b]" />
+            <Banknote className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
             <span>Debitar Folha Salarial</span>
           </button>
 
           <Link
             href="/store/escudos"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/40 text-[#4ade80] text-xs font-bold transition-colors"
+            className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/40 text-[#4ade80] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
           >
-            <Shield className="w-3.5 h-3.5" />
+            <Shield className="w-3.5 h-3.5 shrink-0" />
             <span>+ Recarregar Escudos</span>
           </Link>
 
           <Link
             href="/auctions"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-bold transition-colors"
+            className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
           >
-            <Gavel className="w-3.5 h-3.5" />
+            <Gavel className="w-3.5 h-3.5 shrink-0" />
             <span>Central de Leilões</span>
           </Link>
         </div>
@@ -457,7 +457,7 @@ export function DashboardClient({
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => {
@@ -465,9 +465,9 @@ export function DashboardClient({
                                 setAuctionContractId(null);
                                 setSalaryInput(item.salary);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[11px] font-medium text-[#f4f6fb] transition-colors cursor-pointer"
+                              className="inline-flex items-center justify-center gap-1.5 min-w-[130px] h-9 px-3 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[11px] font-bold text-[#f4f6fb] transition-colors cursor-pointer"
                             >
-                              <SlidersHorizontal className="w-3 h-3 text-[#ffdc2b]" />
+                              <SlidersHorizontal className="w-3 h-3 text-[#ffdc2b] shrink-0" />
                               <span>Ajustar Salário</span>
                             </button>
                             <button
@@ -479,10 +479,10 @@ export function DashboardClient({
                                   Math.max(100, Math.round(item.buyoutClause * 0.4))
                                 );
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-[#133865]/50 hover:bg-[#133865] border border-[#1c4d8a] text-[11px] font-medium text-[#f4f6fb] transition-colors cursor-pointer"
+                              className="inline-flex items-center justify-center gap-1.5 min-w-[130px] h-9 px-3 rounded-[4px] bg-[#133865]/50 hover:bg-[#133865] border border-[#1c4d8a] text-[11px] font-bold text-[#f4f6fb] transition-colors cursor-pointer"
                             >
-                              <Gavel className="w-3 h-3 text-[#60a5fa]" />
-                              <span>Leiloar</span>
+                              <Gavel className="w-3 h-3 text-[#60a5fa] shrink-0" />
+                              <span>Leiloar Atleta</span>
                             </button>
                           </div>
                         )}
