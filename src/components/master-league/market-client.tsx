@@ -685,7 +685,7 @@ export function MarketClient({
               <ClubCrest clubName={currentClub.name} size="sm" />
               <div className="min-w-0 flex-1">
                 <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
-                  Conta: {currentClub.ownerNickname}
+                  {currentClub.ownerNickname}
                 </div>
                 <div className="text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
                   {currentClub.name} ({currentClub.acronym})
@@ -705,7 +705,7 @@ export function MarketClient({
               <Wallet className="w-4 h-4 text-[#4ade80] shrink-0" />
               <div>
                 <div className="text-[10px] text-[#9aa5b8] uppercase font-bold leading-none">
-                  Saldo Global da Conta
+                  Saldo Disponível
                 </div>
                 <div className="text-sm font-extrabold text-[#4ade80] tabular-nums mt-0.5">
                   {formatEscudos(currentClub.balance)}

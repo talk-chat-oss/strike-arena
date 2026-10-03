@@ -136,11 +136,7 @@ export function CrestSwitcherModal({
         }
       >
         <RefreshCw className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-        <span>
-          {compactButton
-            ? "Trocar Escudo"
-            : `Trocar Escudo (${freeCount} Livres)`}
-        </span>
+        <span>Trocar Escudo</span>
       </button>
 
       {open && (

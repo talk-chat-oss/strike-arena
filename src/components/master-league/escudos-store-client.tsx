@@ -104,12 +104,12 @@ export function EscudosStoreClient({
           </p>
         </div>
 
-        {/* Carteira Global da Conta */}
+        {/* Resumo do Clube & Saldo */}
         {activeClub && (
           <div className="bg-[#090c12] border border-[#2c3852] rounded-[4px] p-4 min-w-[290px] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase text-[#78849e]">
-                Carteira Global da Conta: {activeClub.ownerNickname}
+                Treinador: {activeClub.ownerNickname}
               </span>
               <Wallet className="w-4 h-4 text-[#ffdc2b]" />
             </div>
@@ -119,7 +119,7 @@ export function EscudosStoreClient({
                 <ClubCrest clubName={activeClub.name} size="md" />
                 <div className="min-w-0">
                   <div className="text-[10px] text-[#78849e] uppercase font-bold">
-                    Escudo Atual:
+                    Clube Atual:
                   </div>
                   <div className="text-xs font-extrabold text-[#f4f6fb] truncate">
                     {activeClub.name} ({activeClub.acronym})
@@ -136,7 +136,7 @@ export function EscudosStoreClient({
             </div>
 
             <div className="pt-2 border-t border-[#1c2436] flex items-center justify-between">
-              <span className="text-xs text-[#9aa5b8]">Saldo Global:</span>
+              <span className="text-xs text-[#9aa5b8]">Saldo Disponível:</span>
               <span className="text-lg font-extrabold text-[#4ade80] tabular-nums">
                 {formatEscudos(activeClub.balance)}
               </span>

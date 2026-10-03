@@ -243,7 +243,7 @@ export function PlayersCatalogClient({
                 <ClubCrest clubName={currentClub.name} size="sm" />
                 <div className="min-w-0 flex-1">
                   <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
-                    Conta {currentClub.ownerNickname} ({formatEscudos(currentClub.balance)}):
+                    {currentClub.ownerNickname} • {formatEscudos(currentClub.balance)}
                   </div>
                   <div className="text-xs font-extrabold text-[#ffdc2b] truncate mt-0.5">
                     {currentClub.name} ({currentClub.acronym})
