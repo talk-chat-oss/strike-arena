@@ -13,15 +13,17 @@ export async function Navbar() {
         {/* Brand Logo (Official Strike Arena Shield SVG) */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2.5 text-[#f4f6fb] font-semibold text-sm tracking-tight hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-2 text-[#f4f6fb] font-semibold text-sm tracking-tight hover:opacity-90 transition-opacity shrink-0"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-strike-arena.svg"
             alt="Strike Arena Logo"
-            className="w-7 h-7 object-contain"
+            className="w-7 h-7 object-contain shrink-0"
           />
-          <span className="font-bold tracking-wider">STRIKE ARENA</span>
+          <span className="font-bold tracking-wider whitespace-nowrap">
+            STRIKE ARENA
+          </span>
           <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium rounded-full bg-[#ffdc2b]/15 text-[#ffdc2b] border border-[#ffdc2b]/30">
             MASTER LIGA
           </span>

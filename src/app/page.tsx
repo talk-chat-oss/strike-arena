@@ -92,38 +92,38 @@ export default async function HomePage() {
                 (Head-to-Head), Ranking Fair Play e homologação por print.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                 <Link
                   href="/auctions"
-                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                  className="w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors"
                 >
-                  <Zap className="w-4 h-4" />
+                  <Zap className="w-4 h-4 shrink-0" />
                   <span>Leilões Bola Preta & Calendário</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </Link>
 
                 <Link
                   href="/store/escudos"
-                  className="min-h-11 px-5 py-2.5 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                  className="w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors"
                 >
-                  <Shield className="w-4 h-4 text-[#ffdc2b]" />
+                  <Shield className="w-4 h-4 text-[#ffdc2b] shrink-0" />
                   <span>Loja de Escudos (200 / 500 / 1000)</span>
                 </Link>
 
                 <Link
                   href="/players"
-                  className="min-h-11 px-4 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                  className="w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors"
                 >
-                  <Swords className="w-4 h-4 text-[#ffdc2b]" />
+                  <Swords className="w-4 h-4 text-[#ffdc2b] shrink-0" />
                   <span>Database de Jogadores</span>
                 </Link>
 
                 {!currentUser && (
                   <Link
                     href="/auth"
-                    className="min-h-11 px-4 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center gap-2 transition-colors"
+                    className="w-full sm:w-auto min-h-11 px-5 py-2.5 rounded-[4px] bg-[#111622] hover:bg-[#161d2c] border border-[#222c40] text-[#f4f6fb] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-colors"
                   >
-                    <UserPlus className="w-4 h-4 text-[#ffdc2b]" />
+                    <UserPlus className="w-4 h-4 text-[#ffdc2b] shrink-0" />
                     <span>Entrar / Criar Conta</span>
                   </Link>
                 )}
