@@ -504,10 +504,10 @@ export async function joinTournamentAction(input: {
       goal_difference: 0,
     });
 
-    // Garantir que o jogador também possua seu Clube na Master Liga (club_teams)
+    // Garantir que o jogador receba +500 Striker Coins no ato da inscrição
     const { data: existingClub } = await supabaseAdmin
       .from("club_teams")
-      .select("id")
+      .select("id, balance")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -518,15 +518,29 @@ export async function joinTournamentAction(input: {
           .slice(0, 3)
           .toUpperCase() || "CLB";
 
-      await supabaseAdmin.from("club_teams").insert({
-        league_id: input.tournamentId,
-        user_id: user.id,
-        name: club,
-        acronym,
-        badge_url: club,
-        balance: 0,
-        is_delinquent: false,
-      });
+      const { data: createdClub } = await supabaseAdmin
+        .from("club_teams")
+        .insert({
+          league_id: input.tournamentId,
+          user_id: user.id,
+          name: club,
+          acronym,
+          badge_url: club,
+          balance: 500,
+          is_delinquent: false,
+        })
+        .select("id")
+        .single();
+
+      if (createdClub?.id) {
+        await supabaseAdmin.from("financial_transactions").insert({
+          club_team_id: createdClub.id,
+          type: "PREMIO_VITORIA",
+          amount: 500,
+          description:
+            "Bônus de Inscrição Oficial: +500 Striker Coins creditadas no ato da inscrição.",
+        });
+      }
     } else {
       await supabaseAdmin
         .from("club_teams")
@@ -534,8 +548,17 @@ export async function joinTournamentAction(input: {
           league_id: input.tournamentId,
           name: club,
           badge_url: club,
+          balance: Number(existingClub.balance || 0) + 500,
         })
         .eq("id", existingClub.id);
+
+      await supabaseAdmin.from("financial_transactions").insert({
+        club_team_id: existingClub.id,
+        type: "PREMIO_VITORIA",
+        amount: 500,
+        description:
+          "Bônus de Inscrição Oficial: +500 Striker Coins creditadas no ato da inscrição.",
+      });
     }
 
     revalidatePath(`/tournaments/${input.tournamentSlug}`);
@@ -548,7 +571,7 @@ export async function joinTournamentAction(input: {
       ok: true,
       message: `Inscrição confirmada! ${user.nickname} (${club}) alocado no ${
         targetGroup?.name ?? "Torneio"
-      } com Check-in ativo.`,
+      } e premiado com +500 Striker Coins!`,
     };
   } catch (err) {
     return {

@@ -186,7 +186,7 @@ export function DashboardClient({
             className="w-full xl:w-auto h-11 px-4 rounded-[4px] bg-[#15a34a]/20 hover:bg-[#15a34a]/30 border border-[#15a34a]/40 text-[#4ade80] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
           >
             <Shield className="w-3.5 h-3.5 shrink-0" />
-            <span>+ Recarregar Strike Coin</span>
+            <span>+ Recarregar Striker Coins</span>
           </Link>
 
           <Link
@@ -219,7 +219,7 @@ export function DashboardClient({
         </div>
       )}
 
-      {/* 3 KPI Financial Cards in Strike Coin */}
+      {/* 3 KPI Financial Cards in Striker Coins */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4">
           <div className="flex items-center justify-between text-xs text-[#78849e]">
@@ -275,7 +275,7 @@ export function DashboardClient({
             {formatEscudos(squadEstimatedValue)}
           </div>
           <p className="text-[11px] text-[#78849e] mt-1">
-            Soma de todas as Multas Rescisórias (10× Salário em Strike Coin)
+            Soma de todas as Multas Rescisórias (10× Salário em Striker Coins)
           </p>
         </div>
       </div>
@@ -291,7 +291,7 @@ export function DashboardClient({
                 <span>Elenco do Clube & Gestão de Salários / Multas</span>
               </h2>
               <p className="text-xs text-[#78849e] mt-0.5">
-                Ajuste o salário em Strike Coin para blindar seu craque contra
+                Ajuste o salário em Striker Coins para blindar seu craque contra
                 transferência por multa rescisória (Multa = 10× Salário).
               </p>
             </div>
@@ -307,7 +307,7 @@ export function DashboardClient({
                   <th className="py-3 px-4">Jogador</th>
                   <th className="py-3 px-3 text-center">Posição</th>
                   <th className="py-3 px-3 text-center">Overall</th>
-                  <th className="py-3 px-3 text-right">Salário (Strike Coin)</th>
+                  <th className="py-3 px-3 text-right">Salário (Striker Coins)</th>
                   <th className="py-3 px-3 text-right">Multa Rescisória</th>
                   <th className="py-3 px-4 text-right">Ações de Gestão</th>
                 </tr>
@@ -476,12 +476,12 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* Extrato Financeiro em Strike Coin */}
+        {/* Extrato Financeiro em Striker Coins */}
         <div className="bg-[#111622] border border-[#222c40] rounded-[4px] flex flex-col">
           <div className="p-4 border-b border-[#222c40] flex items-center justify-between">
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
-                Extrato de Strike Coin do Clube
+                Extrato de Striker Coins do Clube
               </h2>
               <p className="text-xs text-[#78849e] mt-0.5">
                 Recargas, Lances (Escrow), Prêmios, Multas e Salários
@@ -493,7 +493,7 @@ export function DashboardClient({
           <div className="p-4 space-y-3 flex-1 overflow-y-auto max-h-[480px]">
             {clubTransactions.length === 0 ? (
               <div className="text-xs text-[#78849e] py-8 text-center">
-                Nenhuma movimentação de Strike Coin registrada para este clube.
+                Nenhuma movimentação de Striker Coins registrada para este clube.
               </div>
             ) : (
               clubTransactions.map((tx) => {

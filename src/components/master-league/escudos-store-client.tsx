@@ -84,20 +84,26 @@ export function EscudosStoreClient({
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner da Loja de Strike Coin */}
+      {/* Hero Banner da Loja de Striker Coins */}
       <div className="bg-gradient-to-r from-[#111622] via-[#132038] to-[#111622] border border-[#ffdc2b]/40 rounded-[4px] p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-2 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
-            <Shield className="w-3.5 h-3.5" />
-            <span>MOEDA OFICIAL DA LIGA: STRIKE COIN • STRIPE CHECKOUT</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
+              <Shield className="w-3.5 h-3.5" />
+              <span>MOEDA OFICIAL DO JOGO: STRIKER COINS</span>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#15a34a]/20 border border-[#15a34a]/40 text-[#4ade80] text-[11px] font-extrabold uppercase">
+              BÔNUS DE INSCRIÇÃO: +500 STRIKER COINS
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#f4f6fb]">
-            Loja Oficial de Strike Coin • Strike Arena
+            Loja Oficial de Striker Coins • Strike Arena
           </h1>
           <p className="text-xs sm:text-sm text-[#b6c0d4] leading-relaxed">
-            As <strong className="text-[#ffdc2b]">Strike Coin</strong> ficam
-            vinculadas à sua conta e servem para disputar{" "}
-            <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
+            No ato da inscrição você ganha{" "}
+            <strong className="text-[#4ade80]">500 Striker Coins</strong>! As{" "}
+            <strong className="text-[#ffdc2b]">Striker Coins</strong> servem
+            para disputar <strong>Leilões de Craques Bola Preta</strong>, pagar{" "}
             <strong>Multas Rescisórias à vista</strong> e quitar a{" "}
             <strong>Folha Salarial</strong>, independentemente de qual escudo de
             time você escolher usar na temporada.
@@ -185,7 +191,7 @@ export function EscudosStoreClient({
             <p className="text-[11px] text-[#78849e] mt-0.5">
               Ao escolher um pacote abaixo, você será redirecionado ao ambiente
               seguro oficial da Stripe para concluir o pagamento com liberação
-              automática de Strike Coin.
+              automática de Striker Coins.
             </p>
           </div>
         </div>
@@ -196,8 +202,8 @@ export function EscudosStoreClient({
         </div>
       </div>
 
-      {/* 3 Cards de Pacotes Promocionais de Strike Coin */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* 4 Cards de Pacotes Oficiais de Striker Coins */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {packages.map((pkg) => {
           const unitPriceBrl = (
             pkg.priceBrlCents /
@@ -209,7 +215,7 @@ export function EscudosStoreClient({
           return (
             <div
               key={pkg.id}
-              className={`relative rounded-[4px] p-6 flex flex-col justify-between transition-all ${
+              className={`relative rounded-[4px] p-5 flex flex-col justify-between transition-all ${
                 pkg.isFeatured
                   ? "bg-gradient-to-b from-[#1a243b] to-[#111622] border-2 border-[#ffdc2b] shadow-[0_0_25px_rgba(255,220,43,0.12)]"
                   : "bg-[#111622] border border-[#222c40]"
@@ -218,7 +224,7 @@ export function EscudosStoreClient({
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <span
-                    className={`px-2.5 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase ${
+                    className={`px-2 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase ${
                       pkg.isFeatured
                         ? "bg-[#ffdc2b] text-[#0e1312]"
                         : "bg-[#161d2c] text-[#60a5fa] border border-[#222c40]"
@@ -226,25 +232,25 @@ export function EscudosStoreClient({
                   >
                     {pkg.badgeLabel || "PACOTE OFICIAL"}
                   </span>
-                  <Shield className="w-5 h-5 text-[#ffdc2b]" />
+                  <Shield className="w-4 h-4 text-[#ffdc2b]" />
                 </div>
 
-                <h2 className="text-lg font-bold text-[#f4f6fb] mt-4">
+                <h2 className="text-base font-bold text-[#f4f6fb] mt-3">
                   {pkg.name}
                 </h2>
 
-                {/* Quantidade de Strike Coin */}
-                <div className="mt-3 p-4 rounded-[4px] bg-[#090c12] border border-[#1c2436] flex items-center justify-between">
+                {/* Quantidade de Striker Coins */}
+                <div className="mt-3 p-3.5 rounded-[4px] bg-[#090c12] border border-[#1c2436] flex items-center justify-between">
                   <div>
                     <div className="text-[10px] uppercase font-bold text-[#78849e]">
                       Crédito Imediato via Stripe
                     </div>
-                    <div className="text-2xl sm:text-3xl font-extrabold text-[#ffdc2b] tabular-nums mt-0.5">
+                    <div className="text-xl sm:text-2xl font-extrabold text-[#ffdc2b] tabular-nums mt-0.5">
                       +{pkg.escudosAmount}{" "}
-                      <span className="text-sm font-bold">Strike Coin</span>
+                      <span className="text-xs font-bold">Striker Coins</span>
                     </div>
                   </div>
-                  <Sparkles className="w-6 h-6 text-[#ffdc2b]" />
+                  <Sparkles className="w-5 h-5 text-[#ffdc2b] shrink-0" />
                 </div>
 
                 {/* Preço em Reais (R$) */}
@@ -258,7 +264,7 @@ export function EscudosStoreClient({
                     </span>
                   </div>
                   <span className="text-[11px] text-[#9aa5b8] tabular-nums">
-                    R$ {unitPriceBrl} / Strike Coin
+                    R$ {unitPriceBrl} / moeda
                   </span>
                 </div>
 
@@ -266,7 +272,7 @@ export function EscudosStoreClient({
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#4ade80] shrink-0" />
                     <span>
-                      Disponível na hora para lances em leilões (5 em 5 Strike Coin)
+                      Disponível na hora para lances em leilões (5 em 5 Striker Coins)
                     </span>
                   </li>
                   <li className="flex items-center gap-2">
@@ -298,9 +304,7 @@ export function EscudosStoreClient({
                 <span>
                   {isThisPkgLoading
                     ? "Abrindo Checkout Stripe..."
-                    : `Pagar com Stripe • ${formatBrlFromCents(
-                        pkg.priceBrlCents
-                      )}`}
+                    : `Pagar • ${formatBrlFromCents(pkg.priceBrlCents)}`}
                 </span>
                 <ExternalLink className="w-3.5 h-3.5 shrink-0" />
               </button>
@@ -309,14 +313,14 @@ export function EscudosStoreClient({
         })}
       </div>
 
-      {/* Log Transacional Auditável de Compras de Strike Coin */}
+      {/* Log Transacional Auditável de Compras de Striker Coins */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
         <div className="p-4 border-b border-[#222c40] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-[#ffdc2b]" />
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#f4f6fb]">
-                Histórico Auditável de Recargas de Strike Coin (Stripe)
+                Histórico Auditável de Recargas de Striker Coins (Stripe)
               </h2>
               <p className="text-xs text-[#78849e]">
                 Registro transparente de todas as confirmações de pacotes via
@@ -342,7 +346,7 @@ export function EscudosStoreClient({
                 <th className="py-3 px-3">Pacote Adquirido</th>
                 <th className="py-3 px-3 text-center">Gateway Oficial</th>
                 <th className="py-3 px-3 text-right">Valor Pago (R$)</th>
-                <th className="py-3 px-3 text-right">Strike Coin Creditadas</th>
+                <th className="py-3 px-3 text-right">Striker Coins Creditadas</th>
                 <th className="py-3 px-4 text-right">Referência Stripe</th>
               </tr>
             </thead>
@@ -353,7 +357,7 @@ export function EscudosStoreClient({
                     colSpan={6}
                     className="py-6 text-center text-[#78849e] text-xs"
                   >
-                    Selecione um dos pacotes acima para adquirir Strike Coin via
+                    Selecione um dos pacotes acima para adquirir Striker Coins via
                     Stripe Checkout Oficial.
                   </td>
                 </tr>

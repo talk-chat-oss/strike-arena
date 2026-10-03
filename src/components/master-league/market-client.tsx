@@ -661,7 +661,7 @@ export function MarketClient({
         )}
       </div>
 
-      {/* Header do Mercado com Saldo do Clube Comprador em Strike Coin (3 Blocos h-12 Idênticos) */}
+      {/* Header do Mercado com Saldo do Clube Comprador em Striker Coins (3 Blocos h-12 Idênticos) */}
       <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -718,7 +718,7 @@ export function MarketClient({
               className="w-full sm:min-w-[195px] h-12 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
             >
               <Shield className="w-4 h-4 shrink-0" />
-              <span>+ Comprar Strike Coin</span>
+              <span>+ Comprar Striker Coins</span>
             </Link>
           </div>
         )}
@@ -869,7 +869,7 @@ export function MarketClient({
 
                 <div>
                   <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
-                    Lance Mínimo (Strike Coin)
+                    Lance Mínimo (Striker Coins)
                   </label>
                   <input
                     type="number"
@@ -893,13 +893,13 @@ export function MarketClient({
                     className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
                   >
                     <option value={5} className="bg-[#111622]">
-                      5 em 5 Strike Coin (Padrão)
+                      5 em 5 Striker Coins (Padrão)
                     </option>
                     <option value={10} className="bg-[#111622]">
-                      10 em 10 Strike Coin
+                      10 em 10 Striker Coins
                     </option>
                     <option value={20} className="bg-[#111622]">
-                      20 em 20 Strike Coin
+                      20 em 20 Striker Coins
                     </option>
                   </select>
                 </div>
@@ -1170,7 +1170,7 @@ export function MarketClient({
                             {formatEscudos(auc.currentBid)}
                           </div>
                           <div className="text-[10px] text-[#78849e]">
-                            Incremento mínimo: de {step} em {step} Strike Coin
+                            Incremento mínimo: de {step} em {step} Striker Coins
                           </div>
                         </div>
 
@@ -1340,7 +1340,7 @@ export function MarketClient({
                             Incremento por Lance:
                           </span>
                           <span className="font-bold text-[#f4f6fb]">
-                            De {auc.minIncrement} em {auc.minIncrement} Strike Coin
+                            De {auc.minIncrement} em {auc.minIncrement} Striker Coins
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -1681,7 +1681,7 @@ export function MarketClient({
                                   <span>
                                     {canAfford
                                       ? "Pagar Multa & Transferir"
-                                      : "Strike Coin Insuficiente"}
+                                      : "Striker Coins Insuficiente"}
                                   </span>
                                 </button>
                               )}
@@ -1798,7 +1798,7 @@ export function MarketClient({
                                 <span>
                                   {canAfford
                                     ? "Contratar Agora"
-                                    : "Strike Coin Insuficiente"}
+                                    : "Striker Coins Insuficiente"}
                                 </span>
                               </button>
                             )}
@@ -1865,7 +1865,7 @@ export function MarketClient({
                       </div>
                       <span className="px-2 py-0.5 rounded-[4px] bg-[#161d2c] text-[#ffdc2b] font-bold">
                         {p.offeredAthletes.map((a) => a.name).join(", ") ||
-                          "Apenas Strike Coin"}
+                          "Apenas Striker Coins"}
                       </span>
                       {p.cashAmount > 0 && (
                         <span className="px-2 py-0.5 rounded-[4px] bg-[#15a34a]/20 text-[#4ade80] font-bold">
@@ -1927,7 +1927,7 @@ export function MarketClient({
                 Enviar Nova Proposta de Troca
               </h3>
               <p className="text-xs text-[#78849e] mt-0.5">
-                Proponha troca de jogadores + compensação em Strike Coin
+                Proponha troca de jogadores + compensação em Striker Coins
               </p>
             </div>
 
@@ -1997,7 +1997,7 @@ export function MarketClient({
 
             <div>
               <label className="block text-[11px] font-bold uppercase text-[#78849e] mb-1">
-                Volta em Strike Coin (+ Compensação)
+                Volta em Striker Coins (+ Compensação)
               </label>
               <input
                 type="number"

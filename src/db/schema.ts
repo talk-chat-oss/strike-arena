@@ -418,7 +418,7 @@ export const clubTeams = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     acronym: varchar("acronym", { length: 8 }).notNull(),
     badgeUrl: text("badge_url"),
-    balance: integer("balance").default(1000).notNull(), // Moeda interna oficial: Escudos
+    balance: integer("balance").default(500).notNull(), // Moeda oficial: Striker Coins (500 no ato da inscrição)
     isDelinquent: boolean("is_delinquent").default(false).notNull(), // Status de inadimplência/punição
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

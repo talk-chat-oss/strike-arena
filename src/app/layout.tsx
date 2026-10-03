@@ -12,7 +12,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Strike Arena — Plataforma de Torneios & Master Liga Online",
   description:
-    "Gerenciamento profissional de campeonatos, Master Liga Online com economia em Strike Coin, Leilões com Anti-Sniper e Freguesômetro.",
+    "Gerenciamento profissional de campeonatos, Master Liga Online com economia em Striker Coins, Leilões com Anti-Sniper e Freguesômetro.",
 };
 
 export default function RootLayout({

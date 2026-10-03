@@ -117,7 +117,7 @@ export async function registerUserAction(input: {
 
     return {
       ok: true,
-      message: `Conta "${created.nickname}" e escudo "${clubName}" criados com sucesso! Bem-vindo à Strike Arena.`,
+      message: `Conta "${created.nickname}" e escudo "${clubName}" criados com sucesso! Você ganhou +500 Striker Coins no ato da inscrição.`,
     };
   } catch (err) {
     return {

@@ -383,14 +383,14 @@ export function FreguesometroClient({
             </h2>
             <p className="text-xs text-[#78849e] mt-0.5">
               Regras de Caixa da Liga: Vitória{" "}
-              <strong className="text-[#4ade80]">+40 Strike Coin</strong> • Empate{" "}
-              <strong className="text-[#ffdc2b]">+15 Strike Coin</strong> • Bônus por
-              Gol Marcado <strong className="text-[#60a5fa]">+5 Strike Coin/gol</strong>
+              <strong className="text-[#4ade80]">+40 Striker Coins</strong> • Empate{" "}
+              <strong className="text-[#ffdc2b]">+15 Striker Coins</strong> • Bônus por
+              Gol Marcado <strong className="text-[#60a5fa]">+5 Striker Coins/gol</strong>
             </p>
           </div>
           {defaultMode === "matches" && (
             <span className="px-2.5 py-1 rounded-[4px] bg-[#15a34a]/15 text-[#4ade80] border border-[#15a34a]/30 text-xs font-bold">
-              Crédito Automático de Strike Coin no Caixa
+              Crédito Automático de Striker Coins no Caixa
             </span>
           )}
         </div>
@@ -425,7 +425,7 @@ export function FreguesometroClient({
               <div className="mt-2 text-[11px] text-[#4ade80] font-semibold flex items-center gap-1">
                 <Coins className="w-3.5 h-3.5" />
                 <span>
-                  Prêmio Previsto: +{previewHomePrize} Strike Coin
+                  Prêmio Previsto: +{previewHomePrize} Striker Coins
                 </span>
               </div>
             </div>
@@ -445,7 +445,7 @@ export function FreguesometroClient({
               <div className="mt-2 text-[11px] text-[#4ade80] font-semibold flex items-center gap-1">
                 <Coins className="w-3.5 h-3.5" />
                 <span>
-                  Prêmio Previsto: +{previewAwayPrize} Strike Coin
+                  Prêmio Previsto: +{previewAwayPrize} Striker Coins
                 </span>
               </div>
             </div>

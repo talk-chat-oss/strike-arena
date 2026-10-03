@@ -265,7 +265,7 @@ export async function placeAuctionBidAction(input: {
   if (!input.auctionId || !input.bidderClubId || input.bidAmount <= 0) {
     return {
       ok: false,
-      error: "Informe um valor de lance válido em Strike Coin.",
+      error: "Informe um valor de lance válido em Striker Coins.",
     };
   }
 
@@ -302,7 +302,7 @@ export async function placeAuctionBidAction(input: {
           } nos últimos 2 minutos prorrogou o término em +02:00!`
         : `✅ Lance de ${formatEscudos(res.newBid)} registrado em ${
             res.athleteName
-          }! Strike Coin reservadas em Custódia (Escrow) e competidor anterior estornado.`,
+          }! Striker Coins reservadas em Custódia (Escrow) e competidor anterior estornado.`,
     };
   } catch (err) {
     return {
@@ -411,7 +411,7 @@ export async function scheduleAuctionAction(input: {
             ath?.name ?? "Atleta"
           }! Lance mínimo: ${formatEscudos(
             startingBid
-          )} (incremento de ${minIncrement} em ${minIncrement} Strike Coin).`
+          )} (incremento de ${minIncrement} em ${minIncrement} Striker Coins).`
         : `🔥 Leilão de ${
             ath?.name ?? "Atleta"
           } iniciado imediatamente com lance mínimo de ${formatEscudos(
@@ -438,7 +438,7 @@ export async function createStripeCheckoutSessionAction(input: {
   if (!input.clubTeamId || !input.packageId) {
     return {
       ok: false,
-      error: "Selecione o clube destinatário e o pacote de Strike Coin.",
+      error: "Selecione o clube destinatário e o pacote de Striker Coins.",
     };
   }
 
@@ -463,7 +463,7 @@ export async function createStripeCheckoutSessionAction(input: {
     if (!pkg) {
       return {
         ok: false,
-        error: "Pacote promocional de Strike Coin não encontrado.",
+        error: "Pacote promocional de Striker Coins não encontrado.",
       };
     }
 
@@ -475,7 +475,7 @@ export async function createStripeCheckoutSessionAction(input: {
 
     const cleanPkgName = String(pkg.name ?? "").replace(
       /Escudos?/gi,
-      "Strike Coin"
+      "Striker Coins"
     );
 
     const stripe = getStripeServer();
@@ -488,8 +488,8 @@ export async function createStripeCheckoutSessionAction(input: {
             currency: "brl",
             unit_amount: Number(pkg.price_brl_cents),
             product_data: {
-              name: `${cleanPkgName} (+${pkg.escudos_amount} Strike Coin)`,
-              description: `Recarga oficial de +${pkg.escudos_amount} Strike Coin para o clube ${club.name} (${club.acronym}) na Strike Arena.`,
+              name: `${cleanPkgName} (+${pkg.escudos_amount} Striker Coins)`,
+              description: `Recarga oficial de +${pkg.escudos_amount} Striker Coins para o clube ${club.name} (${club.acronym}) na Strike Arena.`,
             },
           },
           quantity: 1,
@@ -603,7 +603,7 @@ export async function purchaseEscudosPackageAction(input: {
   if (!input.clubTeamId || !input.packageId) {
     return {
       ok: false,
-      error: "Selecione o clube destinatário e o pacote de Strike Coin.",
+      error: "Selecione o clube destinatário e o pacote de Striker Coins.",
     };
   }
 
@@ -644,7 +644,7 @@ export async function purchaseEscudosPackageAction(input: {
       error:
         err instanceof Error
           ? err.message
-          : "Erro ao processar recarga de Strike Coin via Stripe.",
+          : "Erro ao processar recarga de Striker Coins via Stripe.",
     };
   }
 }
@@ -676,8 +676,8 @@ export async function processSeasonPayrollAction(input?: {
       ok: true,
       message:
         res.delinquentClubs > 0
-          ? `Folha salarial debitada em ${res.processedClubs} clube(s). ⚠️ ${res.delinquentClubs} clube(s) entraram em INADIMPLÊNCIA (saldo negativo em Strike Coin)!`
-          : `Folha salarial de fim de temporada processada em Strike Coin para ${res.processedClubs} clube(s)! Todos os clubes estão regulares.`,
+          ? `Folha salarial debitada em ${res.processedClubs} clube(s). ⚠️ ${res.delinquentClubs} clube(s) entraram em INADIMPLÊNCIA (saldo negativo em Striker Coins)!`
+          : `Folha salarial de fim de temporada processada em Striker Coins para ${res.processedClubs} clube(s)! Todos os clubes estão regulares.`,
     };
   } catch (err) {
     return {
@@ -700,7 +700,7 @@ export async function updateContractSalaryAction(input: {
   if (!input.contractId || input.newSalary < 10) {
     return {
       ok: false,
-      error: "O salário mínimo permitido na Master Liga é de 10 Strike Coin.",
+      error: "O salário mínimo permitido na Master Liga é de 10 Striker Coins.",
     };
   }
 
@@ -786,7 +786,7 @@ export async function listAthleteOnAuctionAction(input: {
         ath?.name ?? "Atleta"
       } listado na Central de Leilões com lance inicial de ${formatEscudos(
         minBid
-      )} (incremento de 5 em 5 Strike Coin)!`,
+      )} (incremento de 5 em 5 Striker Coins)!`,
     };
   } catch (err) {
     return {
@@ -863,7 +863,7 @@ export async function respondTransferProposalAction(input: {
       if (proposal.cash_amount > 0 && fromClub.balance < proposal.cash_amount) {
         return {
           ok: false,
-          error: `O clube proponente (${fromClub.name}) não possui Strike Coin suficiente para a volta financeira.`,
+          error: `O clube proponente (${fromClub.name}) não possui Striker Coins suficiente para a volta financeira.`,
         };
       }
 
@@ -927,13 +927,13 @@ export async function respondTransferProposalAction(input: {
             club_team_id: fromClub.id,
             type: "TRANSFERENCIA",
             amount: -proposal.cash_amount,
-            description: `Compensação em Strike Coin paga em transferência com ${toClub.name}`,
+            description: `Compensação em Striker Coins paga em transferência com ${toClub.name}`,
           },
           {
             club_team_id: toClub.id,
             type: "TRANSFERENCIA",
             amount: proposal.cash_amount,
-            description: `Compensação em Strike Coin recebida em transferência com ${fromClub.name}`,
+            description: `Compensação em Striker Coins recebida em transferência com ${fromClub.name}`,
           },
         ]);
       }

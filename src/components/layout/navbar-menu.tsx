@@ -62,13 +62,13 @@ const MENU_ITEMS: NavItem[] = [
   {
     href: "/dashboard",
     label: "Meu Clube / Elenco",
-    description: "Cofre em Strike Coin, contratos e folha salarial",
+    description: "Cofre em Striker Coins, contratos e folha salarial",
     icon: Briefcase,
     matchPaths: ["/dashboard"],
   },
   {
     href: "/store/escudos",
-    label: "Loja de Strike Coin",
+    label: "Loja de Striker Coins",
     description: "Pacotes oficiais com pagamento via Stripe",
     badge: "PROMO",
     icon: Shield,
@@ -261,10 +261,10 @@ export function NavbarMenu({ canManage }: { canManage?: boolean }) {
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-                <span className="truncate">Recarregar Strike Coin via Stripe</span>
+                <span className="truncate">Recarregar Striker Coins via Stripe</span>
               </div>
               <span className="text-[10px] font-extrabold text-[#ffdc2b] shrink-0">
-                A partir de R$ 20
+                A partir de R$ 10
               </span>
             </Link>
           </div>

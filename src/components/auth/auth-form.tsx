@@ -180,14 +180,16 @@ export function AuthForm({ currentUser }: AuthFormProps) {
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
               <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                Novo Competidor Oficial
+                Novo Competidor Oficial · +500 Striker Coins no Ato da Inscrição
               </span>
               <h2 className="text-lg font-bold text-[#f4f6fb] mt-0.5">
                 Cadastre seu Perfil, Clube e Gamertags
               </h2>
               <p className="text-xs text-[#78849e] mt-1">
-                Sua conta já cria automaticamente seu Clube na Master Liga e
-                libera inscrição em torneios, check-in e envio de resultados.
+                No ato da inscrição você ganha{" "}
+                <strong className="text-[#4ade80]">500 Striker Coins</strong>{" "}
+                em sua carteira global para montar seu elenco, disputar leilões e
+                competir nos torneios.
               </p>
             </div>
 
@@ -483,8 +485,9 @@ export function AuthForm({ currentUser }: AuthFormProps) {
             <li className="flex items-start gap-2">
               <ShieldCheck className="w-3.5 h-3.5 text-[#4ade80] shrink-0 mt-0.5" />
               <span>
-                Economia fechada em Strike Coin com auditoria completa de lances,
-                multas rescisórias e premiações por partida.
+                Economia fechada em Striker Coins (+500 Striker Coins no ato da
+                inscrição) com auditoria completa de lances, multas rescisórias e
+                premiações por partida.
               </span>
             </li>
           </ul>
