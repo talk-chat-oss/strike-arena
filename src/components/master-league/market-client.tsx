@@ -152,7 +152,7 @@ export function MarketClient({
   const [sortOrder, setSortOrder] = useState<
     "OVR_DESC" | "OVR_ASC" | "NAME_ASC"
   >("OVR_DESC");
-  const [visibleFreeCount, setVisibleFreeCount] = useState<number>(80);
+  const [visibleFreeCount, setVisibleFreeCount] = useState<number>(2000);
 
   // Estado do Configurador do Calendário da Janela de Transferências
   const [winName, setWinName] = useState(transferWindow.windowName);
@@ -731,7 +731,7 @@ export function MarketClient({
           </div>
           <h1 className="text-base sm:text-2xl font-bold text-[#f4f6fb] mt-1">
             {activeTab === "auctions"
-              ? "Central de Leilões & Vitrine Bola Preta"
+              ? "Central de Leilões & Calendário Oficial"
               : "Central de Contratações & Multas Rescisórias"}
           </h1>
         </div>
@@ -879,7 +879,7 @@ export function MarketClient({
       </div>
 
       {/* ==================================================================== */}
-      {/* MÓDULO 1: CENTRAL DE LEILÕES (VITRINE BOLA PRETA + 3 SUB-ABAS)        */}
+      {/* MÓDULO 1: CENTRAL DE LEILÕES (CALENDÁRIO OFICIAL + 3 SUB-ABAS)       */}
       {/* ==================================================================== */}
       {activeTab === "auctions" && (
         <div className="space-y-6">
@@ -908,7 +908,7 @@ export function MarketClient({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="lg:col-span-2">
                   <label className="block text-[10px] uppercase font-bold text-[#78849e] mb-1">
-                    Craque Livre para Leiloar
+                    Atleta Livre para Leiloar
                   </label>
                   <select
                     value={schedAthleteId}
@@ -923,7 +923,6 @@ export function MarketClient({
                           value={a.id}
                           className="bg-[#111622]"
                         >
-                          {a.ballType === "BOLA_PRETA" ? "⚫ " : "🟡 "}
                           {a.name} (OVR {a.overall} • {a.position} •{" "}
                           {a.defaultTeam})
                         </option>
@@ -1017,17 +1016,15 @@ export function MarketClient({
             </form>
           )}
 
-          {/* Vitrine e Divulgação Antecipada de Craques "Bola Preta" */}
+          {/* Vitrine e Divulgação Antecipada de Leilões */}
           <div className="bg-gradient-to-r from-[#111622] via-[#151e32] to-[#111622] border border-[#ffdc2b]/35 rounded-[4px] p-4 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-black text-[#ffdc2b] border border-[#ffdc2b] text-[11px] font-extrabold uppercase">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#ffdc2b]" />
-                  <span>VITRINE BOLA PRETA • CALENDÁRIO OFICIAL</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#090c12] text-[#ffdc2b] border border-[#ffdc2b]/50 text-[11px] font-extrabold uppercase">
+                  <span>CALENDÁRIO OFICIAL DE LEILÕES</span>
                 </span>
                 <span className="text-xs text-[#b6c0d4]">
-                  Programação pública de craques de elite com dia e hora
-                  marcados
+                  Programação pública de atletas com dia e hora marcados
                 </span>
               </div>
               <Link
@@ -1178,10 +1175,6 @@ export function MarketClient({
                               </span>
                               <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
                                 {auc.position}
-                              </span>
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] bg-black text-[#ffdc2b] border border-[#ffdc2b]/40 text-[10px] font-extrabold">
-                                <span className="w-2 h-2 rounded-full bg-[#111] border border-[#ffdc2b]" />
-                                Bola Preta
                               </span>
                             </div>
                             <h3 className="text-base font-bold text-[#f4f6fb] mt-1">
@@ -1541,7 +1534,7 @@ export function MarketClient({
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setVisibleFreeCount(80);
+                    setVisibleFreeCount(2000);
                   }}
                   className="w-full h-9 sm:h-11 pl-8 sm:pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
                 />
@@ -1555,7 +1548,7 @@ export function MarketClient({
                   value={ovrRangeFilter}
                   onChange={(e) => {
                     setOvrRangeFilter(e.target.value);
-                    setVisibleFreeCount(80);
+                    setVisibleFreeCount(2000);
                   }}
                   className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
                 >
@@ -1563,19 +1556,19 @@ export function MarketClient({
                     Todos (77 a 92 OVR)
                   </option>
                   <option value="89_PLUS" className="bg-[#111622]">
-                    89+ OVR (World Class)
+                    89+ OVR
                   </option>
                   <option value="85_PLUS" className="bg-[#111622]">
-                    85+ OVR (Bola Preta)
+                    85+ OVR
                   </option>
                   <option value="85_88" className="bg-[#111622]">
-                    85 a 88 OVR (Bola Preta)
+                    85 a 88 OVR
                   </option>
                   <option value="80_84" className="bg-[#111622]">
-                    80 a 84 OVR (Bola Ouro)
+                    80 a 84 OVR
                   </option>
                   <option value="77_79" className="bg-[#111622]">
-                    77 a 79 OVR (Bola Prata)
+                    77 a 79 OVR
                   </option>
                 </select>
               </div>
@@ -1588,7 +1581,7 @@ export function MarketClient({
                   value={posFilter}
                   onChange={(e) => {
                     setPosFilter(e.target.value);
-                    setVisibleFreeCount(80);
+                    setVisibleFreeCount(2000);
                   }}
                   className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
                 >
@@ -1645,7 +1638,7 @@ export function MarketClient({
                     setSortOrder(
                       e.target.value as "OVR_DESC" | "OVR_ASC" | "NAME_ASC"
                     );
-                    setVisibleFreeCount(80);
+                    setVisibleFreeCount(2000);
                   }}
                   className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#4ade80] focus:outline-none cursor-pointer"
                 >
@@ -1666,16 +1659,16 @@ export function MarketClient({
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
               {[
                 { id: "ALL", label: "Todos (77–92)" },
-                { id: "85_PLUS", label: "⚫ Bola Preta 85+" },
-                { id: "80_84", label: "🟡 Bola Ouro 80–84" },
-                { id: "77_79", label: "⚪ Bola Prata 77–79" },
+                { id: "85_PLUS", label: "OVR 85+" },
+                { id: "80_84", label: "OVR 80–84" },
+                { id: "77_79", label: "OVR 77–79" },
               ].map((pill) => (
                 <button
                   key={pill.id}
                   type="button"
                   onClick={() => {
                     setOvrRangeFilter(pill.id);
-                    setVisibleFreeCount(80);
+                    setVisibleFreeCount(2000);
                   }}
                   className={`h-7 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
                     ovrRangeFilter === pill.id

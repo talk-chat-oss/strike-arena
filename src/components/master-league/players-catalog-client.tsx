@@ -47,7 +47,7 @@ interface PlayersCatalogClientProps {
 type SortMode = "OVERALL_DESC" | "OVERALL_ASC" | "NAME_ASC" | "NAME_DESC";
 type AvailabilityFilter = "ALL" | "FREE_AGENTS" | "CONTRACTED";
 
-const PAGE_SIZE = 48;
+const PAGE_SIZE = 2000;
 
 export function PlayersCatalogClient({
   athletes,
@@ -212,14 +212,6 @@ export function PlayersCatalogClient({
                 JANELA FECHADA
               </span>
             )}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[10px] sm:text-[11px] font-bold text-[#f4f6fb]">
-              <span className="w-2 h-2 rounded-full bg-[#111] border border-[#ffdc2b] inline-block" />
-              {blackBallCount} Preta
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[10px] sm:text-[11px] font-bold text-[#ffdc2b]">
-              <span className="w-2 h-2 rounded-full bg-[#facc15] inline-block" />
-              {goldBallCount} Ouro
-            </span>
           </div>
           <h1 className="text-base sm:text-2xl font-bold text-[#f4f6fb] mt-1">
             Catálogo Oficial de Jogadores & Contratações
@@ -316,7 +308,7 @@ export function PlayersCatalogClient({
             />
           </div>
 
-          {/* Filtro por Categoria */}
+          {/* Filtro por Faixa de Overall */}
           <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
             <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
             <select
@@ -334,16 +326,16 @@ export function PlayersCatalogClient({
               className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
             >
               <option value="ALL" className="bg-[#111622]">
-                Todas Categorias ({athletes.length})
+                Todos Overalls ({athletes.length})
               </option>
               <option value="BOLA_PRETA" className="bg-[#111622]">
-                ⚫ Bola Preta 85+ ({blackBallCount})
+                OVR 85+ ({blackBallCount})
               </option>
               <option value="BOLA_OURO" className="bg-[#111622]">
-                🟡 Bola Ouro 80–84 ({goldBallCount})
+                OVR 80–84 ({goldBallCount})
               </option>
               <option value="BOLA_PRATA" className="bg-[#111622]">
-                ⚪ Bola Prata 77–79 ({silverBallCount})
+                OVR 77–79 ({silverBallCount})
               </option>
             </select>
           </div>
@@ -444,8 +436,7 @@ export function PlayersCatalogClient({
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#f4f6fb] border border-[#2c3852]"
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-black border border-[#ffdc2b] shrink-0" />
-            <span className="truncate">Preta ({blackBallCount})</span>
+            <span className="truncate">OVR 85+ ({blackBallCount})</span>
           </button>
 
           <button
@@ -457,8 +448,7 @@ export function PlayersCatalogClient({
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-[#facc15] shrink-0" />
-            <span className="truncate">Ouro ({goldBallCount})</span>
+            <span className="truncate">OVR 80–84 ({goldBallCount})</span>
           </button>
 
           <button
@@ -470,8 +460,7 @@ export function PlayersCatalogClient({
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-[#cbd5e1] shrink-0" />
-            <span className="truncate">Prata ({silverBallCount})</span>
+            <span className="truncate">OVR 77–79 ({silverBallCount})</span>
           </button>
 
           <button
@@ -527,7 +516,6 @@ export function PlayersCatalogClient({
           const contract = contractByAthleteId.get(athlete.id);
           const auction = auctionByAthleteId.get(athlete.id);
           const isBlackBall = athlete.ballType === "BOLA_PRETA";
-          const isGoldBall = athlete.ballType === "BOLA_OURO";
           const { signingFee: freeAgentCost } = getFreeAgentSigningCost(
             athlete.overall
           );
@@ -577,30 +565,6 @@ export function PlayersCatalogClient({
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded-[2px] bg-[#090c12] text-[#60a5fa] border border-[#222c40] text-[10px] font-extrabold">
                       {athlete.position}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-extrabold uppercase ${
-                        isBlackBall
-                          ? "bg-black text-[#ffdc2b] border border-[#ffdc2b]/50"
-                          : isGoldBall
-                          ? "bg-[#ffdc2b]/20 text-[#ffdc2b]"
-                          : "bg-[#cbd5e1]/20 text-[#cbd5e1]"
-                      }`}
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          isBlackBall
-                            ? "bg-[#111] border border-[#ffdc2b]"
-                            : isGoldBall
-                            ? "bg-[#ffdc2b]"
-                            : "bg-[#cbd5e1]"
-                        }`}
-                      />
-                      {isBlackBall
-                        ? "Bola Preta"
-                        : isGoldBall
-                        ? "Bola Ouro"
-                        : "Bola Prata"}
                     </span>
                   </div>
 

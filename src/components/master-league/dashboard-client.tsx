@@ -532,12 +532,6 @@ export function DashboardClient({
                           <div>
                             <div className="font-bold text-[#f4f6fb] flex items-center gap-1.5">
                               <span>{item.athleteName}</span>
-                              {item.ballType === "BOLA_PRETA" && (
-                                <span
-                                  title="Craque Bola Preta"
-                                  className="w-2.5 h-2.5 rounded-full bg-black border border-[#ffdc2b] inline-block"
-                                />
-                              )}
                             </div>
                             <div className="text-[11px] text-[#78849e]">
                               {item.age} anos • Origem: {item.defaultTeam}

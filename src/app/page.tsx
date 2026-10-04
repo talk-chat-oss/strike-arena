@@ -169,13 +169,13 @@ export default async function HomePage() {
             >
               <div>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[2px] bg-[#dc2626]/20 text-[#f87171]">
-                  LEILÕES & BOLA PRETA
+                  CENTRAL DE LEILÕES
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
                   Leilões Agendados, Ao Vivo & Anti-Sniper
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
-                  Calendário de craques Bola Preta, lances de 5 em 5 Striker Coins com
+                  Calendário oficial de atletas, lances de 5 em 5 Striker Coins com
                   Escrow e +2 min Anti-Sniper.
                 </p>
               </div>
@@ -194,7 +194,7 @@ export default async function HomePage() {
                   Catálogo de Jogadores & Filtros OVR
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
-                  Todos os atletas oficiais com filtro Bola Preta, posição,
+                  Todos os atletas oficiais com filtro por Overall, posição,
                   busca e ordenação A-Z / Overall.
                 </p>
               </div>
@@ -210,7 +210,7 @@ export default async function HomePage() {
                   MOEDA OFICIAL
                 </span>
                 <h3 className="text-sm font-bold text-[#f4f6fb] mt-2 group-hover:text-[#ffdc2b]">
-                  Loja de Striker Coins & Pacotes Promocionais
+                  Loja Oficial de Striker Coins
                 </h3>
                 <p className="text-xs text-[#78849e] mt-1">
                   Pacotes de 200 (R$ 10), 300 (R$ 20), 500 (R$ 30) e 1.000 Striker Coins (R$ 50)
