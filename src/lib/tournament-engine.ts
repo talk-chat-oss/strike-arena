@@ -181,26 +181,71 @@ export interface LegResult {
 export interface TieResolution {
   winner: string | null;
   loser: string | null;
-  decidedBy: "aggregate" | "penalties" | null;
+  decidedBy: "aggregate" | "extra_match" | "penalties" | null;
+  needsExtraMatch: boolean;
   needsPenalties: boolean;
   pending: boolean;
 }
 
-/** Resolve confronto de 1 ou 2 pernas. Empate no agregado -> pênaltis na última perna. */
-export function resolveTie(legs: LegResult[]): TieResolution {
+/**
+ * Resolve confronto eliminatório:
+ * - Soma gols da Ida + Volta (sem gol fora).
+ * - Se Ida + Volta (2 jogos) empatarem nos gols e não houver pênaltis na Volta,
+ *   sinaliza `needsExtraMatch: true` para gerar o 3º Jogo Extra (Prorrogação + Pênaltis).
+ * - Se já houver o 3º Jogo Extra (ou Jogo Único) e empatar no tempo/prorrogação,
+ *   decide nos pênaltis (`homePenalties` / `awayPenalties`).
+ */
+export function resolveTie(
+  legs: LegResult[],
+  expectedLegs: 1 | 2 = 2
+): TieResolution {
   const ordered = [...legs].sort((a, b) => a.leg - b.leg);
   const none: TieResolution = {
     winner: null,
     loser: null,
     decidedBy: null,
+    needsExtraMatch: false,
     needsPenalties: false,
     pending: true,
   };
   if (ordered.length === 0 || ordered.some((l) => !l.done)) return none;
+  if (ordered.length < expectedLegs) return none;
 
   const a = ordered[0].home;
   const b = ordered[0].away;
   if (!a || !b) return none;
+
+  // Se houver 3º jogo extra (leg === 3), ele decide o confronto (gols na prorrogação ou pênaltis)
+  const extraLeg = ordered.find((l) => l.leg === 3);
+  if (extraLeg) {
+    const hs = extraLeg.homeScore ?? 0;
+    const as = extraLeg.awayScore ?? 0;
+    if (hs !== as) {
+      const winner = hs > as ? extraLeg.home : extraLeg.away;
+      return {
+        winner,
+        loser: winner === a ? b : a,
+        decidedBy: "extra_match",
+        needsExtraMatch: false,
+        needsPenalties: false,
+        pending: false,
+      };
+    }
+    const hp = extraLeg.homePenalties;
+    const ap = extraLeg.awayPenalties;
+    if (hp === null || ap === null || hp === ap) {
+      return { ...none, pending: false, needsPenalties: true };
+    }
+    const winner = hp > ap ? extraLeg.home : extraLeg.away;
+    return {
+      winner,
+      loser: winner === a ? b : a,
+      decidedBy: "penalties",
+      needsExtraMatch: false,
+      needsPenalties: false,
+      pending: false,
+    };
+  }
 
   let goalsA = 0;
   let goalsB = 0;
@@ -221,6 +266,7 @@ export function resolveTie(legs: LegResult[]): TieResolution {
       winner,
       loser: winner === a ? b : a,
       decidedBy: "aggregate",
+      needsExtraMatch: false,
       needsPenalties: false,
       pending: false,
     };
@@ -229,17 +275,124 @@ export function resolveTie(legs: LegResult[]): TieResolution {
   const last = ordered[ordered.length - 1];
   const hp = last.homePenalties;
   const ap = last.awayPenalties;
-  if (hp === null || ap === null || hp === ap) {
-    return { ...none, pending: false, needsPenalties: true };
+  if (hp !== null && ap !== null && hp !== ap) {
+    const winner = hp > ap ? last.home : last.away;
+    return {
+      winner,
+      loser: winner === a ? b : a,
+      decidedBy: "penalties",
+      needsExtraMatch: false,
+      needsPenalties: false,
+      pending: false,
+    };
   }
-  const winner = hp > ap ? last.home : last.away;
-  return {
-    winner,
-    loser: winner === a ? b : a,
-    decidedBy: "penalties",
-    needsPenalties: false,
-    pending: false,
-  };
+
+  // Ida e Volta empatadas em gols: gera 3º Jogo Extra (Prorrogação + Pênaltis)
+  if (expectedLegs === 2 && ordered.length === 2) {
+    return {
+      ...none,
+      pending: false,
+      needsExtraMatch: true,
+    };
+  }
+
+  return { ...none, pending: false, needsPenalties: true };
+}
+
+export interface StandingEntry {
+  participantId: string;
+  points: number;
+  wins: number;
+  goalDifference: number;
+  goalsFor: number;
+}
+
+export interface DirectMatchEntry {
+  homeParticipantId: string;
+  awayParticipantId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  status: string;
+  stage?: string;
+}
+
+/**
+ * Ordena a classificação conforme regra oficial KSN YNUI:
+ * 1º Pontos -> 2º Vitórias -> 3º Saldo de Gols -> 4º Gols Feitos -> 5º Confronto Direto (H2H).
+ */
+export function sortStandingsWithTiebreakers<T extends StandingEntry>(
+  rows: T[],
+  matches: DirectMatchEntry[]
+): (T & { tiedCompletely?: boolean })[] {
+  const completedGroupMatches = matches.filter(
+    (m) =>
+      (!m.stage || m.stage === "group") &&
+      (m.status === "completed" || m.status === "walkover") &&
+      m.homeScore !== null &&
+      m.awayScore !== null
+  );
+
+  function compareH2H(aId: string, bId: string): number {
+    let ptsA = 0,
+      ptsB = 0,
+      winsA = 0,
+      winsB = 0,
+      gfA = 0,
+      gfB = 0;
+    for (const m of completedGroupMatches) {
+      const isAB =
+        m.homeParticipantId === aId && m.awayParticipantId === bId;
+      const isBA =
+        m.homeParticipantId === bId && m.awayParticipantId === aId;
+      if (!isAB && !isBA) continue;
+      const goalsA = isAB ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+      const goalsB = isAB ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
+      gfA += goalsA;
+      gfB += goalsB;
+      if (goalsA > goalsB) {
+        ptsA += 3;
+        winsA += 1;
+      } else if (goalsB > goalsA) {
+        ptsB += 3;
+        winsB += 1;
+      } else {
+        ptsA += 1;
+        ptsB += 1;
+      }
+    }
+    const gdA = gfA - gfB;
+    const gdB = gfB - gfA;
+    return ptsB - ptsA || winsB - winsA || gdB - gdA || gfB - gfA;
+  }
+
+  const sorted = [...rows].sort((a, b) => {
+    const basic =
+      b.points - a.points ||
+      b.wins - a.wins ||
+      b.goalDifference - a.goalDifference ||
+      b.goalsFor - a.goalsFor;
+    if (basic !== 0) return basic;
+    return compareH2H(a.participantId, b.participantId);
+  });
+
+  return sorted.map((row, idx) => {
+    const prev = sorted[idx - 1];
+    const next = sorted[idx + 1];
+    const eq = (x?: T) =>
+      Boolean(
+        x &&
+          x.points === row.points &&
+          x.wins === row.wins &&
+          x.goalDifference === row.goalDifference &&
+          x.goalsFor === row.goalsFor &&
+          compareH2H(row.participantId, x.participantId) === 0 &&
+          row.points > 0
+      );
+    return {
+      ...row,
+      tiedCompletely: eq(prev) || eq(next),
+    };
+  });
 }
 
 /** Participantes que se classificam dos grupos, com cruzamento olímpico via seedOrder. */
@@ -255,3 +408,4 @@ export function crossGroupSeeds(
   }
   return seeds;
 }
+

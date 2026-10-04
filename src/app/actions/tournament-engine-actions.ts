@@ -11,7 +11,9 @@ import {
   isBye,
   roundRobin,
   shuffle,
+  sortStandingsWithTiebreakers,
 } from "@/lib/tournament-engine";
+import { propagateKnockoutWinner } from "@/lib/tournament-advance";
 
 interface TournamentRow {
   id: string;
@@ -118,7 +120,7 @@ export async function generateTournamentFixturesAction(input: {
           .order("display_order", { ascending: true }),
         supabaseAdmin
           .from("matches")
-          .select("id, stage, status")
+          .select("id, stage, status, home_participant_id, away_participant_id, home_score, away_score")
           .eq("tournament_id", t.id),
       ]);
 
@@ -227,22 +229,34 @@ export async function generateTournamentFixturesAction(input: {
         .from("standings")
         .select("participant_id, group_id, points, goal_difference, goals_for, wins")
         .eq("tournament_id", t.id);
-      const ranked = gList.map((g) =>
-        (standings ?? [])
+
+      const directEntries = mList.map((m) => ({
+        homeParticipantId: m.home_participant_id ?? "",
+        awayParticipantId: m.away_participant_id ?? "",
+        homeScore: m.home_score ?? null,
+        awayScore: m.away_score ?? null,
+        status: m.status,
+        stage: m.stage,
+      }));
+
+      const ranked = gList.map((g) => {
+        const groupRows = (standings ?? [])
           .filter((s) => s.group_id === g.id)
-          .sort(
-            (a, b) =>
-              b.points - a.points ||
-              b.goal_difference - a.goal_difference ||
-              b.goals_for - a.goals_for ||
-              b.wins - a.wins
-          )
-          .map((s) => s.participant_id as string)
-      );
+          .map((s) => ({
+            participantId: s.participant_id as string,
+            points: s.points as number,
+            wins: s.wins as number,
+            goalDifference: s.goal_difference as number,
+            goalsFor: s.goals_for as number,
+          }));
+        return sortStandingsWithTiebreakers(groupRows, directEntries).map(
+          (s) => s.participantId
+        );
+      });
       const k = Math.max(1, t.qualified_per_group || 2);
       const seeds = crossGroupSeeds(ranked, k);
       await insertKnockout(t, seeds);
-      message = `Mata-mata gerado com ${seeds.length} classificados.`;
+      message = `Mata-mata gerado com ${seeds.length} classificados (Pontos → Vitórias → Saldo → Gols Feitos → Confronto Direto).`;
     } else if (t.format === "single_elimination" && mList.length === 0) {
       if (pList.length < 2) return { ok: false, error: "Mínimo de 2 participantes." };
       const allSeeded = pList.every((p) => p.seed !== null && p.seed !== undefined);
@@ -272,3 +286,96 @@ export async function generateTournamentFixturesAction(input: {
     };
   }
 }
+
+/**
+ * Permite que o ADM/Organizador passe quem ganhou no confronto (ex: após o 3º jogo extra com
+ * Prorrogação + Pênaltis enviado ao ADM) e avance o vencedor automaticamente na chave.
+ */
+export async function adminAdvanceTieWinnerAction(input: {
+  tournamentSlug: string;
+  stage: string;
+  slot: number;
+  winnerParticipantId: string;
+}) {
+  try {
+    const user = await getCurrentUser();
+    const { data: tRow } = await supabaseAdmin
+      .from("tournaments")
+      .select("id, organizer_id, slug")
+      .eq("slug", input.tournamentSlug)
+      .maybeSingle();
+
+    if (!tRow) return { ok: false, error: "Torneio não encontrado." };
+
+    if (
+      user &&
+      !isSuperAdmin(user.id) &&
+      user.id !== tRow.organizer_id &&
+      user.role !== "organizer"
+    ) {
+      return {
+        ok: false,
+        error: "Apenas a Diretoria/ADM pode avançar manualmente um classificado.",
+      };
+    }
+
+    const { data: legs } = await supabaseAdmin
+      .from("matches")
+      .select("*")
+      .eq("tournament_id", tRow.id)
+      .eq("stage", input.stage)
+      .eq("bracket_position", input.slot)
+      .order("leg", { ascending: true });
+
+    if (!legs || legs.length === 0) {
+      return { ok: false, error: "Confronto não encontrado." };
+    }
+
+    const first = legs[0];
+    const last = legs[legs.length - 1];
+    const loserId =
+      first.home_participant_id === input.winnerParticipantId
+        ? first.away_participant_id
+        : first.home_participant_id;
+
+    await supabaseAdmin
+      .from("matches")
+      .update({
+        status: "completed",
+        winner_participant_id: input.winnerParticipantId,
+        notes:
+          "Classificado homologado pela ADM após desempate (Prorrogação + Pênaltis).",
+        played_at: new Date().toISOString(),
+      })
+      .eq("id", last.id);
+
+    const res = await propagateKnockoutWinner(
+      tRow.id,
+      input.stage,
+      input.slot,
+      first.round as number,
+      input.winnerParticipantId,
+      loserId,
+      last.id
+    );
+
+    revalidatePath(`/tournaments/${tRow.slug}`);
+    revalidatePath("/organizer");
+    revalidatePath("/");
+
+    return {
+      ok: true,
+      message:
+        res.state === "completed"
+          ? "Campeão da Grande Final consagrado pela ADM!"
+          : "Classificado avançado automaticamente para a próxima fase pela ADM!",
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Erro ao avançar classificado.",
+    };
+  }
+}
+

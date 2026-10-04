@@ -107,6 +107,7 @@ export async function getTournamentBySlug(
         .select("*")
         .eq("tournament_id", tRow.id)
         .order("points", { ascending: false })
+        .order("wins", { ascending: false })
         .order("goal_difference", { ascending: false })
         .order("goals_for", { ascending: false }),
       supabase

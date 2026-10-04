@@ -39,8 +39,15 @@ import {
   getMatchMessagesAction,
   sendMatchMessageAction,
 } from "@/app/actions/tournament-actions";
-import { generateTournamentFixturesAction } from "@/app/actions/tournament-engine-actions";
-import { STAGE_LABELS, type KnockoutStage } from "@/lib/tournament-engine";
+import {
+  generateTournamentFixturesAction,
+  adminAdvanceTieWinnerAction,
+} from "@/app/actions/tournament-engine-actions";
+import {
+  STAGE_LABELS,
+  sortStandingsWithTiebreakers,
+  type KnockoutStage,
+} from "@/lib/tournament-engine";
 import { createLeaguePassStripeCheckoutAction } from "@/app/actions/master-league-actions";
 
 interface TournamentTabsProps {
@@ -123,23 +130,15 @@ export function TournamentTabs({
     currentUser?.role === "organizer" ||
     !currentUser;
 
-  const groupAStandings = standings
-    .filter((s) => s.groupCode === "A")
-    .sort(
-      (a, b) =>
-        b.points - a.points ||
-        b.goalDifference - a.goalDifference ||
-        b.goalsFor - a.goalsFor
-    );
+  const groupAStandings = sortStandingsWithTiebreakers(
+    standings.filter((s) => s.groupCode === "A"),
+    matches
+  );
 
-  const groupBStandings = standings
-    .filter((s) => s.groupCode === "B")
-    .sort(
-      (a, b) =>
-        b.points - a.points ||
-        b.goalDifference - a.goalDifference ||
-        b.goalsFor - a.goalsFor
-    );
+  const groupBStandings = sortStandingsWithTiebreakers(
+    standings.filter((s) => s.groupCode === "B"),
+    matches
+  );
 
   const topAttacks = [...standings]
     .sort((a, b) => b.goalsFor - a.goalsFor || b.points - a.points)
@@ -308,6 +307,29 @@ export function TournamentTabs({
     });
   }
 
+  function handleAdminAdvanceTie(
+    stage: string,
+    slot: number,
+    winnerParticipantId: string
+  ) {
+    if (!winnerParticipantId) return;
+    setActionBanner(null);
+    startTransition(async () => {
+      const res = await adminAdvanceTieWinnerAction({
+        tournamentSlug: tournament.slug,
+        stage,
+        slot,
+        winnerParticipantId,
+      });
+      setActionBanner(
+        res.ok
+          ? res.message ?? "Classificado avançado!"
+          : res.error ?? "Erro ao avançar classificado."
+      );
+      if (res.ok) router.refresh();
+    });
+  }
+
   const knockoutOrder: (KnockoutStage | "third_place")[] = [
     "round_of_32",
     "round_of_16",
@@ -345,7 +367,7 @@ export function TournamentTabs({
       let aggB = 0;
       let anyPlayed = false;
       for (const l of legs) {
-        if (l.homeScore !== null && l.awayScore !== null) {
+        if ((l.leg ?? 1) <= 2 && l.homeScore !== null && l.awayScore !== null) {
           anyPlayed = true;
           if (l.homeParticipantId === teamAId) {
             aggA += l.homeScore;
@@ -700,20 +722,20 @@ export function TournamentTabs({
               </div>
             </div>
 
-            {/* Card de Alerta / Ação Rápida */}
+            {/* Card de Alerta / Critérios de Desempate Oficiais KSN YNUI */}
             <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 flex flex-col justify-between gap-4">
-              <div>
-                <span className="text-[11px] uppercase tracking-wider text-[#fb923c] font-semibold">
-                  Controle de Rodada
+              <div className="space-y-2">
+                <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
+                  Critérios Oficiais da Liga
                 </span>
-                <h4 className="text-sm font-bold text-[#f4f6fb] mt-1">
-                  {pendingMediationCount} partida(s) aguardando homologação
-                </h4>
-                <p className="text-xs text-[#78849e] mt-1.5 leading-relaxed">
-                  Jogadores podem combinar o horário via Chat da Partida e
-                  anexar o print do placar final. Ao homologar, a tabela é
-                  recalculada automaticamente.
-                </p>
+                <ol className="list-decimal list-inside space-y-1 text-xs text-[#b6c0d4]">
+                  <li>Maior número de Pontos (PTS)</li>
+                  <li>Maior número de Vitórias (V)</li>
+                  <li>Maior Saldo de Gol (SG)</li>
+                  <li>Maior número de Gols Feitos (GP)</li>
+                  <li>Confronto Direto (H2H)</li>
+                  <li>Persistindo empate: Jogo Extra (Prorrogação + Pênaltis)</li>
+                </ol>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <button
@@ -746,12 +768,9 @@ export function TournamentTabs({
               <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
                 Fase Eliminatória ·{" "}
                 {tournament.legsPerRound === 2
-                  ? "Confrontos de Ida e Volta"
+                  ? "Ida e Volta (Desempate por Gols → Jogo Extra c/ Prorrogação + Pênaltis)"
                   : "Jogo Único"}{" "}
-                ·{" "}
-                {tournament.finalTwoLegs
-                  ? "Final Ida e Volta"
-                  : "Final Jogo Único"}
+                · Final Jogo Único
               </span>
               <h3 className="text-base sm:text-lg font-bold text-[#f4f6fb]">
                 Árvore de Playoffs — {tournament.name}
@@ -812,7 +831,9 @@ export function TournamentTabs({
                       {isFinal && <Trophy className="w-4 h-4" />}
                       <span>
                         {STAGE_LABELS[stageKey]} (
-                        {ties[0]?.legs.length === 2
+                        {isFinal
+                          ? "Jogo Único"
+                          : (ties[0]?.legs.length ?? 1) >= 2
                           ? "Ida e Volta"
                           : "Jogo Único"}
                         )
@@ -906,9 +927,19 @@ export function TournamentTabs({
                                   key={l.id}
                                   className="flex items-center justify-between"
                                 >
-                                  <span className="text-[#78849e]">
-                                    {l.leg === 1 ? "Jogo de Ida" : "Jogo de Volta"} (
-                                    {l.homeNickname} × {l.awayNickname})
+                                  <span
+                                    className={
+                                      l.leg === 3
+                                        ? "text-[#ffdc2b] font-semibold"
+                                        : "text-[#78849e]"
+                                    }
+                                  >
+                                    {l.leg === 1
+                                      ? "Jogo de Ida"
+                                      : l.leg === 2
+                                      ? "Jogo de Volta"
+                                      : "3º Jogo Extra (Prorrogação + Pênaltis)"}{" "}
+                                    ({l.homeNickname} × {l.awayNickname})
                                   </span>
                                   <span className="font-bold text-[#f4f6fb]">
                                     {l.homeScore !== null
@@ -927,10 +958,50 @@ export function TournamentTabs({
                             </div>
                           )}
 
+                          {canMediate &&
+                            first.homeParticipantId &&
+                            first.awayParticipantId && (
+                              <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-[#192131]">
+                                <span className="text-[10px] uppercase tracking-wider text-[#78849e]">
+                                  Avançar (ADM):
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() =>
+                                      handleAdminAdvanceTie(
+                                        stageKey,
+                                        tie.slot,
+                                        first.homeParticipantId
+                                      )
+                                    }
+                                    className="px-2 py-1 rounded-[2px] bg-[#15a34a]/20 hover:bg-[#15a34a] text-[#4ade80] hover:text-[#f4f6fb] text-[10px] font-bold transition-colors cursor-pointer"
+                                  >
+                                    Passar {first.homeNickname}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() =>
+                                      handleAdminAdvanceTie(
+                                        stageKey,
+                                        tie.slot,
+                                        first.awayParticipantId
+                                      )
+                                    }
+                                    className="px-2 py-1 rounded-[2px] bg-[#15a34a]/20 hover:bg-[#15a34a] text-[#4ade80] hover:text-[#f4f6fb] text-[10px] font-bold transition-colors cursor-pointer"
+                                  >
+                                    Passar {first.awayNickname}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                             <span className="text-[11px] text-[#78849e] truncate max-w-[180px]">
                               {legs.length > 1
-                                ? "Placar agregado (Ida + Volta)"
+                                ? "Soma de gols (Ida + Volta)"
                                 : first.notes ?? "Confronto eliminatório"}
                             </span>
                             <div className="flex items-center gap-1.5">
@@ -942,7 +1013,13 @@ export function TournamentTabs({
                                   className="px-2.5 py-1 rounded-[2px] bg-[#1d2639] hover:bg-[#ffdc2b] hover:text-[#0e1312] text-[11px] font-semibold text-[#f4f6fb] transition-colors cursor-pointer"
                                 >
                                   {legs.length > 1
-                                    ? `Reportar ${l.leg === 1 ? "Ida" : "Volta"}`
+                                    ? `Reportar ${
+                                        l.leg === 1
+                                          ? "Ida"
+                                          : l.leg === 2
+                                          ? "Volta"
+                                          : "Jogo Extra"
+                                      }`
                                     : "Reportar Placar"}
                                 </button>
                               ))}

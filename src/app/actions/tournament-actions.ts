@@ -231,8 +231,12 @@ export async function submitMatchScoreAction(rawInput: {
 
     if (updErr) throw new Error(updErr.message);
 
-    let advState: "pending" | "needs_penalties" | "advanced" | "completed" =
-      "pending";
+    let advState:
+      | "pending"
+      | "extra_match_created"
+      | "needs_penalties"
+      | "advanced"
+      | "completed" = "pending";
     if (newStatus === "completed") {
       await recalculateGroupStandings(existingMatch.tournament_id);
       const adv = await advanceKnockoutTie(
@@ -252,8 +256,10 @@ export async function submitMatchScoreAction(rawInput: {
       status: newStatus,
       message:
         newStatus === "completed"
-          ? advState === "needs_penalties"
-            ? "Placar salvo! Confronto empatado no agregado — informe o placar dos pênaltis para definir o classificado."
+          ? advState === "extra_match_created"
+            ? "Empate na soma de gols (Ida + Volta)! O 3º Jogo Extra (Prorrogação + Pênaltis) foi gerado automaticamente na chave."
+            : advState === "needs_penalties"
+            ? "Placar salvo! Confronto empatado — informe o placar dos pênaltis ou acione a ADM para avançar o vencedor."
             : advState === "advanced"
             ? "Placar homologado e vencedor avançado automaticamente na chave!"
             : advState === "completed"

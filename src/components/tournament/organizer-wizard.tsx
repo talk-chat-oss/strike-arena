@@ -189,12 +189,11 @@ export function OrganizerWizard() {
               <option value="groups_playoffs">Fase de Grupos + Playoffs</option>
               <option value="round_robin">Pontos Corridos (Liga)</option>
               <option value="single_elimination">Mata-Mata Simples</option>
-              <option value="double_elimination">Eliminação Dupla</option>
             </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-[#161d2c]/70 border border-[#222c40] rounded-[4px] p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#161d2c]/70 border border-[#222c40] rounded-[4px] p-3">
           {format !== "round_robin" && (
             <>
               <div className="space-y-1">
@@ -208,7 +207,7 @@ export function OrganizerWizard() {
                   }
                   className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#ffdc2b] font-semibold"
                 >
-                  <option value={2}>Ida e Volta (2 jogos)</option>
+                  <option value={2}>Ida e Volta (Soma de Gols + Jogo Extra se empatar)</option>
                   <option value={1}>Jogo Único (1 jogo)</option>
                 </select>
               </div>
@@ -217,28 +216,9 @@ export function OrganizerWizard() {
                 <label className="block text-[11px] font-semibold text-[#b6c0d4]">
                   Grande Final
                 </label>
-                <select
-                  value={finalTwoLegs ? "2" : "1"}
-                  onChange={(e) => setFinalTwoLegs(e.target.value === "2")}
-                  className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb]"
-                >
-                  <option value="1">Jogo Único (Campo Neutro)</option>
-                  <option value="2">Ida e Volta (2 jogos)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-[11px] font-semibold text-[#b6c0d4]">
-                  Disputa de 3º Lugar
-                </label>
-                <select
-                  value={thirdPlaceMatch ? "yes" : "no"}
-                  onChange={(e) => setThirdPlaceMatch(e.target.value === "yes")}
-                  className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb]"
-                >
-                  <option value="no">Não</option>
-                  <option value="yes">Sim (Jogo Único)</option>
-                </select>
+                <div className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb] flex items-center">
+                  Jogo Único (Prorrogação + Pênaltis)
+                </div>
               </div>
             </>
           )}
