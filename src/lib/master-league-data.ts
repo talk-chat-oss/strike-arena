@@ -31,6 +31,12 @@ export interface AthleteDTO {
   ballType: BallCategory;
 }
 
+export interface TacticalLineupData {
+  formation?: string;
+  slots?: Record<string, string | null>; // slotKey -> athleteId
+  updatedAt?: string;
+}
+
 export interface ClubTeamDTO {
   id: string;
   leagueId: string | null;
@@ -47,6 +53,7 @@ export interface ClubTeamDTO {
   leaguePassExpiresAt?: string | null;
   leaguePassMode?: string;
   hasActiveLeaguePass?: boolean;
+  tacticalLineup?: TacticalLineupData;
 }
 
 export interface ContractRosterItemDTO {
@@ -795,6 +802,10 @@ export async function getMasterLeagueOverviewData() {
                 ? "ADMIN_GRANTED"
                 : String(c.league_pass_mode || "NONE"),
               hasActiveLeaguePass: hasPass,
+              tacticalLineup:
+                c.tactical_lineup && typeof c.tactical_lineup === "object"
+                  ? (c.tactical_lineup as TacticalLineupData)
+                  : undefined,
             };
           })
         : [];

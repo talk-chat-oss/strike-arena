@@ -1487,3 +1487,55 @@ export async function getHeadToHeadStatsAction(input: {
 
   return computeHeadToHeadBetweenClubs(teamA, teamB, data.h2hRecords);
 }
+
+/**
+ * 11. SALVAR ESCALAÇÃO TÁTICA DO CAMPINHO VIRTUAL (POR CLUBE)
+ */
+export async function saveClubTacticalLineupAction(input: {
+  clubTeamId: string;
+  formation: string;
+  slots: Record<string, string | null>;
+}) {
+  if (!input.clubTeamId) {
+    return {
+      ok: false,
+      error: "Clube inválido para salvar a escalação tática.",
+    };
+  }
+
+  try {
+    const payload = {
+      formation: input.formation || "4-3-3",
+      slots: input.slots || {},
+      updatedAt: new Date().toISOString(),
+    };
+
+    const { error } = await supabaseAdmin
+      .from("club_teams")
+      .update({
+        tactical_lineup: payload,
+      })
+      .eq("id", input.clubTeamId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath("/dashboard");
+
+    return {
+      ok: true,
+      message: `⚽ Escalação Tática (${payload.formation}) salva oficialmente no seu clube!`,
+      data: payload,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Erro ao salvar a escalação tática.",
+    };
+  }
+}
+
