@@ -23,6 +23,8 @@ import {
   Unlock,
   Settings2,
   UserPlus,
+  ChevronDown,
+  ArrowUpDown,
 } from "lucide-react";
 import type {
   AthleteDTO,
@@ -131,8 +133,11 @@ export function MarketClient({
     "active" | "upcoming" | "finished"
   >("active");
   const [buyoutSubMode, setBuyoutSubMode] = useState<"contracted" | "free">(
-    contracts.length > 0 ? "contracted" : "free"
+    "free"
   );
+  const [clubFilterMode, setClubFilterMode] = useState<
+    "ALL" | "OTHER_CLUBS" | "MY_CLUB"
+  >("ALL");
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showWindowSettings, setShowWindowSettings] = useState(false);
 
@@ -142,8 +147,12 @@ export function MarketClient({
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [bidAmounts, setBidAmounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [minOverall, setMinOverall] = useState<number>(77);
+  const [ovrRangeFilter, setOvrRangeFilter] = useState<string>("ALL");
   const [posFilter, setPosFilter] = useState<string>("ALL");
+  const [sortOrder, setSortOrder] = useState<
+    "OVR_DESC" | "OVR_ASC" | "NAME_ASC"
+  >("OVR_DESC");
+  const [visibleFreeCount, setVisibleFreeCount] = useState<number>(80);
 
   // Estado do Configurador do Calendário da Janela de Transferências
   const [winName, setWinName] = useState(transferWindow.windowName);
@@ -230,26 +239,63 @@ export function MarketClient({
 
   const contractedAthleteIds = new Set(contracts.map((c) => c.athleteId));
 
+  function matchesOvrRange(overall: number, range: string) {
+    switch (range) {
+      case "89_PLUS":
+        return overall >= 89;
+      case "85_PLUS":
+        return overall >= 85;
+      case "85_88":
+        return overall >= 85 && overall <= 88;
+      case "80_84":
+        return overall >= 80 && overall <= 84;
+      case "77_79":
+        return overall >= 77 && overall <= 79;
+      case "80_PLUS":
+        return overall >= 80;
+      default:
+        return true;
+    }
+  }
+
+  function matchesPosition(position: string, filter: string) {
+    if (filter === "ALL") return true;
+    if (filter === "MC_VOL") return position === "MC" || position === "VOL";
+    if (filter === "LATERAIS") return position === "LE" || position === "LD";
+    return position === filter;
+  }
+
   const filteredContracts = contracts
     .filter((c) => {
-      if (c.overall < minOverall) return false;
-      if (posFilter !== "ALL" && c.position !== posFilter) return false;
+      if (clubFilterMode === "OTHER_CLUBS" && c.clubTeamId === currentClub?.id)
+        return false;
+      if (clubFilterMode === "MY_CLUB" && c.clubTeamId !== currentClub?.id)
+        return false;
+      if (!matchesOvrRange(c.overall, ovrRangeFilter)) return false;
+      if (!matchesPosition(c.position, posFilter)) return false;
       if (
         searchQuery.trim() &&
         !c.athleteName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !c.clubName.toLowerCase().includes(searchQuery.toLowerCase())
+        !c.clubName.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !c.defaultTeam.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return false;
       }
       return true;
     })
-    .sort((a, b) => b.overall - a.overall);
+    .sort((a, b) => {
+      if (sortOrder === "OVR_ASC")
+        return a.overall - b.overall || a.athleteName.localeCompare(b.athleteName, "pt-BR");
+      if (sortOrder === "NAME_ASC")
+        return a.athleteName.localeCompare(b.athleteName, "pt-BR");
+      return b.overall - a.overall || a.athleteName.localeCompare(b.athleteName, "pt-BR");
+    });
 
-  const filteredFreeAgents = athletes
+  const allFilteredFreeAgents = athletes
     .filter((a) => {
       if (contractedAthleteIds.has(a.id)) return false;
-      if (a.overall < minOverall) return false;
-      if (posFilter !== "ALL" && a.position !== posFilter) return false;
+      if (!matchesOvrRange(a.overall, ovrRangeFilter)) return false;
+      if (!matchesPosition(a.position, posFilter)) return false;
       if (
         searchQuery.trim() &&
         !a.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -259,7 +305,15 @@ export function MarketClient({
       }
       return true;
     })
-    .slice(0, 60);
+    .sort((a, b) => {
+      if (sortOrder === "OVR_ASC")
+        return a.overall - b.overall || a.name.localeCompare(b.name, "pt-BR");
+      if (sortOrder === "NAME_ASC")
+        return a.name.localeCompare(b.name, "pt-BR");
+      return b.overall - a.overall || a.name.localeCompare(b.name, "pt-BR");
+    });
+
+  const filteredFreeAgents = allFilteredFreeAgents.slice(0, visibleFreeCount);
 
   const myContracts = contracts.filter((c) => c.clubTeamId === activeClubId);
   const targetClubContracts = contracts.filter(
@@ -427,67 +481,70 @@ export function MarketClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3.5 sm:space-y-6">
       {/* ==================================================================== */}
       {/* CALENDÁRIO OFICIAL DA JANELA DE TRANSFERÊNCIAS (ABRE / FECHA)         */}
       {/* ==================================================================== */}
       <div
-        className={`rounded-[4px] border p-4 sm:p-5 transition-colors ${
+        className={`rounded-[4px] border p-3 sm:p-5 transition-colors ${
           isWindowOpen
             ? "bg-gradient-to-r from-[#0d1f17] via-[#111622] to-[#111622] border-[#15a34a]/50"
             : "bg-gradient-to-r from-[#241115] via-[#111622] to-[#111622] border-[#dc2626]/50"
         }`}
       >
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 sm:gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {isWindowOpen ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#15a34a] text-[#090c12] text-[11px] font-extrabold uppercase">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#15a34a] text-[#090c12] text-[10px] sm:text-[11px] font-extrabold uppercase">
                   <Unlock className="w-3 h-3" />
-                  JANELA DE TRANSFERÊNCIAS ABERTA
+                  JANELA ABERTA
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#dc2626] text-white text-[11px] font-extrabold uppercase">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#dc2626] text-white text-[10px] sm:text-[11px] font-extrabold uppercase">
                   <Lock className="w-3 h-3" />
-                  JANELA DE TRANSFERÊNCIAS FECHADA • ELENCOS TRAVADOS
+                  JANELA FECHADA • ELENCOS TRAVADOS
                 </span>
               )}
 
-              <span className="text-xs font-extrabold text-[#f4f6fb]">
+              <span className="text-[11px] sm:text-xs font-extrabold text-[#f4f6fb]">
                 {transferWindow.windowName}
               </span>
 
-              <span className="text-[11px] text-[#9aa5b8]">
+              <span className="hidden sm:inline text-[11px] text-[#9aa5b8]">
                 • Abertura: {formatDateTimePtBr(transferWindow.opensAt)} •
                 Fechamento: {formatDateTimePtBr(transferWindow.closesAt)}
               </span>
             </div>
 
-            <p className="text-xs text-[#b6c0d4]">
+            <p className="hidden sm:block text-xs text-[#b6c0d4]">
               {isWindowOpen ? (
                 <>
-                  <strong>Movimentações Liberadas:</strong> Pagamento de Multa
-                  Rescisória transfere o atleta imediatamente de um clube para
-                  outro. Um jogador nunca pode pertencer a dois times ao mesmo
-                  tempo.
+                  <strong>Movimentações Liberadas:</strong> Contratação de
+                  jogadores livres e pagamento de Multa Rescisória transferem o
+                  atleta imediatamente.
                 </>
               ) : (
                 <>
                   <strong>Elencos Travados:</strong> Fora do período da Janela
                   de Transferências, os atletas ficam travados em seus clubes
-                  atuais e não podem ser transferidos por multa ou troca.
+                  atuais.
                 </>
               )}
             </p>
           </div>
 
-          {/* Controles Padronizados h-11 (Mesmo tamanho em Mobile e Web) */}
+          {/* Controles Padronizados Compactos no Mobile */}
           <div
-            className={`grid grid-cols-1 ${
-              canManage ? "sm:grid-cols-3" : "sm:grid-cols-1"
-            } gap-2.5 w-full xl:w-auto shrink-0`}
+            className={`grid ${
+              canManage ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1"
+            } gap-2 w-full xl:w-auto shrink-0`}
           >
-            <div className="h-11 px-4 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center justify-between sm:justify-center gap-2.5 sm:min-w-[190px]">
+            <div
+              className={`${
+                canManage ? "col-span-2 sm:col-span-1" : ""
+              } h-9 sm:h-11 px-3 sm:px-4 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center justify-between sm:justify-center gap-2 sm:min-w-[190px]`}
+            >
               <span className="text-[10px] uppercase font-bold text-[#78849e]">
                 {isWindowOpen ? "Fecha em:" : "Calendário:"}
               </span>
@@ -507,10 +564,10 @@ export function MarketClient({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleSaveTransferWindow(undefined, "OPEN")}
-                    className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-[#090c12] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
+                    className="w-full sm:min-w-[175px] h-9 sm:h-11 px-3 rounded-[4px] bg-[#15a34a] hover:bg-[#16a34a] text-[#090c12] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                   >
                     <Unlock className="w-3.5 h-3.5 shrink-0" />
-                    <span>Abrir Janela Agora</span>
+                    <span>Abrir Janela</span>
                   </button>
                 ) : (
                   <button
@@ -519,20 +576,20 @@ export function MarketClient({
                     onClick={() =>
                       handleSaveTransferWindow(undefined, "CLOSED")
                     }
-                    className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#dc2626] hover:bg-[#b91c1c] text-white text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
+                    className="w-full sm:min-w-[175px] h-9 sm:h-11 px-3 rounded-[4px] bg-[#dc2626] hover:bg-[#b91c1c] text-white text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                   >
                     <Lock className="w-3.5 h-3.5 shrink-0" />
-                    <span>Fechar Janela (Travar)</span>
+                    <span>Fechar Janela</span>
                   </button>
                 )}
 
                 <button
                   type="button"
                   onClick={() => setShowWindowSettings((v) => !v)}
-                  className="w-full sm:min-w-[190px] h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-bold text-[#f4f6fb] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
+                  className="w-full sm:min-w-[175px] h-9 sm:h-11 px-3 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[11px] sm:text-xs font-bold text-[#f4f6fb] inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap"
                 >
                   <Settings2 className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-                  <span>Calendário da Janela</span>
+                  <span>Calendário</span>
                 </button>
               </>
             )}
@@ -543,7 +600,7 @@ export function MarketClient({
         {canManage && showWindowSettings && (
           <form
             onSubmit={(e) => handleSaveTransferWindow(e)}
-            className="mt-4 pt-4 border-t border-[#222c40] space-y-4"
+            className="mt-3 pt-3 border-t border-[#222c40] space-y-3"
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#ffdc2b] flex items-center gap-2">
@@ -564,7 +621,7 @@ export function MarketClient({
                   type="text"
                   value={winName}
                   onChange={(e) => setWinName(e.target.value)}
-                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
+                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f4f6fb]"
                 />
               </div>
 
@@ -576,7 +633,7 @@ export function MarketClient({
                   type="datetime-local"
                   value={winOpensLocal}
                   onChange={(e) => setWinOpensLocal(e.target.value)}
-                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
+                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#4ade80]"
                 />
               </div>
 
@@ -588,7 +645,7 @@ export function MarketClient({
                   type="datetime-local"
                   value={winClosesLocal}
                   onChange={(e) => setWinClosesLocal(e.target.value)}
-                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f87171]"
+                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#f87171]"
                 />
               </div>
 
@@ -603,7 +660,7 @@ export function MarketClient({
                       e.target.value as "AUTO" | "OPEN" | "CLOSED"
                     )
                   }
-                  className="w-full h-11 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
+                  className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
                 >
                   <option value="AUTO" className="bg-[#111622]">
                     Automático pelo Calendário (Abre/Fecha nas datas)
@@ -618,8 +675,8 @@ export function MarketClient({
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
-              <div className="flex flex-wrap items-center gap-4 text-xs text-[#b6c0d4]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[#b6c0d4]">
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -652,7 +709,7 @@ export function MarketClient({
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full sm:w-auto sm:min-w-[220px] h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto sm:min-w-[220px] h-10 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
               >
                 Salvar Calendário da Janela
               </button>
@@ -661,34 +718,46 @@ export function MarketClient({
         )}
       </div>
 
-      {/* Header do Mercado com Saldo do Clube Comprador em Striker Coins (3 Blocos h-12 Idênticos) */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      {/* Header do Mercado com Saldo do Clube Comprador em Striker Coins (Compacto 2x2 no Mobile) */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-3 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
+            <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] sm:text-[11px] font-extrabold uppercase">
               ECONOMIA EM STRIKE COIN
             </span>
-            <span className="text-xs text-[#78849e]">
+            <span className="hidden sm:inline text-xs text-[#78849e]">
               Contrato Exclusivo por Clube • Multa Rescisória • Custódia Escrow
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1">
+          <h1 className="text-base sm:text-2xl font-bold text-[#f4f6fb] mt-1">
             {activeTab === "auctions"
               ? "Central de Leilões & Vitrine Bola Preta"
-              : "Central de Transferências & Multas Rescisórias"}
+              : "Central de Contratações & Multas Rescisórias"}
           </h1>
         </div>
 
         {currentClub && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 w-full xl:w-auto shrink-0">
-            <div className="h-12 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[195px]">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 w-full xl:w-auto shrink-0">
+            <div className="h-10 sm:h-12 px-2.5 sm:px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2 sm:min-w-[185px]">
               <ClubCrest clubName={currentClub.name} size="sm" />
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
+                <div className="text-[9px] sm:text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
                   {currentClub.ownerNickname}
                 </div>
-                <div className="text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
-                  {currentClub.name} ({currentClub.acronym})
+                <div className="text-[11px] sm:text-xs font-extrabold text-[#f4f6fb] truncate mt-0.5">
+                  {currentClub.name}
+                </div>
+              </div>
+            </div>
+
+            <div className="h-10 sm:h-12 px-2.5 sm:px-3.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 flex items-center gap-2 sm:min-w-[185px]">
+              <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4ade80] shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[9px] sm:text-[10px] text-[#9aa5b8] uppercase font-bold leading-none truncate">
+                  Saldo Disponível
+                </div>
+                <div className="text-xs sm:text-sm font-extrabold text-[#4ade80] tabular-nums truncate mt-0.5">
+                  {formatEscudos(currentClub.balance)}
                 </div>
               </div>
             </div>
@@ -698,27 +767,15 @@ export function MarketClient({
               allAccounts={clubs}
               onSuccessMessage={setFeedback}
               compactButton
-              buttonClassName="w-full sm:min-w-[175px] h-12 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+              buttonClassName="w-full sm:min-w-[170px] h-10 sm:h-12 px-2.5 sm:px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[11px] sm:text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
             />
-
-            <div className="h-12 px-3.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 flex items-center gap-2.5 sm:min-w-[195px]">
-              <Wallet className="w-4 h-4 text-[#4ade80] shrink-0" />
-              <div>
-                <div className="text-[10px] text-[#9aa5b8] uppercase font-bold leading-none">
-                  Saldo Disponível
-                </div>
-                <div className="text-sm font-extrabold text-[#4ade80] tabular-nums mt-0.5">
-                  {formatEscudos(currentClub.balance)}
-                </div>
-              </div>
-            </div>
 
             <Link
               href="/store/strike-coins"
-              className="w-full sm:min-w-[195px] h-12 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+              className="w-full sm:min-w-[185px] h-10 sm:h-12 px-2.5 sm:px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
             >
-              <Shield className="w-4 h-4 shrink-0" />
-              <span>+ Comprar Striker Coins</span>
+              <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="truncate">+ Striker Coins</span>
             </Link>
           </div>
         )}
@@ -727,7 +784,7 @@ export function MarketClient({
       {/* Feedback Transacional */}
       {feedback && (
         <div
-          className={`p-3.5 rounded-[4px] border text-xs font-semibold flex items-center justify-between ${
+          className={`p-3 rounded-[4px] border text-xs font-semibold flex items-center justify-between ${
             feedback.ok
               ? "bg-[#15a34a]/15 border-[#15a34a]/40 text-[#4ade80]"
               : "bg-[#dc2626]/15 border-[#dc2626]/40 text-[#f87171]"
@@ -744,23 +801,24 @@ export function MarketClient({
         </div>
       )}
 
-      {/* Navegação Principal Padronizada (Grid Uniforme h-11 em Mobile e Web) */}
+      {/* Navegação Principal Padronizada (Compacta em 3 Colunas no Mobile) */}
       <div
-        className={`grid grid-cols-1 sm:grid-cols-2 ${
+        className={`grid grid-cols-3 ${
           activeTab === "auctions" ? "xl:grid-cols-4" : "xl:grid-cols-3"
-        } gap-2.5 border-b border-[#222c40] pb-4`}
+        } gap-1.5 sm:gap-2.5 border-b border-[#222c40] pb-3 sm:pb-4`}
       >
         <button
           type="button"
           onClick={() => setActiveTab("auctions")}
-          className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+          className={`w-full h-10 sm:h-11 px-2 sm:px-4 rounded-[4px] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
             activeTab === "auctions"
               ? "bg-[#ffdc2b] text-[#0e1312]"
               : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
           }`}
         >
           <Gavel className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">1. Central de Leilões</span>
+          <span className="truncate sm:hidden">Leilões</span>
+          <span className="truncate hidden sm:inline">1. Central de Leilões</span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/20 leading-none shrink-0">
             {auctions.length}
           </span>
@@ -769,30 +827,36 @@ export function MarketClient({
         <button
           type="button"
           onClick={() => setActiveTab("buyout")}
-          className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+          className={`w-full h-10 sm:h-11 px-2 sm:px-4 rounded-[4px] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
             activeTab === "buyout"
               ? "bg-[#ffdc2b] text-[#0e1312]"
               : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
           }`}
         >
-          <Flame className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">2. Multa Rescisória & Transferência</span>
+          <UserPlus className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate sm:hidden">Contratar / Multa</span>
+          <span className="truncate hidden sm:inline">
+            2. Contratar Livres & Multas
+          </span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/20 leading-none shrink-0">
-            {contracts.length}
+            {athletes.length}
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("proposals")}
-          className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap ${
+          className={`w-full h-10 sm:h-11 px-2 sm:px-4 rounded-[4px] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
             activeTab === "proposals"
               ? "bg-[#ffdc2b] text-[#0e1312]"
               : "bg-[#111622] text-[#b6c0d4] hover:bg-[#161d2c] border border-[#222c40]"
           }`}
         >
           <ArrowLeftRight className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">3. Propostas Diretas & Trocas</span>
+          <span className="truncate sm:hidden">Trocas</span>
+          <span className="truncate hidden sm:inline">
+            3. Propostas Diretas & Trocas
+          </span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-black/20 leading-none shrink-0">
             {proposals.length}
           </span>
@@ -802,7 +866,7 @@ export function MarketClient({
           <button
             type="button"
             onClick={() => setShowScheduleForm((v) => !v)}
-            className="w-full h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#2b6cb0] text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
+            className="col-span-3 xl:col-span-1 w-full h-10 sm:h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#2b6cb0] text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
           >
             <PlusCircle className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
             <span className="truncate">
@@ -1421,92 +1485,115 @@ export function MarketClient({
       )}
 
       {/* ==================================================================== */}
-      {/* MÓDULO 2: MULTA RESCISÓRIA & TRANSFERÊNCIA IMEDIATA EM ESCUDOS        */}
+      {/* MÓDULO 2: CONTRATAÇÕES LIVRES & MULTA RESCISÓRIA EM STRIKER COINS     */}
       {/* ==================================================================== */}
       {activeTab === "buyout" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => setBuyoutSubMode("contracted")}
-              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
-                buyoutSubMode === "contracted"
-                  ? "bg-[#dc2626] text-white"
-                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">
-                Jogadores em Clubes • Pagar Multa & Transferir (
-                {contracts.length})
-              </span>
-            </button>
-
+        <div className="space-y-3 sm:space-y-4">
+          {/* Sub-Abas: Jogadores Livres para Contratar (1º) vs Jogadores em Clubes / Multa (2º) */}
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setBuyoutSubMode("free")}
-              className={`w-full h-11 px-4 rounded-[4px] text-xs font-extrabold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors ${
+              className={`w-full h-10 sm:h-11 px-2.5 sm:px-4 rounded-[4px] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-colors ${
                 buyoutSubMode === "free"
-                  ? "bg-[#15a34a] text-[#090c12]"
+                  ? "bg-[#15a34a] text-[#090c12] shadow-[0_0_15px_rgba(21,163,74,0.25)]"
                   : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
               }`}
             >
               <UserPlus className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">
+              <span className="truncate sm:hidden">
+                Livres p/ Contratar ({athletes.length - contracts.length})
+              </span>
+              <span className="truncate hidden sm:inline">
                 Jogadores Livres no Banco da Federação (
                 {athletes.length - contracts.length})
               </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setBuyoutSubMode("contracted")}
+              className={`w-full h-10 sm:h-11 px-2.5 sm:px-4 rounded-[4px] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer transition-colors ${
+                buyoutSubMode === "contracted"
+                  ? "bg-[#dc2626] text-white shadow-[0_0_15px_rgba(220,38,38,0.25)]"
+                  : "bg-[#111622] hover:bg-[#161d2c] text-[#b6c0d4] border border-[#222c40]"
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate sm:hidden">
+                Em Clubes • Multa ({contracts.length})
+              </span>
+              <span className="truncate hidden sm:inline">
+                Jogadores em Clubes • Pagar Multa & Transferir (
+                {contracts.length})
+              </span>
+            </button>
           </div>
 
-          <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <div className="relative">
-                <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
+          {/* Barra de Filtros Condensada e Responsiva */}
+          <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-3 sm:p-4 space-y-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="col-span-2 sm:col-span-1 relative">
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Buscar atleta ou clube detentor..."
+                  placeholder="Buscar jogador ou clube..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-11 pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setVisibleFreeCount(80);
+                  }}
+                  className="w-full h-9 sm:h-11 pl-8 sm:pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
                 />
               </div>
 
-              <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
-                <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
-                  Overall Mínimo:
+              <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
+                <span className="text-[10px] sm:text-[11px] text-[#78849e] font-semibold shrink-0">
+                  OVR:
                 </span>
                 <select
-                  value={minOverall}
-                  onChange={(e) => setMinOverall(Number(e.target.value))}
-                  className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
+                  value={ovrRangeFilter}
+                  onChange={(e) => {
+                    setOvrRangeFilter(e.target.value);
+                    setVisibleFreeCount(80);
+                  }}
+                  className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
                 >
-                  <option value={77} className="bg-[#111622]">
-                    77+ OVR (Todos)
+                  <option value="ALL" className="bg-[#111622]">
+                    Todos (77 a 92 OVR)
                   </option>
-                  <option value={80} className="bg-[#111622]">
-                    80+ OVR (Bola Ouro)
+                  <option value="89_PLUS" className="bg-[#111622]">
+                    89+ OVR (World Class)
                   </option>
-                  <option value={85} className="bg-[#111622]">
+                  <option value="85_PLUS" className="bg-[#111622]">
                     85+ OVR (Bola Preta)
                   </option>
-                  <option value={89} className="bg-[#111622]">
-                    89+ OVR (World Class)
+                  <option value="85_88" className="bg-[#111622]">
+                    85 a 88 OVR (Bola Preta)
+                  </option>
+                  <option value="80_84" className="bg-[#111622]">
+                    80 a 84 OVR (Bola Ouro)
+                  </option>
+                  <option value="77_79" className="bg-[#111622]">
+                    77 a 79 OVR (Bola Prata)
                   </option>
                 </select>
               </div>
 
-              <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
-                <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
-                  Posição:
+              <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
+                <span className="text-[10px] sm:text-[11px] text-[#78849e] font-semibold shrink-0">
+                  Pos:
                 </span>
                 <select
                   value={posFilter}
-                  onChange={(e) => setPosFilter(e.target.value)}
-                  className="w-full bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
+                  onChange={(e) => {
+                    setPosFilter(e.target.value);
+                    setVisibleFreeCount(80);
+                  }}
+                  className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
                 >
                   <option value="ALL" className="bg-[#111622]">
-                    Todas as Posições
+                    Todas Posições
                   </option>
                   <option value="ATA" className="bg-[#111622]">
                     ATA (Atacante)
@@ -1518,297 +1605,681 @@ export function MarketClient({
                     PD (Ponta Dir.)
                   </option>
                   <option value="MEI" className="bg-[#111622]">
-                    MEI (Meia)
+                    MEI (Meia Armador)
                   </option>
                   <option value="MC" className="bg-[#111622]">
-                    MC / VOL
+                    MC (Meia Central)
+                  </option>
+                  <option value="VOL" className="bg-[#111622]">
+                    VOL (Volante)
+                  </option>
+                  <option value="MC_VOL" className="bg-[#111622]">
+                    MC + VOL (Todos)
+                  </option>
+                  <option value="LE" className="bg-[#111622]">
+                    LE (Lateral Esq.)
+                  </option>
+                  <option value="LD" className="bg-[#111622]">
+                    LD (Lateral Dir.)
+                  </option>
+                  <option value="LATERAIS" className="bg-[#111622]">
+                    LE + LD (Laterais)
                   </option>
                   <option value="ZAG" className="bg-[#111622]">
-                    ZAG (Defensor)
+                    ZAG (Zagueiro)
                   </option>
                   <option value="GOL" className="bg-[#111622]">
                     GOL (Goleiro)
                   </option>
                 </select>
               </div>
+
+              <div className="col-span-2 sm:col-span-1 h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
+                <ArrowUpDown className="w-3.5 h-3.5 text-[#4ade80] shrink-0" />
+                <span className="text-[10px] sm:text-[11px] text-[#78849e] font-semibold shrink-0">
+                  Ordem:
+                </span>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => {
+                    setSortOrder(
+                      e.target.value as "OVR_DESC" | "OVR_ASC" | "NAME_ASC"
+                    );
+                    setVisibleFreeCount(80);
+                  }}
+                  className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#4ade80] focus:outline-none cursor-pointer"
+                >
+                  <option value="OVR_DESC" className="bg-[#111622]">
+                    Maior OVR (92 → 77)
+                  </option>
+                  <option value="OVR_ASC" className="bg-[#111622]">
+                    Menor OVR (77 → 92)
+                  </option>
+                  <option value="NAME_ASC" className="bg-[#111622]">
+                    Nome (A → Z)
+                  </option>
+                </select>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-[#ffdc2b]">
-              <ShieldAlert className="w-4 h-4 shrink-0" />
-              <span>
-                {isWindowOpen
-                  ? "Janela Aberta: Pagamento da multa transfere o jogador imediatamente para o seu elenco!"
-                  : "Janela Fechada: Jogadores estão travados em seus clubes até a próxima abertura."}
+            {/* Atalhos rápidos de Faixa de Overall (1 toque no Mobile) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              {[
+                { id: "ALL", label: "Todos (77–92)" },
+                { id: "85_PLUS", label: "⚫ Bola Preta 85+" },
+                { id: "80_84", label: "🟡 Bola Ouro 80–84" },
+                { id: "77_79", label: "⚪ Bola Prata 77–79" },
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => {
+                    setOvrRangeFilter(pill.id);
+                    setVisibleFreeCount(80);
+                  }}
+                  className={`h-7 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+                    ovrRangeFilter === pill.id
+                      ? "bg-[#ffdc2b] text-[#0e1312]"
+                      : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtro Extra quando estiver na aba "Jogadores em Clubes (Multa)" */}
+            {buyoutSubMode === "contracted" && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#1c2436]">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setClubFilterMode("ALL")}
+                    className={`h-7 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-bold cursor-pointer ${
+                      clubFilterMode === "ALL"
+                        ? "bg-[#161d2c] text-[#f4f6fb] border border-[#ffdc2b]/50"
+                        : "bg-[#090c12] text-[#78849e] border border-[#222c40]"
+                    }`}
+                  >
+                    Todos em Clubes ({contracts.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setClubFilterMode("OTHER_CLUBS")}
+                    className={`h-7 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-bold cursor-pointer ${
+                      clubFilterMode === "OTHER_CLUBS"
+                        ? "bg-[#dc2626] text-white"
+                        : "bg-[#090c12] text-[#78849e] border border-[#222c40]"
+                    }`}
+                  >
+                    Outros Clubes (
+                    {
+                      contracts.filter((c) => c.clubTeamId !== currentClub?.id)
+                        .length
+                    }
+                    )
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setClubFilterMode("MY_CLUB")}
+                    className={`h-7 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-bold cursor-pointer ${
+                      clubFilterMode === "MY_CLUB"
+                        ? "bg-[#15a34a] text-[#090c12]"
+                        : "bg-[#090c12] text-[#78849e] border border-[#222c40]"
+                    }`}
+                  >
+                    Meu Elenco ({myContracts.length})
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setBuyoutSubMode("free")}
+                  className="text-[11px] font-extrabold text-[#4ade80] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>
+                    Ir para Jogadores Livres ({athletes.length - contracts.length}{" "}
+                    disponíveis) →
+                  </span>
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#9aa5b8] pt-0.5">
+              <div className="flex items-center gap-1.5 text-[#ffdc2b]">
+                <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px]">
+                  {isWindowOpen
+                    ? buyoutSubMode === "free"
+                      ? "Janela Aberta: Contrate jogadores livres direto para o seu clube!"
+                      : "Janela Aberta: Pagamento da multa transfere o jogador imediatamente!"
+                    : "Janela Fechada: Jogadores travados até a próxima abertura."}
+                </span>
+              </div>
+              <span className="text-[11px] text-[#78849e] font-semibold">
+                {buyoutSubMode === "free"
+                  ? `Exibindo ${filteredFreeAgents.length} de ${allFilteredFreeAgents.length} livres`
+                  : `Exibindo ${filteredContracts.length} contratado(s)`}
               </span>
             </div>
           </div>
 
           {buyoutSubMode === "contracted" ? (
             <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#222c40] bg-[#0c1018] text-[11px] font-bold uppercase text-[#78849e]">
-                      <th className="py-3 px-4">Jogador</th>
-                      <th className="py-3 px-3 text-center">Posição</th>
-                      <th className="py-3 px-3 text-center">OVR</th>
-                      <th className="py-3 px-3">Clube Exclusivo Atual</th>
-                      <th className="py-3 px-3 text-right">Salário</th>
-                      <th className="py-3 px-3 text-right">Multa Rescisória</th>
-                      <th className="py-3 px-4 text-right">
-                        Transferência por Multa
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1c2436] text-xs">
-                    {filteredContracts.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="py-8 px-4 text-center text-[#9aa5b8]"
+              {filteredContracts.length === 0 ? (
+                <div className="py-8 px-4 text-center text-xs text-[#9aa5b8] space-y-3">
+                  <p>
+                    Nenhum jogador contratado encontrado com esses filtros.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setBuyoutSubMode("free")}
+                    className="h-10 px-4 rounded-[4px] bg-[#15a34a] text-[#090c12] font-extrabold text-xs inline-flex items-center gap-2 cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>
+                      Ver Jogadores Livres para Contratar (
+                      {athletes.length - contracts.length})
+                    </span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* LISTA MOBILE CONDENSADA (SEM SCROLL HORIZONTAL) */}
+                  <div className="md:hidden divide-y divide-[#1c2436]">
+                    {filteredContracts.map((c) => {
+                      const isOwnPlayer = c.clubTeamId === currentClub?.id;
+                      const canAfford =
+                        (currentClub?.balance ?? 0) >= c.buyoutClause;
+                      const canExecuteBuyout =
+                        isWindowOpen &&
+                        transferWindow.buyoutEnabled &&
+                        canAfford;
+
+                      return (
+                        <div
+                          key={c.id}
+                          className="p-2.5 flex items-center justify-between gap-2 hover:bg-[#161d2c]/60"
                         >
-                          Nenhum jogador contratado encontrado com esses
-                          filtros. Clique na aba{" "}
-                          <button
-                            type="button"
-                            onClick={() => setBuyoutSubMode("free")}
-                            className="text-[#ffdc2b] font-bold underline cursor-pointer"
-                          >
-                            Jogadores Livres no Banco da Federação
-                          </button>{" "}
-                          para contratar atletas para o seu clube!
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredContracts.map((c) => {
-                        const isOwnPlayer = c.clubTeamId === currentClub?.id;
-                        const canAfford =
-                          (currentClub?.balance ?? 0) >= c.buyoutClause;
-                        const canExecuteBuyout =
-                          isWindowOpen &&
-                          transferWindow.buyoutEnabled &&
-                          canAfford;
-
-                        return (
-                          <tr
-                            key={c.id}
-                            className="hover:bg-[#161d2c]/60 transition-colors"
-                          >
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2.5">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={c.photoUrl}
-                                  alt={c.athleteName}
-                                  className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
-                                />
-                                <div>
-                                  <div className="font-bold text-[#f4f6fb]">
-                                    {c.athleteName}
-                                  </div>
-                                  <div className="text-[11px] text-[#78849e]">
-                                    {c.age} anos • Base: {c.defaultTeam}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="py-3 px-3 text-center">
-                              <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
-                                {c.position}
-                              </span>
-                            </td>
-
-                            <td className="py-3 px-3 text-center">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className="relative shrink-0">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={c.photoUrl}
+                                alt={c.athleteName}
+                                loading="lazy"
+                                className="w-10 h-10 rounded-[5px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom pt-0.5"
+                              />
                               <span
-                                className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
+                                className={`absolute -top-1 -left-1 px-1 rounded-[2px] font-extrabold text-[10px] leading-tight ${
                                   c.overall >= 88
                                     ? "bg-[#ffdc2b] text-[#0e1312]"
-                                    : "bg-[#1d2639] text-[#f4f6fb]"
+                                    : c.overall >= 85
+                                    ? "bg-[#15a34a] text-[#090c12]"
+                                    : "bg-[#1d2639] text-[#f4f6fb] border border-[#2c3852]"
                                 }`}
                               >
                                 {c.overall}
                               </span>
-                            </td>
+                            </div>
 
-                            <td className="py-3 px-3">
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-xs text-[#f4f6fb] truncate">
+                                  {c.athleteName}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[9px] border border-[#222c40] shrink-0">
+                                  {c.position}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 text-[10px] text-[#9aa5b8] truncate mt-0.5">
                                 <ClubCrest clubName={c.clubName} size="sm" />
-                                <div>
-                                  <div className="font-semibold text-[#f4f6fb]">
-                                    {c.clubName}
-                                  </div>
-                                  <div className="text-[10px] text-[#78849e]">
-                                    Treinador: {c.ownerNickname}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td className="py-3 px-3 text-right tabular-nums text-[#b6c0d4]">
-                              {formatEscudos(c.salary)}
-                            </td>
-
-                            <td className="py-3 px-3 text-right">
-                              <span className="font-extrabold text-[#ffdc2b] tabular-nums">
-                                {formatEscudos(c.buyoutClause)}
-                              </span>
-                            </td>
-
-                            <td className="py-3 px-4 text-right">
-                              {isOwnPlayer ? (
-                                <span className="inline-flex items-center justify-center min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] text-[#4ade80] text-xs font-bold">
-                                  Atleta do Seu Clube
+                                <span className="font-semibold text-[#f4f6fb] truncate">
+                                  {c.clubName}
                                 </span>
-                              ) : !isWindowOpen ||
-                                !transferWindow.buyoutEnabled ? (
-                                <span className="inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
-                                  <Lock className="w-3.5 h-3.5 text-[#f87171]" />
-                                  <span>Travado (Janela Fechada)</span>
+                                <span className="text-[#78849e] truncate">
+                                  ({c.ownerNickname})
                                 </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  disabled={isPending || !canExecuteBuyout}
-                                  onClick={() => handlePayBuyout(c)}
-                                  className={`inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
-                                    canAfford
-                                      ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
-                                      : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
-                                  }`}
-                                >
-                                  <Flame className="w-3.5 h-3.5 shrink-0" />
-                                  <span>
-                                    {canAfford
-                                      ? "Pagar Multa & Transferir"
-                                      : "Striker Coins Insuficiente"}
-                                  </span>
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#222c40] bg-[#0c1018] text-[11px] font-bold uppercase text-[#78849e]">
-                      <th className="py-3 px-4">Jogador Livre</th>
-                      <th className="py-3 px-3 text-center">Posição</th>
-                      <th className="py-3 px-3 text-center">OVR</th>
-                      <th className="py-3 px-3">Clube de Origem</th>
-                      <th className="py-3 px-3 text-right">Custo do Passe</th>
-                      <th className="py-3 px-4 text-right">
-                        Contratação Direta
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1c2436] text-xs">
-                    {filteredFreeAgents.map((a) => {
-                      const { signingFee: cost } = getFreeAgentSigningCost(
-                        a.overall
-                      );
-                      const canAfford = (currentClub?.balance ?? 0) >= cost;
-
-                      return (
-                        <tr
-                          key={a.id}
-                          className="hover:bg-[#161d2c]/60 transition-colors"
-                        >
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2.5">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={a.photoUrl}
-                                alt={a.name}
-                                className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
-                              />
-                              <div>
-                                <div className="font-bold text-[#f4f6fb]">
-                                  {a.name}
-                                </div>
-                                <div className="text-[11px] text-[#78849e]">
-                                  {a.age} anos • Livre no Banco da Federação
-                                </div>
                               </div>
                             </div>
-                          </td>
+                          </div>
 
-                          <td className="py-3 px-3 text-center">
-                            <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
-                              {a.position}
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-3 text-center">
-                            <span
-                              className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
-                                a.overall >= 88
-                                  ? "bg-[#ffdc2b] text-[#0e1312]"
-                                  : "bg-[#1d2639] text-[#f4f6fb]"
-                              }`}
-                            >
-                              {a.overall}
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-3">
-                            <div className="flex items-center gap-2">
-                              <ClubCrest clubName={a.defaultTeam} size="sm" />
-                              <span className="font-semibold text-[#f4f6fb]">
-                                {a.defaultTeam}
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <div className="text-right leading-none">
+                              <span className="text-[11px] font-extrabold text-[#ffdc2b] tabular-nums">
+                                {formatEscudos(c.buyoutClause, false)} Coins
+                              </span>
+                              <span className="block text-[9px] text-[#78849e] tabular-nums">
+                                Sal: {formatEscudos(c.salary, false)}
                               </span>
                             </div>
-                          </td>
 
-                          <td className="py-3 px-3 text-right">
-                            <span className="font-extrabold text-[#ffdc2b] tabular-nums">
-                              {formatEscudos(cost)}
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-4 text-right">
-                            {!isWindowOpen ||
-                            !transferWindow.freeAgencyEnabled ? (
-                              <span className="inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
-                                <Lock className="w-3.5 h-3.5 text-[#f87171]" />
-                                <span>Janela Fechada</span>
+                            {isOwnPlayer ? (
+                              <span className="inline-flex items-center justify-center h-7 px-2.5 rounded-[4px] bg-[#15a34a]/15 border border-[#15a34a]/40 text-[#4ade80] text-[10px] font-bold whitespace-nowrap">
+                                Seu Clube
+                              </span>
+                            ) : !isWindowOpen ||
+                              !transferWindow.buyoutEnabled ? (
+                              <span className="inline-flex items-center justify-center gap-1 h-7 px-2 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-[10px] font-bold whitespace-nowrap">
+                                <Lock className="w-3 h-3 text-[#f87171]" />
+                                <span>Travado</span>
                               </span>
                             ) : (
                               <button
                                 type="button"
-                                disabled={
-                                  isPending || !currentClub || !canAfford
-                                }
-                                onClick={() => handleSignFreeAgent(a)}
-                                className={`inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
+                                disabled={isPending || !canExecuteBuyout}
+                                onClick={() => handlePayBuyout(c)}
+                                className={`inline-flex items-center justify-center gap-1 h-7 px-2.5 rounded-[4px] text-[10px] font-extrabold transition-colors cursor-pointer whitespace-nowrap ${
                                   canAfford
-                                    ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
+                                    ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
                                     : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
                                 }`}
                               >
-                                <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                                <Flame className="w-3 h-3 shrink-0" />
                                 <span>
-                                  {canAfford
-                                    ? "Contratar Agora"
-                                    : "Striker Coins Insuficiente"}
+                                  {canAfford ? "Pagar Multa" : "Sem Saldo"}
                                 </span>
                               </button>
                             )}
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* TABELA DESKTOP COMPLETA */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#222c40] bg-[#0c1018] text-[11px] font-bold uppercase text-[#78849e]">
+                          <th className="py-3 px-4">Jogador</th>
+                          <th className="py-3 px-3 text-center">Posição</th>
+                          <th className="py-3 px-3 text-center">OVR</th>
+                          <th className="py-3 px-3">Clube Exclusivo Atual</th>
+                          <th className="py-3 px-3 text-right">Salário</th>
+                          <th className="py-3 px-3 text-right">
+                            Multa Rescisória
+                          </th>
+                          <th className="py-3 px-4 text-right">
+                            Transferência por Multa
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1c2436] text-xs">
+                        {filteredContracts.map((c) => {
+                          const isOwnPlayer = c.clubTeamId === currentClub?.id;
+                          const canAfford =
+                            (currentClub?.balance ?? 0) >= c.buyoutClause;
+                          const canExecuteBuyout =
+                            isWindowOpen &&
+                            transferWindow.buyoutEnabled &&
+                            canAfford;
+
+                          return (
+                            <tr
+                              key={c.id}
+                              className="hover:bg-[#161d2c]/60 transition-colors"
+                            >
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2.5">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={c.photoUrl}
+                                    alt={c.athleteName}
+                                    loading="lazy"
+                                    className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
+                                  />
+                                  <div>
+                                    <div className="font-bold text-[#f4f6fb]">
+                                      {c.athleteName}
+                                    </div>
+                                    <div className="text-[11px] text-[#78849e]">
+                                      {c.age} anos • Base: {c.defaultTeam}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
+                                  {c.position}
+                                </span>
+                              </td>
+
+                              <td className="py-3 px-3 text-center">
+                                <span
+                                  className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
+                                    c.overall >= 88
+                                      ? "bg-[#ffdc2b] text-[#0e1312]"
+                                      : "bg-[#1d2639] text-[#f4f6fb]"
+                                  }`}
+                                >
+                                  {c.overall}
+                                </span>
+                              </td>
+
+                              <td className="py-3 px-3">
+                                <div className="flex items-center gap-2">
+                                  <ClubCrest clubName={c.clubName} size="sm" />
+                                  <div>
+                                    <div className="font-semibold text-[#f4f6fb]">
+                                      {c.clubName}
+                                    </div>
+                                    <div className="text-[10px] text-[#78849e]">
+                                      Treinador: {c.ownerNickname}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3 px-3 text-right tabular-nums text-[#b6c0d4]">
+                                {formatEscudos(c.salary)}
+                              </td>
+
+                              <td className="py-3 px-3 text-right">
+                                <span className="font-extrabold text-[#ffdc2b] tabular-nums">
+                                  {formatEscudos(c.buyoutClause)}
+                                </span>
+                              </td>
+
+                              <td className="py-3 px-4 text-right">
+                                {isOwnPlayer ? (
+                                  <span className="inline-flex items-center justify-center min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] text-[#4ade80] text-xs font-bold">
+                                    Atleta do Seu Clube
+                                  </span>
+                                ) : !isWindowOpen ||
+                                  !transferWindow.buyoutEnabled ? (
+                                  <span className="inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
+                                    <Lock className="w-3.5 h-3.5 text-[#f87171]" />
+                                    <span>Travado (Janela Fechada)</span>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isPending || !canExecuteBuyout}
+                                    onClick={() => handlePayBuyout(c)}
+                                    className={`inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
+                                      canAfford
+                                        ? "bg-[#dc2626] hover:bg-[#b91c1c] text-white"
+                                        : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
+                                    }`}
+                                  >
+                                    <Flame className="w-3.5 h-3.5 shrink-0" />
+                                    <span>
+                                      {canAfford
+                                        ? "Pagar Multa & Transferir"
+                                        : "Striker Coins Insuficiente"}
+                                    </span>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="bg-[#111622] border border-[#222c40] rounded-[4px] overflow-hidden">
+                {filteredFreeAgents.length === 0 ? (
+                  <div className="py-8 px-4 text-center text-xs text-[#9aa5b8]">
+                    Nenhum jogador livre encontrado com esses filtros. Tente
+                    limpar a busca ou selecionar &quot;Todos (77 a 92 OVR)&quot;.
+                  </div>
+                ) : (
+                  <>
+                    {/* LISTA MOBILE CONDENSADA DE JOGADORES LIVRES (SEM SCROLL HORIZONTAL) */}
+                    <div className="md:hidden divide-y divide-[#1c2436]">
+                      {filteredFreeAgents.map((a) => {
+                        const { signingFee: cost, salary } =
+                          getFreeAgentSigningCost(a.overall);
+                        const canAfford = (currentClub?.balance ?? 0) >= cost;
+
+                        return (
+                          <div
+                            key={a.id}
+                            className="p-2.5 flex items-center justify-between gap-2 hover:bg-[#161d2c]/60"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="relative shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={a.photoUrl}
+                                  alt={a.name}
+                                  loading="lazy"
+                                  className="w-10 h-10 rounded-[5px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom pt-0.5"
+                                />
+                                <span
+                                  className={`absolute -top-1 -left-1 px-1 rounded-[2px] font-extrabold text-[10px] leading-tight ${
+                                    a.overall >= 88
+                                      ? "bg-[#ffdc2b] text-[#0e1312]"
+                                      : a.overall >= 85
+                                      ? "bg-[#15a34a] text-[#090c12]"
+                                      : "bg-[#1d2639] text-[#f4f6fb] border border-[#2c3852]"
+                                  }`}
+                                >
+                                  {a.overall}
+                                </span>
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-xs text-[#f4f6fb] truncate">
+                                    {a.name}
+                                  </span>
+                                  <span className="px-1.5 py-0.2 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[9px] border border-[#222c40] shrink-0">
+                                    {a.position}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] text-[#78849e] truncate mt-0.5">
+                                  <ClubCrest clubName={a.defaultTeam} size="sm" />
+                                  <span className="text-[#b6c0d4] truncate">
+                                    {a.defaultTeam}
+                                  </span>
+                                  <span>• {a.age}a</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <div className="text-right leading-none">
+                                <span className="text-[11px] font-extrabold text-[#ffdc2b] tabular-nums">
+                                  {formatEscudos(cost, false)} Coins
+                                </span>
+                                <span className="block text-[9px] text-[#78849e] tabular-nums">
+                                  Sal: {formatEscudos(salary, false)}
+                                </span>
+                              </div>
+
+                              {!isWindowOpen ||
+                              !transferWindow.freeAgencyEnabled ? (
+                                <span className="inline-flex items-center justify-center gap-1 h-7 px-2 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-[10px] font-bold whitespace-nowrap">
+                                  <Lock className="w-3 h-3 text-[#f87171]" />
+                                  <span>Fechada</span>
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    isPending || !currentClub || !canAfford
+                                  }
+                                  onClick={() => handleSignFreeAgent(a)}
+                                  className={`inline-flex items-center justify-center gap-1 h-7 px-2.5 rounded-[4px] text-[10px] font-extrabold transition-colors cursor-pointer whitespace-nowrap ${
+                                    canAfford
+                                      ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
+                                      : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
+                                  }`}
+                                >
+                                  <UserPlus className="w-3 h-3 shrink-0" />
+                                  <span>
+                                    {canAfford ? "Contratar" : "Sem Saldo"}
+                                  </span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* TABELA DESKTOP COMPLETA DE JOGADORES LIVRES */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-[#222c40] bg-[#0c1018] text-[11px] font-bold uppercase text-[#78849e]">
+                            <th className="py-3 px-4">Jogador Livre</th>
+                            <th className="py-3 px-3 text-center">Posição</th>
+                            <th className="py-3 px-3 text-center">OVR</th>
+                            <th className="py-3 px-3">Clube de Origem</th>
+                            <th className="py-3 px-3 text-right">
+                              Custo do Passe
+                            </th>
+                            <th className="py-3 px-4 text-right">
+                              Contratação Direta
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#1c2436] text-xs">
+                          {filteredFreeAgents.map((a) => {
+                            const { signingFee: cost } =
+                              getFreeAgentSigningCost(a.overall);
+                            const canAfford =
+                              (currentClub?.balance ?? 0) >= cost;
+
+                            return (
+                              <tr
+                                key={a.id}
+                                className="hover:bg-[#161d2c]/60 transition-colors"
+                              >
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center gap-2.5">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={a.photoUrl}
+                                      alt={a.name}
+                                      loading="lazy"
+                                      className="w-11 h-11 rounded-[6px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom shrink-0 pt-0.5"
+                                    />
+                                    <div>
+                                      <div className="font-bold text-[#f4f6fb]">
+                                        {a.name}
+                                      </div>
+                                      <div className="text-[11px] text-[#78849e]">
+                                        {a.age} anos • Livre no Banco da
+                                        Federação
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3 text-center">
+                                  <span className="px-2 py-0.5 rounded-[2px] bg-[#161d2c] text-[#60a5fa] font-bold text-[11px] border border-[#222c40]">
+                                    {a.position}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-3 text-center">
+                                  <span
+                                    className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
+                                      a.overall >= 88
+                                        ? "bg-[#ffdc2b] text-[#0e1312]"
+                                        : "bg-[#1d2639] text-[#f4f6fb]"
+                                    }`}
+                                  >
+                                    {a.overall}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2">
+                                    <ClubCrest
+                                      clubName={a.defaultTeam}
+                                      size="sm"
+                                    />
+                                    <span className="font-semibold text-[#f4f6fb]">
+                                      {a.defaultTeam}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3 text-right">
+                                  <span className="font-extrabold text-[#ffdc2b] tabular-nums">
+                                    {formatEscudos(cost)}
+                                  </span>
+                                </td>
+
+                                <td className="py-3 px-4 text-right">
+                                  {!isWindowOpen ||
+                                  !transferWindow.freeAgencyEnabled ? (
+                                    <span className="inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3 rounded-[4px] bg-[#161d2c] border border-[#222c40] text-[#9aa5b8] text-xs font-bold">
+                                      <Lock className="w-3.5 h-3.5 text-[#f87171]" />
+                                      <span>Janela Fechada</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        isPending || !currentClub || !canAfford
+                                      }
+                                      onClick={() => handleSignFreeAgent(a)}
+                                      className={`inline-flex items-center justify-center gap-1.5 min-w-[195px] h-10 px-3.5 rounded-[4px] text-xs font-extrabold transition-colors cursor-pointer ${
+                                        canAfford
+                                          ? "bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312]"
+                                          : "bg-[#1d2639] text-[#78849e] opacity-60 cursor-not-allowed"
+                                      }`}
+                                    >
+                                      <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                                      <span>
+                                        {canAfford
+                                          ? "Contratar Agora"
+                                          : "Striker Coins Insuficiente"}
+                                      </span>
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* Paginação / Carregar Mais Jogadores Livres */}
+              {visibleFreeCount < allFilteredFreeAgents.length && (
+                <div className="grid grid-cols-2 gap-2.5 max-w-xl mx-auto pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleFreeCount((prev) => prev + 80)}
+                    className="w-full h-10 sm:h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <ChevronDown className="w-4 h-4 shrink-0" />
+                    <span className="truncate">
+                      Carregar +80 (Restam{" "}
+                      {allFilteredFreeAgents.length - visibleFreeCount})
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisibleFreeCount(allFilteredFreeAgents.length)
+                    }
+                    className="w-full h-10 sm:h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[#f4f6fb] font-extrabold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span className="truncate">
+                      Mostrar Todos ({allFilteredFreeAgents.length})
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -193,38 +193,38 @@ export function PlayersCatalogClient({
   const isWindowOpen = transferWindow.isOpenNow;
 
   return (
-    <div className="space-y-6">
-      {/* Header do Catálogo Global + Status da Janela (Botões Padronizados h-11) */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <div className="space-y-3.5 sm:space-y-6">
+      {/* Header do Catálogo Global + Status da Janela (Condensado no Mobile) */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-3 sm:p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[11px] font-extrabold uppercase">
-              DATABASE GLOBAL DE ATLETAS ({athletes.length})
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="px-2 py-0.5 rounded-[2px] bg-[#ffdc2b] text-[#0e1312] text-[10px] sm:text-[11px] font-extrabold uppercase">
+              DATABASE GLOBAL ({athletes.length})
             </span>
             {isWindowOpen ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#15a34a]/20 border border-[#15a34a]/50 text-[11px] font-extrabold text-[#4ade80] uppercase">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#15a34a]/20 border border-[#15a34a]/50 text-[10px] sm:text-[11px] font-extrabold text-[#4ade80] uppercase">
                 <Unlock className="w-3 h-3" />
-                JANELA DE TRANSFERÊNCIAS ABERTA
+                JANELA ABERTA
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] bg-[#dc2626]/20 border border-[#dc2626]/50 text-[11px] font-extrabold text-[#f87171] uppercase">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#dc2626]/20 border border-[#dc2626]/50 text-[10px] sm:text-[11px] font-extrabold text-[#f87171] uppercase">
                 <Lock className="w-3 h-3" />
-                JANELA FECHADA • ELENCOS TRAVADOS
+                JANELA FECHADA
               </span>
             )}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[11px] font-bold text-[#f4f6fb]">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#ffdc2b] inline-block" />
-              {blackBallCount} Bola Preta
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[10px] sm:text-[11px] font-bold text-[#f4f6fb]">
+              <span className="w-2 h-2 rounded-full bg-[#111] border border-[#ffdc2b] inline-block" />
+              {blackBallCount} Preta
             </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[11px] font-bold text-[#ffdc2b]">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#facc15] inline-block" />
-              {goldBallCount} Bola Ouro
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#090c12] border border-[#2c3852] text-[10px] sm:text-[11px] font-bold text-[#ffdc2b]">
+              <span className="w-2 h-2 rounded-full bg-[#facc15] inline-block" />
+              {goldBallCount} Ouro
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#f4f6fb] mt-1.5">
+          <h1 className="text-base sm:text-2xl font-bold text-[#f4f6fb] mt-1">
             Catálogo Oficial de Jogadores & Contratações
           </h1>
-          <p className="text-xs text-[#78849e] mt-0.5">
+          <p className="hidden sm:block text-xs text-[#78849e] mt-0.5">
             Regra Master Liga: Cada atleta possui vínculo exclusivo com apenas 1
             clube. Quando a Janela de Transferências está aberta, você pode
             contratar jogadores livres ou pagar a Multa Rescisória para
@@ -233,20 +233,20 @@ export function PlayersCatalogClient({
         </div>
 
         <div
-          className={`grid grid-cols-1 ${
-            currentClub ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2"
-          } gap-2.5 w-full xl:w-auto shrink-0`}
+          className={`grid grid-cols-2 ${
+            currentClub ? "xl:grid-cols-4" : "sm:grid-cols-2"
+          } gap-2 w-full xl:w-auto shrink-0`}
         >
           {currentClub && (
             <>
-              <div className="h-11 px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2.5 sm:min-w-[200px]">
+              <div className="h-10 sm:h-11 px-2.5 sm:px-3.5 rounded-[4px] bg-[#090c12] border border-[#222c40] flex items-center gap-2 sm:min-w-[200px]">
                 <ClubCrest clubName={currentClub.name} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
-                    {currentClub.ownerNickname} • {formatEscudos(currentClub.balance)}
+                  <div className="text-[9px] sm:text-[10px] text-[#78849e] uppercase font-bold leading-none truncate">
+                    {currentClub.ownerNickname} • {formatEscudos(currentClub.balance, false)} Coins
                   </div>
-                  <div className="text-xs font-extrabold text-[#ffdc2b] truncate mt-0.5">
-                    {currentClub.name} ({currentClub.acronym})
+                  <div className="text-[11px] sm:text-xs font-extrabold text-[#ffdc2b] truncate mt-0.5">
+                    {currentClub.name}
                   </div>
                 </div>
               </div>
@@ -256,25 +256,25 @@ export function PlayersCatalogClient({
                 allAccounts={clubs}
                 onSuccessMessage={setFeedback}
                 compactButton
-                buttonClassName="w-full sm:min-w-[170px] h-11 px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer whitespace-nowrap"
+                buttonClassName="w-full sm:min-w-[170px] h-10 sm:h-11 px-2.5 sm:px-4 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[11px] sm:text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               />
             </>
           )}
 
           <Link
             href="/transfers"
-            className="w-full sm:min-w-[200px] h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+            className="w-full sm:min-w-[190px] h-10 sm:h-11 px-2.5 sm:px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-[11px] sm:text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
           >
             <Calendar className="w-3.5 h-3.5 shrink-0" />
-            <span>Janela & Multas</span>
+            <span className="truncate">Janela & Multas</span>
           </Link>
 
           <Link
             href="/auctions"
-            className="w-full sm:min-w-[200px] h-11 px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-2 transition-colors whitespace-nowrap"
+            className="w-full sm:min-w-[190px] h-10 sm:h-11 px-2.5 sm:px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[11px] sm:text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
           >
             <Gavel className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-            <span>Central de Leilões</span>
+            <span className="truncate">Central de Leilões</span>
           </Link>
         </div>
       </div>
@@ -282,7 +282,7 @@ export function PlayersCatalogClient({
       {/* Feedback de Contratação / Pagamento de Multa */}
       {feedback && (
         <div
-          className={`p-3.5 rounded-[4px] border text-xs font-semibold flex items-center justify-between ${
+          className={`p-3 rounded-[4px] border text-xs font-semibold flex items-center justify-between ${
             feedback.ok
               ? "bg-[#15a34a]/15 border-[#15a34a]/40 text-[#4ade80]"
               : "bg-[#dc2626]/15 border-[#dc2626]/40 text-[#f87171]"
@@ -299,29 +299,26 @@ export function PlayersCatalogClient({
         </div>
       )}
 
-      {/* Barra de Filtros Dinâmicos e Seletores de Ordenação (Todos h-11 / h-10 Uniformes) */}
-      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-4 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      {/* Barra de Filtros Dinâmicos e Seletores de Ordenação Condensada */}
+      <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-3 sm:p-4 space-y-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           {/* Busca Textual */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="col-span-2 lg:col-span-1 relative">
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#78849e] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar jogador ou clube (ex: Mbappé, Real Madrid)..."
+              placeholder="Buscar jogador ou clube..."
               value={searchQuery}
               onChange={(e) =>
                 handleFilterChange(setSearchQuery, e.target.value)
               }
-              className="w-full h-11 pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
+              className="w-full h-9 sm:h-11 pl-8 sm:pl-9 pr-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:border-[#ffdc2b] focus:outline-none"
             />
           </div>
 
           {/* Filtro por Categoria */}
-          <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
+          <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
             <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-            <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
-              Categoria:
-            </span>
             <select
               value={ballFilter}
               onChange={(e) =>
@@ -334,51 +331,48 @@ export function PlayersCatalogClient({
                     | "BOLA_PRATA"
                 )
               }
-              className="w-full bg-transparent text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
             >
               <option value="ALL" className="bg-[#111622]">
-                Todas as Categorias ({athletes.length})
+                Todas Categorias ({athletes.length})
               </option>
               <option value="BOLA_PRETA" className="bg-[#111622]">
-                ⚫ Bola Preta — Elite 85+ ({blackBallCount})
+                ⚫ Bola Preta 85+ ({blackBallCount})
               </option>
               <option value="BOLA_OURO" className="bg-[#111622]">
-                🟡 Bola Ouro — 80 a 84 OVR ({goldBallCount})
+                🟡 Bola Ouro 80–84 ({goldBallCount})
               </option>
               <option value="BOLA_PRATA" className="bg-[#111622]">
-                ⚪ Bola Prata — 77 a 79 OVR ({silverBallCount})
+                ⚪ Bola Prata 77–79 ({silverBallCount})
               </option>
             </select>
           </div>
 
           {/* Filtro por Posição */}
-          <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
+          <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#60a5fa] shrink-0" />
-            <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
-              Posição:
-            </span>
             <select
               value={posFilter}
               onChange={(e) => handleFilterChange(setPosFilter, e.target.value)}
-              className="w-full bg-transparent text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#f4f6fb] focus:outline-none cursor-pointer"
             >
               <option value="ALL" className="bg-[#111622]">
-                Todas as Posições
+                Todas Posições
               </option>
               <option value="ATA" className="bg-[#111622]">
-                ATA — Centroavante / Atacante
+                ATA — Atacante
               </option>
               <option value="PE" className="bg-[#111622]">
-                PE — Ponta / Meia Esquerda
+                PE — Ponta Esq.
               </option>
               <option value="PD" className="bg-[#111622]">
-                PD — Ponta / Meia Direita
+                PD — Ponta Dir.
               </option>
               <option value="MEI" className="bg-[#111622]">
                 MEI — Meia Armador
               </option>
               <option value="MC" className="bg-[#111622]">
-                MC — Meio-Campista Central
+                MC — Meia Central
               </option>
               <option value="VOL" className="bg-[#111622]">
                 VOL — Volante
@@ -387,10 +381,10 @@ export function PlayersCatalogClient({
                 ZAG — Zagueiro
               </option>
               <option value="LE" className="bg-[#111622]">
-                LE — Lateral Esquerdo
+                LE — Lateral Esq.
               </option>
               <option value="LD" className="bg-[#111622]">
-                LD — Lateral Direito
+                LD — Lateral Dir.
               </option>
               <option value="GOL" className="bg-[#111622]">
                 GOL — Goleiro
@@ -399,23 +393,20 @@ export function PlayersCatalogClient({
           </div>
 
           {/* Seletor de Ordenação */}
-          <div className="h-11 flex items-center gap-2 bg-[#090c12] border border-[#222c40] rounded-[4px] px-3.5">
+          <div className="col-span-2 lg:col-span-1 h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
             <ArrowUpDown className="w-3.5 h-3.5 text-[#4ade80] shrink-0" />
-            <span className="text-[11px] text-[#78849e] font-semibold shrink-0">
-              Ordenar:
-            </span>
             <select
               value={sortMode}
               onChange={(e) =>
                 handleFilterChange(setSortMode, e.target.value as SortMode)
               }
-              className="w-full bg-transparent text-xs font-bold text-[#4ade80] focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#4ade80] focus:outline-none cursor-pointer"
             >
               <option value="OVERALL_DESC" className="bg-[#111622]">
-                Overall: Maior ao Menor (91 → 77)
+                Overall: Maior → Menor (92 → 77)
               </option>
               <option value="OVERALL_ASC" className="bg-[#111622]">
-                Overall: Menor ao Maior (77 → 91)
+                Overall: Menor → Maior (77 → 92)
               </option>
               <option value="NAME_ASC" className="bg-[#111622]">
                 Ordem Alfabética: A → Z
@@ -427,15 +418,15 @@ export function PlayersCatalogClient({
           </div>
         </div>
 
-        {/* Botões Rápidos de Filtro Padronizados em Grid 6 Colunas (Mesmo Tamanho h-10) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
+        {/* Botões Rápidos de Filtro Padronizados em Grid 3/6 Colunas */}
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2 pt-0.5">
           <button
             type="button"
             onClick={() => {
               handleFilterChange(setBallFilter, "ALL");
               handleFilterChange(setAvailabilityFilter, "ALL");
             }}
-            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "ALL" && availabilityFilter === "ALL"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
@@ -447,40 +438,40 @@ export function PlayersCatalogClient({
           <button
             type="button"
             onClick={() => handleFilterChange(setBallFilter, "BOLA_PRETA")}
-            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "BOLA_PRETA"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#f4f6fb] border border-[#2c3852]"
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-black border border-[#ffdc2b] shrink-0" />
-            <span className="truncate">Bola Preta ({blackBallCount})</span>
+            <span className="w-2 h-2 rounded-full bg-black border border-[#ffdc2b] shrink-0" />
+            <span className="truncate">Preta ({blackBallCount})</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleFilterChange(setBallFilter, "BOLA_OURO")}
-            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "BOLA_OURO"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#facc15] shrink-0" />
-            <span className="truncate">Bola Ouro ({goldBallCount})</span>
+            <span className="w-2 h-2 rounded-full bg-[#facc15] shrink-0" />
+            <span className="truncate">Ouro ({goldBallCount})</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleFilterChange(setBallFilter, "BOLA_PRATA")}
-            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "BOLA_PRATA"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1] shrink-0" />
-            <span className="truncate">Bola Prata ({silverBallCount})</span>
+            <span className="w-2 h-2 rounded-full bg-[#cbd5e1] shrink-0" />
+            <span className="truncate">Prata ({silverBallCount})</span>
           </button>
 
           <button
@@ -488,7 +479,7 @@ export function PlayersCatalogClient({
             onClick={() =>
               handleFilterChange(setAvailabilityFilter, "FREE_AGENTS")
             }
-            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               availabilityFilter === "FREE_AGENTS"
                 ? "bg-[#15a34a] text-[#090c12]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#4ade80] border border-[#15a34a]/40"
@@ -504,7 +495,7 @@ export function PlayersCatalogClient({
             onClick={() =>
               handleFilterChange(setAvailabilityFilter, "CONTRACTED")
             }
-            className={`w-full h-10 px-3 rounded-[4px] text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               availabilityFilter === "CONTRACTED"
                 ? "bg-[#dc2626] text-white"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#f87171] border border-[#dc2626]/40"
@@ -514,7 +505,7 @@ export function PlayersCatalogClient({
           </button>
         </div>
 
-        <div className="flex items-center justify-end text-[11px] text-[#78849e] pt-1 gap-1.5">
+        <div className="flex items-center justify-end text-[11px] text-[#78849e] pt-0.5 gap-1.5">
           <Users className="w-3.5 h-3.5 text-[#ffdc2b]" />
           <span>
             Exibindo{" "}
@@ -530,8 +521,8 @@ export function PlayersCatalogClient({
         </div>
       </div>
 
-      {/* Grid de Cards Visuais dos Jogadores */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Grid de Cards Visuais dos Jogadores (Mais Compacto no Mobile) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
         {displayedAthletes.map((athlete) => {
           const contract = contractByAthleteId.get(athlete.id);
           const auction = auctionByAthleteId.get(athlete.id);
@@ -559,7 +550,7 @@ export function PlayersCatalogClient({
               }`}
             >
               {/* Topo Visual do Card */}
-              <div className="relative p-4 bg-gradient-to-b from-[#182236] to-[#111622] border-b border-[#1c2436] flex items-center gap-3.5">
+              <div className="relative p-3 sm:p-4 bg-gradient-to-b from-[#182236] to-[#111622] border-b border-[#1c2436] flex items-center gap-3">
                 {/* Foto Oficial Recortada */}
                 <div className="relative shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -567,10 +558,10 @@ export function PlayersCatalogClient({
                     src={athlete.photoUrl}
                     alt={athlete.name}
                     loading="lazy"
-                    className="w-20 h-20 rounded-[6px] bg-gradient-to-b from-[#0f172a] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom pt-1"
+                    className="w-14 h-14 sm:w-20 sm:h-20 rounded-[6px] bg-gradient-to-b from-[#0f172a] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom pt-1"
                   />
                   <span
-                    className={`absolute -top-1.5 -left-1.5 px-1.5 py-0.5 rounded-[3px] text-xs font-extrabold tabular-nums shadow ${
+                    className={`absolute -top-1.5 -left-1.5 px-1.5 py-0.5 rounded-[3px] text-[11px] sm:text-xs font-extrabold tabular-nums shadow ${
                       athlete.overall >= 88
                         ? "bg-[#ffdc2b] text-[#0e1312]"
                         : athlete.overall >= 84
@@ -613,7 +604,7 @@ export function PlayersCatalogClient({
                     </span>
                   </div>
 
-                  <h3 className="text-base font-extrabold text-[#f4f6fb] truncate mt-1.5">
+                  <h3 className="text-sm sm:text-base font-extrabold text-[#f4f6fb] truncate mt-1">
                     {athlete.name}
                   </h3>
 
@@ -627,8 +618,8 @@ export function PlayersCatalogClient({
                 </div>
               </div>
 
-              {/* Status Contratual Exclusivo / Multa Rescisória / Contratação (Botões h-10 Idênticos) */}
-              <div className="p-3.5 space-y-2.5 text-xs bg-[#111622]">
+              {/* Status Contratual Exclusivo / Multa Rescisória / Contratação */}
+              <div className="p-2.5 sm:p-3.5 space-y-2 text-xs bg-[#111622]">
                 {auction ? (
                   <div className="p-2.5 rounded-[4px] bg-[#ffdc2b]/10 border border-[#ffdc2b]/40 space-y-2">
                     <div className="flex items-center justify-between">
