@@ -22,6 +22,8 @@ export const submitMatchScoreSchema = z.object({
     .optional()
     .or(z.literal("")),
   requestWalkover: z.boolean().optional().default(false),
+  homePenalties: z.coerce.number().int().min(0).max(30).optional(),
+  awayPenalties: z.coerce.number().int().min(0).max(30).optional(),
 });
 
 export type SubmitMatchScoreInput = z.infer<typeof submitMatchScoreSchema>;
@@ -56,6 +58,11 @@ export const createTournamentSchema = z.object({
   rulesMarkdown: z
     .string()
     .min(20, "Defina as regras básicas do torneio (mínimo 20 caracteres)."),
+  legsPerRound: z.coerce.number().int().min(1).max(2).optional().default(1),
+  finalTwoLegs: z.boolean().optional().default(false),
+  thirdPlaceMatch: z.boolean().optional().default(false),
+  groupTurns: z.coerce.number().int().min(1).max(2).optional().default(1),
+  qualifiedPerGroup: z.coerce.number().int().min(1).max(8).optional().default(2),
 });
 
 export type CreateTournamentInput = z.infer<typeof createTournamentSchema>;

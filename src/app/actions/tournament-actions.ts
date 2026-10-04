@@ -9,6 +9,7 @@ import {
   resolveMatchDisputeSchema,
   createTournamentSchema,
 } from "@/lib/validations/tournament";
+import { advanceKnockoutTie } from "@/lib/tournament-advance";
 
 /**
  * Recalcula automaticamente a tabela de classificação (standings) do torneio
@@ -125,6 +126,8 @@ export async function submitMatchScoreAction(rawInput: {
   proofUrl: string;
   notes?: string;
   requestWalkover?: boolean;
+  homePenalties?: number;
+  awayPenalties?: number;
   actorUserId?: string;
 }) {
   const parsed = submitMatchScoreSchema.safeParse(rawInput);
@@ -143,6 +146,8 @@ export async function submitMatchScoreAction(rawInput: {
     proofUrl,
     notes,
     requestWalkover,
+    homePenalties,
+    awayPenalties,
   } = parsed.data;
 
   try {
@@ -189,6 +194,12 @@ export async function submitMatchScoreAction(rawInput: {
         ? existingMatch.home_participant_id
         : awayScore > homeScore
         ? existingMatch.away_participant_id
+        : homePenalties !== undefined &&
+          awayPenalties !== undefined &&
+          homePenalties !== awayPenalties
+        ? homePenalties > awayPenalties
+          ? existingMatch.home_participant_id
+          : existingMatch.away_participant_id
         : null;
 
     // Super-Admin SPOOKY tem aprovação imediata se desejar
@@ -207,6 +218,8 @@ export async function submitMatchScoreAction(rawInput: {
       .update({
         home_score: homeScore,
         away_score: awayScore,
+        home_penalties: homePenalties ?? null,
+        away_penalties: awayPenalties ?? null,
         winner_participant_id: winnerId,
         proof_url: proofUrl,
         notes: `${reporterLabel}${notes || "Placar reportado via Match Hub."}`,
@@ -218,8 +231,16 @@ export async function submitMatchScoreAction(rawInput: {
 
     if (updErr) throw new Error(updErr.message);
 
+    let advState: "pending" | "needs_penalties" | "advanced" | "completed" =
+      "pending";
     if (newStatus === "completed") {
       await recalculateGroupStandings(existingMatch.tournament_id);
+      const adv = await advanceKnockoutTie(
+        existingMatch.tournament_id,
+        existingMatch.stage,
+        existingMatch.bracket_position
+      );
+      advState = adv.state;
     }
 
     revalidatePath(`/tournaments/${tournamentSlug}`);
@@ -231,7 +252,13 @@ export async function submitMatchScoreAction(rawInput: {
       status: newStatus,
       message:
         newStatus === "completed"
-          ? "Placar homologado imediatamente e tabela de classificação atualizada!"
+          ? advState === "needs_penalties"
+            ? "Placar salvo! Confronto empatado no agregado — informe o placar dos pênaltis para definir o classificado."
+            : advState === "advanced"
+            ? "Placar homologado e vencedor avançado automaticamente na chave!"
+            : advState === "completed"
+            ? "Grande Final encerrada! Campeão consagrado!"
+            : "Placar homologado imediatamente e tabela de classificação atualizada!"
           : requestWalkover
           ? "Pedido de W.O. registrado com comprovante e enviado para mediação."
           : "Placar e comprovante enviados! Aguardando confirmação do adversário ou homologação.",
@@ -297,6 +324,12 @@ export async function mediateMatchAction(rawInput: {
         ? existingMatch.home_participant_id
         : awayScore > homeScore
         ? existingMatch.away_participant_id
+        : existingMatch.home_penalties !== null &&
+          existingMatch.away_penalties !== null &&
+          existingMatch.home_penalties !== existingMatch.away_penalties
+        ? existingMatch.home_penalties > existingMatch.away_penalties
+          ? existingMatch.home_participant_id
+          : existingMatch.away_participant_id
         : null;
 
     const { error: updErr } = await supabaseAdmin
@@ -314,6 +347,13 @@ export async function mediateMatchAction(rawInput: {
     if (updErr) throw new Error(updErr.message);
 
     await recalculateGroupStandings(existingMatch.tournament_id);
+    if (status === "completed" || status === "walkover") {
+      await advanceKnockoutTie(
+        existingMatch.tournament_id,
+        existingMatch.stage,
+        existingMatch.bracket_position
+      );
+    }
 
     revalidatePath(`/tournaments/${rawInput.tournamentSlug}`);
     revalidatePath("/organizer");
@@ -321,7 +361,7 @@ export async function mediateMatchAction(rawInput: {
 
     return {
       ok: true,
-      message: `Partida atualizada (${status.toUpperCase()}) e classificação recalculada!`,
+      message: `Partida atualizada (${status.toUpperCase()}) e classificação/chaveamento recalculados!`,
     };
   } catch (err) {
     return {
@@ -345,6 +385,11 @@ export async function createTournamentAction(rawInput: {
   entryFeeBrl: number;
   prizePoolBrl: number;
   rulesMarkdown: string;
+  legsPerRound?: number;
+  finalTwoLegs?: boolean;
+  thirdPlaceMatch?: boolean;
+  groupTurns?: number;
+  qualifiedPerGroup?: number;
 }) {
   const parsed = createTournamentSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -373,6 +418,11 @@ export async function createTournamentAction(rawInput: {
         entry_fee_brl: parsed.data.entryFeeBrl,
         prize_pool_brl: parsed.data.prizePoolBrl,
         rules_markdown: parsed.data.rulesMarkdown,
+        legs_per_round: parsed.data.legsPerRound,
+        final_two_legs: parsed.data.finalTwoLegs,
+        third_place_match: parsed.data.thirdPlaceMatch,
+        group_turns: parsed.data.groupTurns,
+        qualified_per_group: parsed.data.qualifiedPerGroup,
         starts_at: new Date(Date.now() + 86400000).toISOString(),
       })
       .select()
@@ -404,7 +454,9 @@ export async function createTournamentAction(rawInput: {
     return {
       ok: true,
       slug: inserted.slug,
-      message: `Torneio "${inserted.name}" publicado com Grupos A & B prontos para inscrição!`,
+      message: `Torneio "${inserted.name}" publicado (${
+        parsed.data.legsPerRound === 2 ? "Mata-Mata Ida e Volta" : "Jogo Único"
+      }) e pronto para inscrição!`,
     };
   } catch (err) {
     return {

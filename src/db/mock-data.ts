@@ -56,9 +56,17 @@ export interface MockMatch {
   tournamentId: string;
   groupId: string | null;
   groupCode: "A" | "B" | null;
-  stage: "group" | "quarterfinal" | "semifinal" | "third_place" | "final";
+  stage:
+    | "group"
+    | "round_of_32"
+    | "round_of_16"
+    | "quarterfinal"
+    | "semifinal"
+    | "third_place"
+    | "final";
   round: number;
   bracketPosition: number | null;
+  leg?: number;
   label: string;
   homeParticipantId: string;
   awayParticipantId: string;
@@ -68,6 +76,8 @@ export interface MockMatch {
   awayClub: string;
   homeScore: number | null;
   awayScore: number | null;
+  homePenalties?: number | null;
+  awayPenalties?: number | null;
   winnerParticipantId: string | null;
   proofUrl: string | null;
   notes: string | null;
@@ -102,6 +112,11 @@ export interface MockTournament {
   bannerUrl: string;
   rulesMarkdown: string;
   startsAt: string;
+  legsPerRound?: number;
+  finalTwoLegs?: boolean;
+  thirdPlaceMatch?: boolean;
+  groupTurns?: number;
+  qualifiedPerGroup?: number;
 }
 
 // ============================================================================

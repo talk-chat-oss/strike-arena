@@ -39,6 +39,8 @@ import {
   getMatchMessagesAction,
   sendMatchMessageAction,
 } from "@/app/actions/tournament-actions";
+import { generateTournamentFixturesAction } from "@/app/actions/tournament-engine-actions";
+import { STAGE_LABELS, type KnockoutStage } from "@/lib/tournament-engine";
 import { createLeaguePassStripeCheckoutAction } from "@/app/actions/master-league-actions";
 
 interface TournamentTabsProps {
@@ -288,6 +290,80 @@ export function TournamentTabs({
         const updated = await getMatchMessagesAction(chatMatch.id);
         setChatMessages(updated);
       }
+    });
+  }
+
+  function handleGenerateFixtures() {
+    setActionBanner(null);
+    startTransition(async () => {
+      const res = await generateTournamentFixturesAction({
+        tournamentSlug: tournament.slug,
+      });
+      setActionBanner(
+        res.ok
+          ? res.message ?? "Jogos gerados com sucesso!"
+          : res.error ?? "Erro ao gerar jogos."
+      );
+      if (res.ok) router.refresh();
+    });
+  }
+
+  const knockoutOrder: (KnockoutStage | "third_place")[] = [
+    "round_of_32",
+    "round_of_16",
+    "quarterfinal",
+    "semifinal",
+    "final",
+    "third_place",
+  ];
+  const presentKnockoutStages = knockoutOrder.filter((st) =>
+    matches.some((m) => m.stage === st)
+  );
+  const hasGroupMatches = matches.some((m) => m.stage === "group");
+  const hasKnockoutMatches = presentKnockoutStages.length > 0;
+
+  function groupStageTies(stage: KnockoutStage | "third_place") {
+    const stageMatches = matches
+      .filter((m) => m.stage === stage)
+      .sort(
+        (a, b) =>
+          (a.bracketPosition ?? 1) - (b.bracketPosition ?? 1) ||
+          (a.leg ?? 1) - (b.leg ?? 1)
+      );
+    const map = new Map<number, MockMatch[]>();
+    for (const m of stageMatches) {
+      const key = m.bracketPosition ?? 1;
+      const arr = map.get(key) ?? [];
+      arr.push(m);
+      map.set(key, arr);
+    }
+    return Array.from(map.entries()).map(([slot, legs]) => {
+      const first = legs[0];
+      const last = legs[legs.length - 1];
+      const teamAId = first.homeParticipantId;
+      let aggA = 0;
+      let aggB = 0;
+      let anyPlayed = false;
+      for (const l of legs) {
+        if (l.homeScore !== null && l.awayScore !== null) {
+          anyPlayed = true;
+          if (l.homeParticipantId === teamAId) {
+            aggA += l.homeScore;
+            aggB += l.awayScore;
+          } else {
+            aggA += l.awayScore;
+            aggB += l.homeScore;
+          }
+        }
+      }
+      return {
+        slot,
+        legs,
+        first,
+        last,
+        aggA: anyPlayed ? aggA : null,
+        aggB: anyPlayed ? aggB : null,
+      };
     });
   }
 
@@ -668,187 +744,218 @@ export function TournamentTabs({
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222c40] pb-4">
             <div>
               <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                Fase Eliminatória · Cruzamento Olímpico (1ºA × 2ºB | 1ºB × 2ºA)
+                Fase Eliminatória ·{" "}
+                {tournament.legsPerRound === 2
+                  ? "Confrontos de Ida e Volta"
+                  : "Jogo Único"}{" "}
+                ·{" "}
+                {tournament.finalTwoLegs
+                  ? "Final Ida e Volta"
+                  : "Final Jogo Único"}
               </span>
               <h3 className="text-base sm:text-lg font-bold text-[#f4f6fb]">
-                Árvore de Playoffs — Strike Arena Cup
+                Árvore de Playoffs — {tournament.name}
               </h3>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[#78849e]">
-              <Trophy className="w-4 h-4 text-[#ffdc2b]" />
-              <span>Premiação Total: R$ {tournament.prizePoolBrl},00</span>
+            <div className="flex flex-wrap items-center gap-3">
+              {canMediate &&
+                (!hasKnockoutMatches ||
+                  (tournament.format === "groups_playoffs" &&
+                    !hasGroupMatches)) && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateFixtures}
+                    disabled={isPending}
+                    className="px-3.5 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>
+                      {isPending
+                        ? "Gerando..."
+                        : tournament.format === "groups_playoffs" &&
+                          !hasGroupMatches
+                        ? "Sortear Grupos e Gerar Jogos"
+                        : "Gerar Chave de Mata-Mata"}
+                    </span>
+                  </button>
+                )}
+              <div className="flex items-center gap-2 text-xs text-[#78849e]">
+                <Trophy className="w-4 h-4 text-[#ffdc2b]" />
+                <span>Premiação Total: R$ {tournament.prizePoolBrl},00</span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] items-center gap-6 lg:gap-8 py-2">
-            {/* Coluna 1: Semifinais */}
-            <div className="space-y-6">
-              <div className="text-xs font-bold uppercase tracking-wider text-[#78849e]">
-                Semifinais (Jogo Único)
-              </div>
-
-              {semifinals.map((sf) => {
-                const homeWon =
-                  sf.homeScore !== null &&
-                  sf.awayScore !== null &&
-                  sf.homeScore > sf.awayScore;
-                const awayWon =
-                  sf.homeScore !== null &&
-                  sf.awayScore !== null &&
-                  sf.awayScore > sf.homeScore;
-
+          {!hasKnockoutMatches ? (
+            <div className="p-8 text-center bg-[#090c12] border border-[#222c40] rounded-[4px] space-y-3">
+              <p className="text-sm font-bold text-[#f4f6fb]">
+                A chave eliminatória ainda não foi gerada.
+              </p>
+              <p className="text-xs text-[#78849e] max-w-lg mx-auto">
+                {tournament.format === "groups_playoffs"
+                  ? "Conclua todos os jogos da fase de grupos para liberar o cruzamento olímpico (ou clique no botão acima para iniciar a fase atual)."
+                  : "Clique em 'Gerar Chave de Mata-Mata' acima para sortear os confrontos (Ida e Volta ou Jogo Único conforme configurado)."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 py-2 items-start">
+              {presentKnockoutStages.map((stageKey) => {
+                const ties = groupStageTies(stageKey);
+                const isFinal = stageKey === "final";
                 return (
-                  <div
-                    key={sf.id}
-                    className="bg-[#090c12] border border-[#222c40] rounded-[4px] p-4 space-y-3"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-semibold text-[#ffdc2b]">
-                        {sf.label}
+                  <div key={stageKey} className="space-y-4">
+                    <div
+                      className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                        isFinal ? "text-[#ffdc2b]" : "text-[#78849e]"
+                      }`}
+                    >
+                      {isFinal && <Trophy className="w-4 h-4" />}
+                      <span>
+                        {STAGE_LABELS[stageKey]} (
+                        {ties[0]?.legs.length === 2
+                          ? "Ida e Volta"
+                          : "Jogo Único"}
+                        )
                       </span>
-                      <MatchStatusBadge status={sf.status} />
                     </div>
 
-                    <div className="space-y-2 tabular-nums">
-                      <div
-                        className={`flex items-center justify-between p-2.5 rounded-[4px] border ${
-                          homeWon
-                            ? "bg-[#ffdc2b]/10 border-[#ffdc2b]/50 text-[#f4f6fb]"
-                            : "bg-[#161d2c] border-[#222c40] text-[#b6c0d4]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <ClubCrest clubName={sf.homeClub} size="md" />
-                          <div>
-                            <p className="text-xs font-bold text-[#f4f6fb]">
-                              {sf.homeNickname}
-                            </p>
-                            <p className="text-[11px] text-[#78849e]">
-                              {sf.homeClub}
-                            </p>
+                    {ties.map((tie) => {
+                      const { first, last, legs, aggA, aggB } = tie;
+                      const winnerId = last.winnerParticipantId;
+                      const teamAWon =
+                        Boolean(winnerId) &&
+                        winnerId === first.homeParticipantId;
+                      const teamBWon =
+                        Boolean(winnerId) &&
+                        winnerId === first.awayParticipantId;
+                      const hasPens =
+                        last.homePenalties !== null &&
+                        last.homePenalties !== undefined &&
+                        last.awayPenalties !== null &&
+                        last.awayPenalties !== undefined;
+
+                      return (
+                        <div
+                          key={`${stageKey}-${tie.slot}`}
+                          className={`bg-[#090c12] rounded-[4px] p-4 space-y-3 ${
+                            isFinal
+                              ? "border-2 border-[#ffdc2b]"
+                              : "border border-[#222c40]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-semibold text-[#ffdc2b]">
+                              {STAGE_LABELS[stageKey]}{" "}
+                              {ties.length > 1 ? `#${tie.slot}` : ""}
+                            </span>
+                            <MatchStatusBadge status={last.status} />
+                          </div>
+
+                          <div className="space-y-2 tabular-nums">
+                            <div
+                              className={`flex items-center justify-between p-2.5 rounded-[4px] border ${
+                                teamAWon
+                                  ? "bg-[#ffdc2b]/10 border-[#ffdc2b]/50 text-[#f4f6fb]"
+                                  : "bg-[#161d2c] border-[#222c40] text-[#b6c0d4]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <ClubCrest clubName={first.homeClub} size="md" />
+                                <div>
+                                  <p className="text-xs font-bold text-[#f4f6fb]">
+                                    {first.homeNickname}
+                                  </p>
+                                  <p className="text-[11px] text-[#78849e]">
+                                    {first.homeClub}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-base font-bold text-[#ffdc2b]">
+                                {aggA ?? "—"}
+                              </span>
+                            </div>
+
+                            <div
+                              className={`flex items-center justify-between p-2.5 rounded-[4px] border ${
+                                teamBWon
+                                  ? "bg-[#ffdc2b]/10 border-[#ffdc2b]/50 text-[#f4f6fb]"
+                                  : "bg-[#161d2c] border-[#222c40] text-[#b6c0d4]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <ClubCrest clubName={first.awayClub} size="md" />
+                                <div>
+                                  <p className="text-xs font-bold text-[#f4f6fb]">
+                                    {first.awayNickname}
+                                  </p>
+                                  <p className="text-[11px] text-[#78849e]">
+                                    {first.awayClub}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-base font-bold text-[#ffdc2b]">
+                                {aggB ?? "—"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {legs.length > 1 && (
+                            <div className="text-[11px] text-[#b6c0d4] bg-[#161d2c]/70 border border-[#222c40] rounded-[4px] p-2.5 space-y-1 tabular-nums">
+                              {legs.map((l) => (
+                                <div
+                                  key={l.id}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span className="text-[#78849e]">
+                                    {l.leg === 1 ? "Jogo de Ida" : "Jogo de Volta"} (
+                                    {l.homeNickname} × {l.awayNickname})
+                                  </span>
+                                  <span className="font-bold text-[#f4f6fb]">
+                                    {l.homeScore !== null
+                                      ? `${l.homeScore} × ${l.awayScore}`
+                                      : "Agendado"}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {hasPens && (
+                            <div className="text-[11px] font-semibold text-[#ffdc2b] bg-[#ffdc2b]/10 border border-[#ffdc2b]/30 rounded-[4px] px-2.5 py-1.5 text-center tabular-nums">
+                              Pênaltis ({last.homeNickname} {last.homePenalties}{" "}
+                              × {last.awayPenalties} {last.awayNickname})
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                            <span className="text-[11px] text-[#78849e] truncate max-w-[180px]">
+                              {legs.length > 1
+                                ? "Placar agregado (Ida + Volta)"
+                                : first.notes ?? "Confronto eliminatório"}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {legs.map((l) => (
+                                <button
+                                  key={l.id}
+                                  type="button"
+                                  onClick={() => setModalMatchId(l.id)}
+                                  className="px-2.5 py-1 rounded-[2px] bg-[#1d2639] hover:bg-[#ffdc2b] hover:text-[#0e1312] text-[11px] font-semibold text-[#f4f6fb] transition-colors cursor-pointer"
+                                >
+                                  {legs.length > 1
+                                    ? `Reportar ${l.leg === 1 ? "Ida" : "Volta"}`
+                                    : "Reportar Placar"}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                        <span className="text-base font-bold text-[#ffdc2b]">
-                          {sf.homeScore ?? "—"}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`flex items-center justify-between p-2.5 rounded-[4px] border ${
-                          awayWon
-                            ? "bg-[#ffdc2b]/10 border-[#ffdc2b]/50 text-[#f4f6fb]"
-                            : "bg-[#161d2c] border-[#222c40] text-[#b6c0d4]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <ClubCrest clubName={sf.awayClub} size="md" />
-                          <div>
-                            <p className="text-xs font-bold text-[#f4f6fb]">
-                              {sf.awayNickname}
-                            </p>
-                            <p className="text-[11px] text-[#78849e]">
-                              {sf.awayClub}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-base font-bold text-[#ffdc2b]">
-                          {sf.awayScore ?? "—"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] text-[#78849e] truncate max-w-[220px]">
-                        {sf.notes ?? "Confronto eliminatório"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setModalMatchId(sf.id)}
-                        className="px-2.5 py-1 rounded-[2px] bg-[#1d2639] hover:bg-[#ffdc2b] hover:text-[#0e1312] text-[11px] font-semibold text-[#f4f6fb] transition-colors cursor-pointer"
-                      >
-                        Reportar Placar
-                      </button>
-                    </div>
+                      );
+                    })}
                   </div>
                 );
               })}
             </div>
-
-            {/* Conector Visual Desktop */}
-            <div className="hidden lg:flex flex-col items-center justify-center text-[#222c40]">
-              <div className="w-12 h-28 border-y border-r border-[#ffdc2b]/40 rounded-r-[4px]" />
-              <div className="w-12 h-px bg-[#ffdc2b]" />
-            </div>
-
-            {/* Coluna 2: Grande Final */}
-            <div className="space-y-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-[#ffdc2b] flex items-center gap-1.5">
-                <Trophy className="w-4 h-4" />
-                <span>Grande Final · Vale Título e R$ 350</span>
-              </div>
-
-              {grandFinal && (
-                <div className="bg-[#090c12] border-2 border-[#ffdc2b] rounded-[4px] p-5 space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-[#ffdc2b]">
-                      {grandFinal.label}
-                    </span>
-                    <MatchStatusBadge status={grandFinal.status} />
-                  </div>
-
-                  <div className="space-y-2.5 tabular-nums">
-                    <div className="flex items-center justify-between p-3 rounded-[4px] bg-[#161d2c] border border-[#222c40]">
-                      <div className="flex items-center gap-3">
-                        <ClubCrest clubName={grandFinal.homeClub} size="md" />
-                        <div>
-                          <p className="text-sm font-bold text-[#f4f6fb]">
-                            {grandFinal.homeNickname}
-                          </p>
-                          <p className="text-xs text-[#78849e]">
-                            {grandFinal.homeClub}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-lg font-bold text-[#ffdc2b]">
-                        {grandFinal.homeScore ?? "—"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-[4px] bg-[#161d2c] border border-[#222c40]">
-                      <div className="flex items-center gap-3">
-                        <ClubCrest clubName={grandFinal.awayClub} size="md" />
-                        <div>
-                          <p className="text-sm font-bold text-[#f4f6fb]">
-                            {grandFinal.awayNickname}
-                          </p>
-                          <p className="text-xs text-[#78849e]">
-                            {grandFinal.awayClub}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-lg font-bold text-[#ffdc2b]">
-                        {grandFinal.awayScore ?? "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {grandFinal.notes && (
-                    <p className="text-xs text-[#b6c0d4] bg-[#161d2c] p-2.5 rounded-[4px]">
-                      {grandFinal.notes}
-                    </p>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setModalMatchId(grandFinal.id)}
-                    className="w-full min-h-10 px-4 py-2 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs transition-colors cursor-pointer"
-                  >
-                    Registrar Resultado da Grande Final
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       )}
 

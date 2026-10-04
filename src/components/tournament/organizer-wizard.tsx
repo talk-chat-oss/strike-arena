@@ -27,6 +27,11 @@ export function OrganizerWizard() {
   const [maxParticipants, setMaxParticipants] = useState(16);
   const [entryFeeBrl, setEntryFeeBrl] = useState(20);
   const [prizePoolBrl, setPrizePoolBrl] = useState(400);
+  const [legsPerRound, setLegsPerRound] = useState<1 | 2>(2);
+  const [finalTwoLegs, setFinalTwoLegs] = useState<boolean>(false);
+  const [thirdPlaceMatch, setThirdPlaceMatch] = useState<boolean>(false);
+  const [groupTurns, setGroupTurns] = useState<1 | 2>(1);
+  const [qualifiedPerGroup, setQualifiedPerGroup] = useState<number>(2);
   const [rulesMarkdown, setRulesMarkdown] = useState(
     "1. Partidas de 6 minutos. 2. Check-in até 15 minutos antes do horário. 3. Obrigatório envio de print do placar na Match Hub."
   );
@@ -64,6 +69,11 @@ export function OrganizerWizard() {
         entryFeeBrl,
         prizePoolBrl,
         rulesMarkdown,
+        legsPerRound,
+        finalTwoLegs,
+        thirdPlaceMatch,
+        groupTurns,
+        qualifiedPerGroup,
       });
 
       if (res.ok && res.slug) {
@@ -182,6 +192,89 @@ export function OrganizerWizard() {
               <option value="double_elimination">Eliminação Dupla</option>
             </select>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-[#161d2c]/70 border border-[#222c40] rounded-[4px] p-3">
+          {format !== "round_robin" && (
+            <>
+              <div className="space-y-1">
+                <label className="block text-[11px] font-semibold text-[#b6c0d4]">
+                  Fases do Mata-Mata
+                </label>
+                <select
+                  value={legsPerRound}
+                  onChange={(e) =>
+                    setLegsPerRound(Number(e.target.value) as 1 | 2)
+                  }
+                  className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#ffdc2b] font-semibold"
+                >
+                  <option value={2}>Ida e Volta (2 jogos)</option>
+                  <option value={1}>Jogo Único (1 jogo)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-semibold text-[#b6c0d4]">
+                  Grande Final
+                </label>
+                <select
+                  value={finalTwoLegs ? "2" : "1"}
+                  onChange={(e) => setFinalTwoLegs(e.target.value === "2")}
+                  className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb]"
+                >
+                  <option value="1">Jogo Único (Campo Neutro)</option>
+                  <option value="2">Ida e Volta (2 jogos)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[11px] font-semibold text-[#b6c0d4]">
+                  Disputa de 3º Lugar
+                </label>
+                <select
+                  value={thirdPlaceMatch ? "yes" : "no"}
+                  onChange={(e) => setThirdPlaceMatch(e.target.value === "yes")}
+                  className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb]"
+                >
+                  <option value="no">Não</option>
+                  <option value="yes">Sim (Jogo Único)</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {(format === "groups_playoffs" || format === "round_robin") && (
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-[#b6c0d4]">
+                Turnos (Grupos/Liga)
+              </label>
+              <select
+                value={groupTurns}
+                onChange={(e) => setGroupTurns(Number(e.target.value) as 1 | 2)}
+                className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb]"
+              >
+                <option value={1}>Turno Único</option>
+                <option value={2}>Turno e Returno (Ida e Volta)</option>
+              </select>
+            </div>
+          )}
+
+          {format === "groups_playoffs" && (
+            <div className="space-y-1">
+              <label className="block text-[11px] font-semibold text-[#b6c0d4]">
+                Classificados por Grupo
+              </label>
+              <select
+                value={qualifiedPerGroup}
+                onChange={(e) => setQualifiedPerGroup(Number(e.target.value))}
+                className="w-full min-h-9 px-2.5 py-1.5 rounded-[4px] bg-[#111622] border border-[#222c40] text-xs text-[#f4f6fb]"
+              >
+                <option value={1}>Top 1 por grupo</option>
+                <option value={2}>Top 2 por grupo</option>
+                <option value={4}>Top 4 por grupo</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 tabular-nums">

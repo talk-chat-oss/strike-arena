@@ -55,6 +55,16 @@ export function ScoreSubmissionPanel({
   const [awayScore, setAwayScore] = useState<number>(
     activeMatch?.awayScore ?? 1
   );
+  const [hasPenalties, setHasPenalties] = useState<boolean>(
+    activeMatch?.homePenalties !== null &&
+      activeMatch?.homePenalties !== undefined
+  );
+  const [homePenalties, setHomePenalties] = useState<number>(
+    activeMatch?.homePenalties ?? 5
+  );
+  const [awayPenalties, setAwayPenalties] = useState<number>(
+    activeMatch?.awayPenalties ?? 4
+  );
   const [proofUrl, setProofUrl] = useState<string>(
     activeMatch?.proofUrl ?? PRESET_PROOFS[0].url
   );
@@ -74,6 +84,11 @@ export function ScoreSubmissionPanel({
     if (found) {
       setHomeScore(found.homeScore ?? 0);
       setAwayScore(found.awayScore ?? 0);
+      setHasPenalties(
+        found.homePenalties !== null && found.homePenalties !== undefined
+      );
+      setHomePenalties(found.homePenalties ?? 5);
+      setAwayPenalties(found.awayPenalties ?? 4);
       setProofUrl(found.proofUrl ?? PRESET_PROOFS[0].url);
       setNotes(found.notes ?? "");
     }
@@ -97,11 +112,15 @@ export function ScoreSubmissionPanel({
 
     setFeedback(null);
     startTransition(async () => {
+      const includePens =
+        activeMatch.stage !== "group" && hasPenalties && !requestWalkover;
       const res = await submitMatchScoreAction({
         matchId: activeMatch.id,
         tournamentSlug,
         homeScore: requestWalkover ? 3 : homeScore,
         awayScore: requestWalkover ? 0 : awayScore,
+        homePenalties: includePens ? homePenalties : undefined,
+        awayPenalties: includePens ? awayPenalties : undefined,
         proofUrl,
         notes,
         requestWalkover,
@@ -231,6 +250,53 @@ export function ScoreSubmissionPanel({
             />
           </div>
         </div>
+
+        {/* Disputa de Pênaltis (Mata-Mata) */}
+        {activeMatch.stage !== "group" && (
+          <div className="p-3.5 rounded-[4px] bg-[#161d2c]/70 border border-[#222c40] space-y-3">
+            <label className="flex items-center gap-2 text-xs font-semibold text-[#f4f6fb] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasPenalties}
+                onChange={(e) => setHasPenalties(e.target.checked)}
+                className="w-4 h-4 accent-[#ffdc2b]"
+              />
+              <span>
+                Houve Disputa de Pênaltis (empate no jogo único ou no placar agregado)
+              </span>
+            </label>
+            {hasPenalties && (
+              <div className="grid grid-cols-2 gap-3 tabular-nums">
+                <div>
+                  <span className="text-[11px] text-[#78849e] block mb-1">
+                    Pênaltis ({activeMatch.homeNickname})
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={homePenalties}
+                    onChange={(e) => setHomePenalties(Number(e.target.value))}
+                    className="w-full h-9 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
+                  />
+                </div>
+                <div>
+                  <span className="text-[11px] text-[#78849e] block mb-1">
+                    Pênaltis ({activeMatch.awayNickname})
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={awayPenalties}
+                    onChange={(e) => setAwayPenalties(Number(e.target.value))}
+                    className="w-full h-9 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Upload / URL do Comprovante (Screenshot) */}
         <div className="space-y-2">

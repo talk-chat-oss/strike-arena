@@ -214,21 +214,24 @@ export async function getTournamentBySlug(
         stage: m.stage as MockMatch["stage"],
         round: m.round,
         bracketPosition: m.bracket_position,
+        leg: m.leg ?? 1,
         label: m.label ?? `Rodada ${m.round}`,
         homeParticipantId: m.home_participant_id ?? "",
         awayParticipantId: m.away_participant_id ?? "",
         homeNickname:
-          m.stage === "final" && m.status === "scheduled"
-            ? "Vencedor SF1 (Vini/Gui)"
+          m.stage === "final" && m.status === "scheduled" && !home
+            ? "Vencedor SF1"
             : home?.nickname ?? "A Definir",
         homeClub:
-          m.stage === "final" && m.status === "scheduled"
+          m.stage === "final" && m.status === "scheduled" && !home
             ? "A Definir (SF1)"
             : home?.club_name ?? "TBD",
         awayNickname: away?.nickname ?? "A Definir",
         awayClub: away?.club_name ?? "TBD",
         homeScore: m.home_score,
         awayScore: m.away_score,
+        homePenalties: m.home_penalties ?? null,
+        awayPenalties: m.away_penalties ?? null,
         winnerParticipantId: m.winner_participant_id,
         proofUrl: m.proof_url,
         notes: m.notes,
@@ -256,6 +259,11 @@ export async function getTournamentBySlug(
         bannerUrl: tRow.banner_url ?? "",
         rulesMarkdown: tRow.rules_markdown,
         startsAt: tRow.starts_at ?? new Date().toISOString(),
+        legsPerRound: tRow.legs_per_round ?? 1,
+        finalTwoLegs: Boolean(tRow.final_two_legs),
+        thirdPlaceMatch: Boolean(tRow.third_place_match),
+        groupTurns: tRow.group_turns ?? 1,
+        qualifiedPerGroup: tRow.qualified_per_group ?? 2,
       },
       groups: mappedGroups,
       participants: mappedParticipants,
