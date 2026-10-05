@@ -61,8 +61,7 @@ export async function registerUserAction(input: {
       };
     }
 
-    const role =
-      input.accountType === "organizer" ? "organizer" : "player";
+    const role = "player";
 
     const { data: created, error } = await supabaseAdmin
       .from("profiles")

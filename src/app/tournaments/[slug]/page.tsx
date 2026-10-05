@@ -15,6 +15,7 @@ import { isSuperAdmin } from "@/db";
 import { GAME_COVERS } from "@/lib/club-crests";
 import { TournamentStatusBadge } from "@/components/tournament/status-badge";
 import { TournamentTabs } from "@/components/tournament/tournament-tabs";
+import { listAllUsersWithClubsAction } from "@/app/actions/tournament-engine-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +39,10 @@ export default async function TournamentPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [data, currentUser] = await Promise.all([
+  const [data, currentUser, allUsers] = await Promise.all([
     getTournamentBySlug(slug),
     getCurrentUser(),
+    listAllUsersWithClubsAction(),
   ]);
 
   if (!data) {
@@ -149,7 +151,7 @@ export default async function TournamentPage({
                 </span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[#ffdc2b]/15 border border-[#ffdc2b]/40 text-[11px] font-extrabold text-[#ffdc2b]">
                   <CalendarClock className="w-3 h-3" />
-                  Passe de Liga Obrigatório (R$ 30,00/mês)
+                  Torneio Fechado · Escalado pela ADM
                 </span>
               </div>
 
@@ -170,7 +172,7 @@ export default async function TournamentPage({
             </div>
           </div>
 
-          {/* Prize Pool & League Pass Highlight Box */}
+          {/* Prize Pool & ADM Control Highlight Box */}
           <div className="bg-[#090c12] border border-[#ffdc2b]/50 rounded-[4px] px-5 py-3.5 text-right tabular-nums">
             <span className="text-[10px] uppercase tracking-wider text-[#78849e] block">
               Premiação Oficial
@@ -179,7 +181,7 @@ export default async function TournamentPage({
               R$ {tournament.prizePoolBrl},00
             </p>
             <span className="text-[11px] text-[#4ade80] font-bold block">
-              Requisito: Passe de Liga (R$ 30,00/mês)
+              Acesso: Convite / Escalação ADM
             </span>
           </div>
         </div>
@@ -241,6 +243,7 @@ export default async function TournamentPage({
         matches={matches}
         currentUser={currentUser}
         userLeaguePass={userLeaguePass}
+        allUsers={allUsers}
       />
     </div>
   );

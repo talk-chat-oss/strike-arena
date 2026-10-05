@@ -256,22 +256,6 @@ export function AuthForm({ currentUser }: AuthFormProps) {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
-                Perfil na Plataforma
-              </label>
-              <select
-                value={accountType}
-                onChange={(e) =>
-                  setAccountType(e.target.value as "player" | "organizer")
-                }
-                className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
-              >
-                <option value="player">Jogador / Competidor</option>
-                <option value="organizer">Organizador de Torneios</option>
-              </select>
-            </div>
-
             {/* Gamertags / IDs de Jogo */}
             <div className="pt-3 border-t border-[#192131] space-y-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#f4f6fb]">

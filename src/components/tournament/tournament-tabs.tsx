@@ -34,7 +34,6 @@ import { MatchStatusBadge } from "./status-badge";
 import { ScoreSubmissionPanel } from "./score-submission-modal";
 import {
   mediateMatchAction,
-  joinTournamentAction,
   toggleCheckinAction,
   getMatchMessagesAction,
   sendMatchMessageAction,
@@ -42,13 +41,15 @@ import {
 import {
   generateTournamentFixturesAction,
   adminAdvanceTieWinnerAction,
+  adminAddParticipantAction,
+  adminRemoveParticipantAction,
+  type UserWithClubItem,
 } from "@/app/actions/tournament-engine-actions";
 import {
   STAGE_LABELS,
   sortStandingsWithTiebreakers,
   type KnockoutStage,
 } from "@/lib/tournament-engine";
-import { createLeaguePassStripeCheckoutAction } from "@/app/actions/master-league-actions";
 
 interface TournamentTabsProps {
   tournament: MockTournament;
@@ -63,6 +64,7 @@ interface TournamentTabsProps {
     mode: string;
     clubTeamId: string | null;
   };
+  allUsers?: UserWithClubItem[];
 }
 
 type ActiveTab = "standings" | "bracket" | "matches" | "h2h" | "rules";
@@ -86,7 +88,7 @@ export function TournamentTabs({
   standings,
   matches,
   currentUser,
-  userLeaguePass,
+  allUsers = [],
 }: TournamentTabsProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>("standings");
@@ -95,13 +97,18 @@ export function TournamentTabs({
   const [actionBanner, setActionBanner] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Registration modal state
+  // ADM Participant Manager modal state
   const [joinModalOpen, setJoinModalOpen] = useState(false);
-  const [selectedClub, setSelectedClub] = useState("Real Madrid");
-  const [joinError, setJoinError] = useState<string | null>(null);
-  const [passClubTeamId, setPassClubTeamId] = useState<string | null>(
-    userLeaguePass?.clubTeamId ?? null
+  const [selectedTargetUserId, setSelectedTargetUserId] = useState<string>(
+    allUsers[0]?.id ?? ""
   );
+  const [selectedClub, setSelectedClub] = useState(
+    allUsers[0]?.clubName ?? "Real Madrid"
+  );
+  const [selectedGroupCode, setSelectedGroupCode] = useState<
+    "AUTO" | "A" | "B"
+  >("AUTO");
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   // Match Chat state
   const [chatMatch, setChatMatch] = useState<MockMatch | null>(null);
@@ -125,10 +132,11 @@ export function TournamentTabs({
       )
     : undefined;
 
-  const canMediate =
+  const canMediate = Boolean(
     currentUser?.isSuperAdmin ||
-    currentUser?.role === "organizer" ||
-    !currentUser;
+      currentUser?.role === "super_admin" ||
+      currentUser?.role === "organizer"
+  );
 
   const groupAStandings = sortStandingsWithTiebreakers(
     standings.filter((s) => s.groupCode === "A"),
@@ -196,57 +204,45 @@ export function TournamentTabs({
     });
   }
 
-  function handleJoinTournament(e: React.FormEvent) {
+  function handleAdminAddParticipant(e: React.FormEvent) {
     e.preventDefault();
     setJoinError(null);
+    if (!selectedTargetUserId) {
+      setJoinError("Selecione um jogador cadastrado para escalar.");
+      return;
+    }
     startTransition(async () => {
-      const res = await joinTournamentAction({
+      const res = await adminAddParticipantAction({
         tournamentId: tournament.id,
         tournamentSlug: tournament.slug,
+        targetUserId: selectedTargetUserId,
         clubName: selectedClub,
+        groupCode: selectedGroupCode,
       });
       if (!res.ok) {
-        if (res.requireAuth) {
-          router.push("/auth");
-          return;
-        }
-        if ("clubTeamId" in res && res.clubTeamId) {
-          setPassClubTeamId(String(res.clubTeamId));
-        }
-        setJoinError(res.error ?? "Erro ao inscrever-se.");
+        setJoinError(res.error ?? "Erro ao escalar jogador.");
         return;
       }
-      setJoinModalOpen(false);
-      setActionBanner(res.message ?? "Inscrição realizada com sucesso!");
+      setActionBanner(res.message ?? "Jogador escalado com sucesso pela ADM!");
       router.refresh();
     });
   }
 
-  function handleBuyPassFromTournament(
-    billingMode: "RECURRING_STRIPE" | "MONTHLY_PIX"
-  ) {
-    if (!passClubTeamId) {
-      router.push("/store/strike-coins");
-      return;
-    }
+  function handleAdminRemoveParticipant(participant: MockParticipant) {
     setJoinError(null);
     startTransition(async () => {
-      const originUrl =
-        typeof window !== "undefined" ? window.location.origin : undefined;
-      const res = await createLeaguePassStripeCheckoutAction({
-        clubTeamId: passClubTeamId,
-        billingMode,
-        returnPath: `/tournaments/${tournament.slug}`,
-        originUrl,
+      const res = await adminRemoveParticipantAction({
+        participantId: participant.id,
+        tournamentSlug: tournament.slug,
       });
-      if (res.ok && res.checkoutUrl) {
-        window.location.href = res.checkoutUrl;
+      if (!res.ok) {
+        setJoinError(res.error ?? "Erro ao remover jogador.");
         return;
       }
-      setJoinError(
-        res.error ||
-          "Não foi possível iniciar o pagamento do Passe de Liga. Acesse a Loja Oficial."
+      setActionBanner(
+        `${participant.nickname} removido do torneio pela ADM.`
       );
+      router.refresh();
     });
   }
 
@@ -480,9 +476,21 @@ export function TournamentTabs({
           </button>
         </div>
 
-        {/* Botões Rápidos: Inscrever-se + Enviar Placar (Mesmo Tamanho h-11) */}
+        {/* Botões Rápidos: Controle de Escalação ADM + Enviar Placar (Mesmo Tamanho h-11) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {myParticipant ? (
+          {canMediate ? (
+            <button
+              type="button"
+              onClick={() => setJoinModalOpen(true)}
+              className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4 shrink-0" />
+              <span>
+                Escalador ADM: Adicionar / Remover Jogadores ({participants.length}/
+                {tournament.maxParticipants})
+              </span>
+            </button>
+          ) : myParticipant ? (
             <button
               type="button"
               onClick={() => handleToggleCheckin(myParticipant)}
@@ -490,27 +498,17 @@ export function TournamentTabs({
             >
               <ClubCrest clubName={myParticipant.clubName} size="sm" />
               <span className="truncate">
-                Inscrito ({myParticipant.clubName}) ·{" "}
+                Escalado ({myParticipant.clubName}) ·{" "}
                 {myParticipant.checkinStatus === "checked_in"
                   ? "Check-in OK"
                   : "Fazer Check-in"}
               </span>
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                if (!currentUser) {
-                  router.push("/auth");
-                } else {
-                  setJoinModalOpen(true);
-                }
-              }}
-              className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-xs font-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4 shrink-0" />
-              <span>Inscrever-se / Escolher Escudo</span>
-            </button>
+            <div className="w-full h-11 px-4 rounded-[4px] bg-[#111622] border border-[#222c40] text-[#b6c0d4] text-xs font-bold inline-flex items-center justify-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-[#ffdc2b] shrink-0" />
+              <span>Torneio Fechado · Vagas Controladas pela ADM</span>
+            </div>
           )}
 
           <button
@@ -1436,17 +1434,28 @@ export function TournamentTabs({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Lista de Participantes e Check-in */}
           <div className="bg-[#111622] border border-[#222c40] rounded-[4px] p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#222c40] pb-3">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#ffdc2b]" />
                 <h3 className="text-sm font-bold text-[#f4f6fb]">
-                  Participantes Inscritos ({participants.length}/
+                  Participantes Escalados ({participants.length}/
                   {tournament.maxParticipants})
                 </h3>
               </div>
-              <span className="text-[11px] text-[#78849e]">
-                Clique no status para alternar Check-in
-              </span>
+              {canMediate ? (
+                <button
+                  type="button"
+                  onClick={() => setJoinModalOpen(true)}
+                  className="h-8 px-3 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] text-[11px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>+ Escalar Jogador (ADM)</span>
+                </button>
+              ) : (
+                <span className="text-[11px] text-[#78849e]">
+                  Escalados exclusivamente pela ADM
+                </span>
+              )}
             </div>
 
             <div className="divide-y divide-[#192131]">
@@ -1473,20 +1482,33 @@ export function TournamentTabs({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => handleToggleCheckin(p)}
-                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer ${
-                      p.checkinStatus === "checked_in"
-                        ? "bg-[#15a34a]/15 text-[#4ade80] border border-[#15a34a]/40"
-                        : "bg-[#f97316]/15 text-[#fb923c] border border-[#f97316]/40"
-                    }`}
-                  >
-                    {p.checkinStatus === "checked_in"
-                      ? "Check-in Confirmado"
-                      : "Check-in Pendente"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleToggleCheckin(p)}
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-opacity hover:opacity-80 cursor-pointer ${
+                        p.checkinStatus === "checked_in"
+                          ? "bg-[#15a34a]/15 text-[#4ade80] border border-[#15a34a]/40"
+                          : "bg-[#f97316]/15 text-[#fb923c] border border-[#f97316]/40"
+                      }`}
+                    >
+                      {p.checkinStatus === "checked_in"
+                        ? "Check-in Confirmado"
+                        : "Check-in Pendente"}
+                    </button>
+
+                    {canMediate && (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleAdminRemoveParticipant(p)}
+                        className="px-2 py-0.5 rounded-[4px] bg-[#be123c]/15 hover:bg-[#be123c]/30 border border-[#be123c]/40 text-[#fb7185] text-[10px] font-bold cursor-pointer"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1510,22 +1532,22 @@ export function TournamentTabs({
       )}
 
       {/* =====================================================================
-       * MODAL DE INSCRIÇÃO NO TORNEIO (SELETOR VISUAL DE ESCUDOS + PASSE DE LIGA)
+       * MODAL ESCALADOR DA ADM (ADICIONAR / REMOVER JOGADORES NO TORNEIO)
        * ===================================================================== */}
-      {joinModalOpen && (
+      {joinModalOpen && canMediate && (
         <div
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className="w-full max-w-lg bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-5">
+          <div className="w-full max-w-xl bg-[#111622] border border-[#222c40] rounded-[4px] p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-[#222c40] pb-3">
               <div>
                 <span className="text-[11px] uppercase tracking-wider text-[#ffdc2b] font-semibold">
-                  Passe de Liga Obrigatório (R$ 30,00/mês) · +500 Striker Coins
+                  Controle Exclusivo da ADM · Vagas Fechadas ao Público
                 </span>
                 <h3 className="text-base font-bold text-[#f4f6fb]">
-                  Inscrever-se em {tournament.name}
+                  Escalar / Gerenciar Jogadores em {tournament.name}
                 </h3>
               </div>
               <button
@@ -1537,86 +1559,72 @@ export function TournamentTabs({
               </button>
             </div>
 
-            {/* Card de Status do Passe de Liga (R$ 30,00 / mês) */}
-            <div
-              className={`p-3.5 rounded-[4px] border text-xs space-y-2.5 ${
-                userLeaguePass?.hasActivePass
-                  ? "bg-[#15a34a]/15 border-[#15a34a]/50 text-[#4ade80]"
-                  : "bg-[#ffdc2b]/10 border-[#ffdc2b]/50 text-[#f4f6fb]"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-extrabold uppercase tracking-wider">
-                  {userLeaguePass?.hasActivePass
-                    ? "✔ Passe de Liga Ativo"
-                    : "🎟️ Passe de Liga Obrigatório (R$ 30,00 / mês)"}
-                </span>
-                {userLeaguePass?.expiresAt && (
-                  <span className="text-[11px] font-bold">
-                    Vencimento:{" "}
-                    {new Date(userLeaguePass.expiresAt).toLocaleDateString(
-                      "pt-BR"
-                    )}
-                  </span>
-                )}
-              </div>
-
-              {!userLeaguePass?.hasActivePass && (
-                <>
-                  <p className="text-[11px] text-[#b6c0d4] leading-relaxed">
-                    Só pode jogar torneios da Master League quem tiver o{" "}
-                    <strong className="text-[#ffdc2b]">
-                      Passe de Liga ativo (R$ 30,00/mês)
-                    </strong>{" "}
-                    via assinatura mensal recorrente ou pagamento mensal via PIX
-                    com vencimento estipulado.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() =>
-                        handleBuyPassFromTournament("RECURRING_STRIPE")
-                      }
-                      className="h-10 px-3 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-[11px] inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Assinar Recorrente (R$ 30/mês)</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => handleBuyPassFromTournament("MONTHLY_PIX")}
-                      className="h-10 px-3 rounded-[4px] bg-[#133865] hover:bg-[#1c4d8a] border border-[#ffdc2b]/50 text-[#f4f6fb] font-extrabold text-[11px] inline-flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Mensal 30 Dias / PIX (R$ 30)</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
             {joinError && (
               <div className="p-3 rounded-[4px] bg-[#be123c]/15 border border-[#be123c]/40 text-xs text-[#fb7185]">
                 {joinError}
               </div>
             )}
 
-            <form onSubmit={handleJoinTournament} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
-                  Competidor Autenticado
-                </label>
-                <div className="p-2.5 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs font-bold text-[#ffdc2b]">
-                  {currentUser?.nickname} ({currentUser?.email})
+            <form onSubmit={handleAdminAddParticipant} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
+                    Selecionar Jogador Cadastrado no Site
+                  </label>
+                  <select
+                    value={selectedTargetUserId}
+                    onChange={(e) => {
+                      const uid = e.target.value;
+                      setSelectedTargetUserId(uid);
+                      const found = allUsers.find((u) => u.id === uid);
+                      if (found?.clubName) {
+                        setSelectedClub(found.clubName);
+                      }
+                    }}
+                    className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
+                  >
+                    {allUsers.map((u) => {
+                      const alreadyIn = participants.some(
+                        (p) =>
+                          p.userId === u.id ||
+                          p.nickname.toLowerCase() === u.nickname.toLowerCase()
+                      );
+                      return (
+                        <option key={u.id} value={u.id}>
+                          {u.nickname} ({u.clubName})
+                          {alreadyIn ? " — [JÁ ESCALADO]" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#b6c0d4] mb-1.5">
+                    Alocação de Grupo
+                  </label>
+                  <select
+                    value={selectedGroupCode}
+                    onChange={(e) =>
+                      setSelectedGroupCode(
+                        e.target.value as "AUTO" | "A" | "B"
+                      )
+                    }
+                    className="w-full h-10 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
+                  >
+                    <option value="AUTO">Balancear Auto</option>
+                    <option value="A">Grupo A</option>
+                    <option value="B">Grupo B</option>
+                  </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-[#b6c0d4] mb-2">
-                  Escolha seu Clube & Brasão Oficial
+                  Escudo / Clube do Jogador no Torneio
                 </label>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-1">
                   {POPULAR_CLUBS.map((club) => {
                     const active = selectedClub === club;
                     return (
@@ -1624,7 +1632,7 @@ export function TournamentTabs({
                         key={club}
                         type="button"
                         onClick={() => setSelectedClub(club)}
-                        className={`p-2.5 rounded-[4px] border text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        className={`p-2 rounded-[4px] border text-left flex items-center gap-2 transition-colors cursor-pointer ${
                           active
                             ? "bg-[#ffdc2b]/15 border-[#ffdc2b] text-[#f4f6fb]"
                             : "bg-[#090c12] border-[#222c40] text-[#b6c0d4] hover:border-[#78849e]"
@@ -1639,40 +1647,83 @@ export function TournamentTabs({
                   })}
                 </div>
 
-                <div className="mt-3">
-                  <label className="block text-[11px] text-[#78849e] mb-1">
-                    Ou digite o nome de outro clube:
-                  </label>
+                <div className="mt-2.5">
                   <input
                     type="text"
                     required
                     value={selectedClub}
                     onChange={(e) => setSelectedClub(e.target.value)}
-                    placeholder="Ex: Real Madrid"
+                    placeholder="Nome do clube / escudo"
                     className="w-full h-9 px-3 rounded-[4px] bg-[#090c12] border border-[#222c40] text-xs text-[#f4f6fb] focus:outline-none focus:border-[#ffdc2b]"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setJoinModalOpen(false)}
                   className="h-10 px-4 rounded-[4px] bg-[#161d2c] text-xs text-[#b6c0d4] cursor-pointer"
                 >
-                  Cancelar
+                  Fechar
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="h-10 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-bold text-xs cursor-pointer"
+                  className="h-10 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs cursor-pointer"
                 >
                   {isPending
-                    ? "Confirmando inscrição..."
-                    : "Confirmar Escudo & Inscrição"}
+                    ? "Escalando jogador..."
+                    : "+ Adicionar Jogador ao Torneio"}
                 </button>
               </div>
             </form>
+
+            {/* Lista rápida de escalados atuais para remoção imediata */}
+            <div className="pt-4 border-t border-[#222c40] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#f4f6fb]">
+                  Jogadores Escalados ({participants.length}/
+                  {tournament.maxParticipants})
+                </span>
+                <span className="text-[11px] text-[#78849e]">
+                  Clique em Remover para retirar do torneio
+                </span>
+              </div>
+
+              <div className="max-h-44 overflow-y-auto divide-y divide-[#192131] bg-[#090c12] border border-[#222c40] rounded-[4px] px-3">
+                {participants.length === 0 ? (
+                  <p className="py-3 text-xs text-[#78849e]">
+                    Nenhum jogador escalado ainda neste torneio.
+                  </p>
+                ) : (
+                  participants.map((p) => (
+                    <div
+                      key={p.id}
+                      className="py-2 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ClubCrest clubName={p.clubName} size="sm" />
+                        <span className="font-bold text-[#f4f6fb] truncate">
+                          {p.nickname}
+                        </span>
+                        <span className="text-[#78849e] truncate">
+                          ({p.clubName} · Grupo {p.groupCode})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleAdminRemoveParticipant(p)}
+                        className="px-2 py-1 rounded-[4px] bg-[#be123c]/15 hover:bg-[#be123c]/30 border border-[#be123c]/40 text-[#fb7185] text-[10px] font-bold shrink-0 cursor-pointer"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

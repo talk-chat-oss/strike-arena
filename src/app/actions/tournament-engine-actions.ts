@@ -478,4 +478,274 @@ export async function updateUserRoleAction(input: {
   }
 }
 
+export interface UserWithClubItem {
+  id: string;
+  nickname: string;
+  email: string;
+  role: "player" | "organizer" | "super_admin";
+  clubName: string;
+}
+
+export async function listAllUsersWithClubsAction(): Promise<UserWithClubItem[]> {
+  try {
+    const [{ data: profiles }, { data: clubs }] = await Promise.all([
+      supabaseAdmin
+        .from("profiles")
+        .select("id, nickname, email, role")
+        .order("nickname", { ascending: true }),
+      supabaseAdmin
+        .from("club_teams")
+        .select("user_id, name, badge_url"),
+    ]);
+
+    const clubMap = new Map<string, string>();
+    for (const c of clubs ?? []) {
+      if (c.user_id) {
+        clubMap.set(
+          String(c.user_id),
+          String(c.badge_url || c.name || "Real Madrid")
+        );
+      }
+    }
+
+    return (profiles ?? []).map((u) => ({
+      id: String(u.id),
+      nickname: String(u.nickname ?? "Jogador"),
+      email: String(u.email ?? ""),
+      role: (u.role as UserWithClubItem["role"]) ?? "player",
+      clubName: clubMap.get(String(u.id)) ?? "Real Madrid",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function adminAddParticipantAction(input: {
+  tournamentId: string;
+  tournamentSlug: string;
+  targetUserId: string;
+  clubName?: string;
+  groupCode?: "AUTO" | "A" | "B";
+}) {
+  try {
+    const actor = await getCurrentUser();
+    if (
+      actor &&
+      !actor.isSuperAdmin &&
+      actor.role !== "super_admin" &&
+      actor.role !== "organizer"
+    ) {
+      return {
+        ok: false,
+        error: "Apenas ADMs e Organizadores podem escalar jogadores nos torneios.",
+      };
+    }
+
+    const { data: targetUser } = await supabaseAdmin
+      .from("profiles")
+      .select("id, nickname, email")
+      .eq("id", input.targetUserId)
+      .maybeSingle();
+
+    if (!targetUser) {
+      return { ok: false, error: "Jogador selecionado não encontrado." };
+    }
+
+    const { data: existing } = await supabaseAdmin
+      .from("participants")
+      .select("id")
+      .eq("tournament_id", input.tournamentId)
+      .eq("user_id", targetUser.id)
+      .maybeSingle();
+
+    if (existing) {
+      return {
+        ok: false,
+        error: `O jogador ${targetUser.nickname} já está escalado neste torneio!`,
+      };
+    }
+
+    const { data: userClub } = await supabaseAdmin
+      .from("club_teams")
+      .select("id, name, badge_url")
+      .eq("user_id", targetUser.id)
+      .maybeSingle();
+
+    const chosenClub =
+      input.clubName?.trim() ||
+      userClub?.badge_url ||
+      userClub?.name ||
+      `${targetUser.nickname} FC`;
+
+    if (!userClub) {
+      const acronym =
+        chosenClub
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .slice(0, 3)
+          .toUpperCase() || "CLB";
+
+      await supabaseAdmin.from("club_teams").insert({
+        league_id: input.tournamentId,
+        user_id: targetUser.id,
+        name: chosenClub,
+        acronym,
+        badge_url: chosenClub,
+        balance: 500,
+        is_delinquent: false,
+        league_pass_expires_at: "2099-12-31T23:59:59.000Z",
+        league_pass_mode: "ADMIN_GRANTED",
+      });
+    } else {
+      await supabaseAdmin
+        .from("club_teams")
+        .update({
+          league_pass_expires_at: "2099-12-31T23:59:59.000Z",
+          league_pass_mode: "ADMIN_GRANTED",
+          is_delinquent: false,
+        })
+        .eq("id", userClub.id);
+    }
+
+    let { data: groups } = await supabaseAdmin
+      .from("tournament_groups")
+      .select("*")
+      .eq("tournament_id", input.tournamentId)
+      .order("display_order", { ascending: true });
+
+    if (!groups || groups.length === 0) {
+      const { data: createdGroups } = await supabaseAdmin
+        .from("tournament_groups")
+        .insert([
+          {
+            tournament_id: input.tournamentId,
+            name: "Grupo A",
+            code: "A",
+            display_order: 1,
+          },
+          {
+            tournament_id: input.tournamentId,
+            name: "Grupo B",
+            code: "B",
+            display_order: 2,
+          },
+        ])
+        .select();
+      groups = createdGroups ?? [];
+    }
+
+    const { data: currentParts } = await supabaseAdmin
+      .from("participants")
+      .select("id, group_id")
+      .eq("tournament_id", input.tournamentId);
+
+    const totalCount = currentParts?.length ?? 0;
+
+    let targetGroup =
+      groups && groups.length > 0
+        ? groups[totalCount % groups.length]
+        : null;
+
+    if (input.groupCode && input.groupCode !== "AUTO" && groups) {
+      const found = groups.find((g) => g.code === input.groupCode);
+      if (found) targetGroup = found;
+    }
+
+    const { data: newParticipant, error: partErr } = await supabaseAdmin
+      .from("participants")
+      .insert({
+        tournament_id: input.tournamentId,
+        user_id: targetUser.id,
+        group_id: targetGroup?.id ?? null,
+        seed: totalCount + 1,
+        club_name: chosenClub,
+        checkin_status: "checked_in",
+        checked_in_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (partErr || !newParticipant) {
+      throw new Error(partErr?.message ?? "Falha ao adicionar participante.");
+    }
+
+    await supabaseAdmin.from("standings").insert({
+      tournament_id: input.tournamentId,
+      group_id: targetGroup?.id ?? null,
+      participant_id: newParticipant.id,
+      points: 0,
+      matches_played: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goals_for: 0,
+      goals_against: 0,
+      goal_difference: 0,
+    });
+
+    revalidatePath(`/tournaments/${input.tournamentSlug}`);
+    revalidatePath("/organizer");
+    revalidatePath("/");
+
+    return {
+      ok: true,
+      message: `Jogador ${targetUser.nickname} (${chosenClub}) escalado pela ADM no ${
+        targetGroup?.name ?? "Torneio"
+      }!`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Erro ao adicionar participante.",
+    };
+  }
+}
+
+export async function adminRemoveParticipantAction(input: {
+  participantId: string;
+  tournamentSlug: string;
+}) {
+  try {
+    const actor = await getCurrentUser();
+    if (
+      actor &&
+      !actor.isSuperAdmin &&
+      actor.role !== "super_admin" &&
+      actor.role !== "organizer"
+    ) {
+      return {
+        ok: false,
+        error: "Apenas ADMs podem remover jogadores do torneio.",
+      };
+    }
+
+    await supabaseAdmin
+      .from("standings")
+      .delete()
+      .eq("participant_id", input.participantId);
+
+    const { error } = await supabaseAdmin
+      .from("participants")
+      .delete()
+      .eq("id", input.participantId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/tournaments/${input.tournamentSlug}`);
+    revalidatePath("/organizer");
+    revalidatePath("/");
+
+    return {
+      ok: true,
+      message: "Participante removido do torneio pela ADM.",
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Erro ao remover participante.",
+    };
+  }
+}
+
 
