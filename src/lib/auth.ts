@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { SUPER_ADMIN_ID, isSuperAdmin } from "@/db";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export const SESSION_COOKIE_NAME = "strike_arena_session";
 
@@ -28,12 +29,27 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
     if (!parsed || !parsed.id || !parsed.nickname) return null;
 
+    let dbRole: SessionUser["role"] | undefined;
+    try {
+      const { data: prof } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", parsed.id)
+        .maybeSingle();
+      if (prof?.role) {
+        dbRole = prof.role as SessionUser["role"];
+      }
+    } catch {
+      // Fallback to cookie role if DB is unreachable
+    }
+
+    const effectiveRole = dbRole ?? parsed.role ?? "player";
     const superAdmin =
-      isSuperAdmin(parsed.id) || parsed.role === "super_admin";
+      isSuperAdmin(parsed.id) || effectiveRole === "super_admin";
 
     return {
       ...parsed,
-      role: superAdmin ? "super_admin" : parsed.role || "player",
+      role: superAdmin ? "super_admin" : effectiveRole,
       isSuperAdmin: superAdmin,
     };
   } catch {

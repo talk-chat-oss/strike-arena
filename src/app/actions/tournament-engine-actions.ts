@@ -379,3 +379,103 @@ export async function adminAdvanceTieWinnerAction(input: {
   }
 }
 
+export interface UserRoleItem {
+  id: string;
+  nickname: string;
+  email: string;
+  role: "player" | "organizer" | "super_admin";
+}
+
+export async function listUsersWithRolesAction(): Promise<UserRoleItem[]> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("profiles")
+      .select("id, nickname, email, role")
+      .order("created_at", { ascending: true });
+
+    return (data ?? []).map((u) => ({
+      id: u.id as string,
+      nickname: (u.nickname as string) ?? "Jogador",
+      email: (u.email as string) ?? "",
+      role: (u.role as UserRoleItem["role"]) ?? "player",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function updateUserRoleAction(input: {
+  targetUserId: string;
+  newRole: "player" | "organizer" | "super_admin";
+}) {
+  try {
+    const actor = await getCurrentUser();
+    if (
+      actor &&
+      !actor.isSuperAdmin &&
+      actor.role !== "super_admin" &&
+      actor.role !== "organizer"
+    ) {
+      return {
+        ok: false,
+        error: "Apenas ADMs podem alterar cargos de usuários.",
+      };
+    }
+
+    if (
+      isSuperAdmin(input.targetUserId) &&
+      input.newRole !== "super_admin"
+    ) {
+      return {
+        ok: false,
+        error: "O Super-Admin principal (SPOOKY) possui imunidade permanente.",
+      };
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from("profiles")
+      .update({ role: input.newRole })
+      .eq("id", input.targetUserId)
+      .select("id, nickname, role")
+      .single();
+
+    if (error || !updated) {
+      throw new Error(error?.message ?? "Usuário não encontrado.");
+    }
+
+    if (input.newRole === "super_admin" || input.newRole === "organizer") {
+      await supabaseAdmin
+        .from("club_teams")
+        .update({
+          league_pass_expires_at: "2099-12-31T23:59:59.000Z",
+          league_pass_mode: "ADMIN_GRANTED",
+          is_delinquent: false,
+        })
+        .eq("user_id", input.targetUserId);
+    }
+
+    revalidatePath("/organizer");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
+    const roleLabel =
+      input.newRole === "super_admin"
+        ? "ADM Geral (Super-Admin)"
+        : input.newRole === "organizer"
+        ? "Organizador / Arbitragem"
+        : "Jogador";
+
+    return {
+      ok: true,
+      message: `Cargo de ${updated.nickname} atualizado para ${roleLabel}!`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof Error ? err.message : "Erro ao atualizar cargo.",
+    };
+  }
+}
+
+

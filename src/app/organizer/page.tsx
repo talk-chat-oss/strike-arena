@@ -10,13 +10,18 @@ import {
   getAllTournaments,
   getTournamentBySlug,
 } from "@/lib/queries/tournaments";
+import { listUsersWithRolesAction } from "@/app/actions/tournament-engine-actions";
 import { OrganizerWizard } from "@/components/tournament/organizer-wizard";
+import { RoleManagementPanel } from "@/components/tournament/role-management-panel";
 import { MatchStatusBadge } from "@/components/tournament/status-badge";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrganizerPage() {
-  const { tournaments } = await getAllTournaments();
+  const [{ tournaments }, users] = await Promise.all([
+    getAllTournaments(),
+    listUsersWithRolesAction(),
+  ]);
   const activeTournament = tournaments[0] ?? null;
   const data = activeTournament
     ? await getTournamentBySlug(activeTournament.slug)
@@ -39,8 +44,8 @@ export default async function OrganizerPage() {
             Central do Organizador & Mediação
           </h1>
           <p className="text-xs text-[#78849e] mt-1">
-            Crie campeonatos, sorteie grupos e homologue placares ou W.O. com
-            atualização automática na tabela.
+            Crie campeonatos, gerencie cargos de ADMs/Organizadores e homologue
+            placares ou W.O. com atualização automática na tabela.
           </p>
         </div>
 
@@ -54,6 +59,9 @@ export default async function OrganizerPage() {
           </Link>
         )}
       </div>
+
+      {/* Gestão de Cargos (ADMs, Organizadores e Jogadores) */}
+      <RoleManagementPanel initialUsers={users} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Coluna 1: Wizard de Criação */}
