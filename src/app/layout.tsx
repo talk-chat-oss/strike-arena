@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
+import { TopProgressBar } from "@/components/layout/top-progress-bar";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`dark ${jetbrainsMono.variable}`}>
       <body className="min-h-screen flex flex-col bg-[#090c12] text-[#b6c0d4] antialiased">
+        <TopProgressBar />
         <Navbar />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-[#222c40] bg-[#090c12] py-8 mt-16">

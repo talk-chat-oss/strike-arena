@@ -25,6 +25,7 @@ import {
   UserPlus,
   ChevronDown,
   ArrowUpDown,
+  Loader2,
 } from "lucide-react";
 import type {
   AthleteDTO,
@@ -1008,9 +1009,16 @@ export function MarketClient({
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="w-full sm:w-auto sm:min-w-[240px] h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto sm:min-w-[240px] h-11 px-5 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  Confirmar Publicação no Calendário
+                  {isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-[#0e1312]" />
+                      <span>Agendando Leilão...</span>
+                    </>
+                  ) : (
+                    <span>Confirmar Publicação no Calendário</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1306,9 +1314,16 @@ export function MarketClient({
                           type="button"
                           disabled={isPending || diffSec === 0}
                           onClick={() => handleQuickBid(auc)}
-                          className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
+                          className="w-full h-11 px-4 rounded-[4px] bg-[#ffdc2b] hover:bg-[#d4a017] text-[#0e1312] font-extrabold text-xs inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          Confirmar Lance
+                          {isPending ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0e1312]" />
+                              <span>Enviando Lance...</span>
+                            </>
+                          ) : (
+                            <span>Confirmar Lance</span>
+                          )}
                         </button>
                       </div>
 

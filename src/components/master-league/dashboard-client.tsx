@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Sparkles,
   Shield,
+  Loader2,
 } from "lucide-react";
 import type {
   ClubTeamDTO,
@@ -193,8 +194,17 @@ export function DashboardClient({
             onClick={handleRunSeasonPayroll}
             className="w-full xl:w-auto h-10 sm:h-11 px-3 sm:px-4 rounded-[4px] bg-[#161d2c] hover:bg-[#1e273b] border border-[#2c3852] text-[11px] sm:text-xs font-extrabold text-[#f4f6fb] inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
           >
-            <Banknote className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
-            <span>Debitar Folha</span>
+            {isPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#ffdc2b] shrink-0" />
+                <span>Processando...</span>
+              </>
+            ) : (
+              <>
+                <Banknote className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
+                <span>Debitar Folha</span>
+              </>
+            )}
           </button>
 
           <Link
@@ -414,14 +424,22 @@ export function DashboardClient({
                             type="button"
                             disabled={isPending}
                             onClick={() => handleSaveSalary(item.id)}
-                            className="px-2.5 py-1 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-[11px] cursor-pointer"
+                            className="px-2.5 py-1 rounded-[4px] bg-[#ffdc2b] text-[#0e1312] font-bold text-[11px] cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
                           >
-                            Salvar
+                            {isPending && editingContractId === item.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Salvando...</span>
+                              </>
+                            ) : (
+                              <span>Salvar</span>
+                            )}
                           </button>
                           <button
                             type="button"
+                            disabled={isPending}
                             onClick={() => setEditingContractId(null)}
-                            className="px-2 py-1 rounded-[4px] bg-[#1d2639] text-[#9aa5b8] text-[11px] cursor-pointer"
+                            className="px-2 py-1 rounded-[4px] bg-[#1d2639] text-[#9aa5b8] text-[11px] cursor-pointer disabled:opacity-50"
                           >
                             ✕
                           </button>
@@ -437,6 +455,7 @@ export function DashboardClient({
                             type="number"
                             step={5}
                             min={50}
+                            disabled={isPending}
                             value={startingBidInput}
                             onChange={(e) =>
                               setStartingBidInput(Number(e.target.value))
@@ -447,14 +466,22 @@ export function DashboardClient({
                             type="button"
                             disabled={isPending}
                             onClick={() => handleListOnAuction(item.id)}
-                            className="px-2.5 py-1 rounded-[4px] bg-[#60a5fa] text-[#090c12] font-bold text-[11px] cursor-pointer"
+                            className="px-2.5 py-1 rounded-[4px] bg-[#60a5fa] text-[#090c12] font-bold text-[11px] cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
                           >
-                            Leiloar
+                            {isPending && auctionContractId === item.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Abrindo...</span>
+                              </>
+                            ) : (
+                              <span>Leiloar</span>
+                            )}
                           </button>
                           <button
                             type="button"
+                            disabled={isPending}
                             onClick={() => setAuctionContractId(null)}
-                            className="px-2 py-1 rounded-[4px] bg-[#1d2639] text-[#9aa5b8] text-[11px] cursor-pointer"
+                            className="px-2 py-1 rounded-[4px] bg-[#1d2639] text-[#9aa5b8] text-[11px] cursor-pointer disabled:opacity-50"
                           >
                             ✕
                           </button>
