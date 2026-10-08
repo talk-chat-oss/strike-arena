@@ -23,10 +23,13 @@ import type {
   AuctionDTO,
   ClubTeamDTO,
   TransferWindowSettingsDTO,
+  BallCategory,
 } from "@/lib/master-league-data";
 import {
   formatEscudos,
   getFreeAgentSigningCost,
+  getBallCategoryFromOverall,
+  getBallCategoryMeta,
 } from "@/lib/master-league-data";
 import {
   payBuyoutClauseAction,
@@ -58,9 +61,7 @@ export function PlayersCatalogClient({
   initialClubId,
 }: PlayersCatalogClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [ballFilter, setBallFilter] = useState<
-    "ALL" | "BOLA_PRETA" | "BOLA_OURO" | "BOLA_PRATA"
-  >("ALL");
+  const [ballFilter, setBallFilter] = useState<"ALL" | BallCategory>("ALL");
   const [posFilter, setPosFilter] = useState<string>("ALL");
   const [availabilityFilter, setAvailabilityFilter] =
     useState<AvailabilityFilter>("ALL");
@@ -98,7 +99,8 @@ export function PlayersCatalogClient({
 
   const filteredAndSortedAthletes = useMemo(() => {
     const list = athletes.filter((a) => {
-      if (ballFilter !== "ALL" && a.ballType !== ballFilter) return false;
+      const category = getBallCategoryFromOverall(a.overall);
+      if (ballFilter !== "ALL" && category !== ballFilter) return false;
       if (posFilter !== "ALL" && a.position !== posFilter) return false;
 
       const contract = contractByAthleteId.get(a.id);
@@ -143,15 +145,23 @@ export function PlayersCatalogClient({
   );
 
   const blackBallCount = useMemo(
-    () => athletes.filter((a) => a.ballType === "BOLA_PRETA").length,
+    () => athletes.filter((a) => getBallCategoryFromOverall(a.overall) === "BOLA_PRETA").length,
     [athletes]
   );
   const goldBallCount = useMemo(
-    () => athletes.filter((a) => a.ballType === "BOLA_OURO").length,
+    () => athletes.filter((a) => getBallCategoryFromOverall(a.overall) === "BOLA_OURO").length,
     [athletes]
   );
   const silverBallCount = useMemo(
-    () => athletes.filter((a) => a.ballType === "BOLA_PRATA").length,
+    () => athletes.filter((a) => getBallCategoryFromOverall(a.overall) === "BOLA_PRATA").length,
+    [athletes]
+  );
+  const bronzeBallCount = useMemo(
+    () => athletes.filter((a) => getBallCategoryFromOverall(a.overall) === "BOLA_BRONZE").length,
+    [athletes]
+  );
+  const whiteBallCount = useMemo(
+    () => athletes.filter((a) => getBallCategoryFromOverall(a.overall) === "BOLA_BRANCA").length,
     [athletes]
   );
 
@@ -308,7 +318,7 @@ export function PlayersCatalogClient({
             />
           </div>
 
-          {/* Filtro por Faixa de Overall */}
+          {/* Filtro por Faixa de Overall / Cor da Bola */}
           <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
             <Sparkles className="w-3.5 h-3.5 text-[#ffdc2b] shrink-0" />
             <select
@@ -316,26 +326,28 @@ export function PlayersCatalogClient({
               onChange={(e) =>
                 handleFilterChange(
                   setBallFilter,
-                  e.target.value as
-                    | "ALL"
-                    | "BOLA_PRETA"
-                    | "BOLA_OURO"
-                    | "BOLA_PRATA"
+                  e.target.value as "ALL" | BallCategory
                 )
               }
               className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
             >
               <option value="ALL" className="bg-[#111622]">
-                Todos Overalls ({athletes.length})
+                Todas as Bolas ({athletes.length})
               </option>
               <option value="BOLA_PRETA" className="bg-[#111622]">
-                OVR 85+ ({blackBallCount})
+                Bola Preta (85 a 96) — ({blackBallCount})
               </option>
               <option value="BOLA_OURO" className="bg-[#111622]">
-                OVR 80–84 ({goldBallCount})
+                Bola Ouro (80 a 84) — ({goldBallCount})
               </option>
               <option value="BOLA_PRATA" className="bg-[#111622]">
-                OVR 77–79 ({silverBallCount})
+                Bola Prata (75 a 79) — ({silverBallCount})
+              </option>
+              <option value="BOLA_BRONZE" className="bg-[#111622]">
+                Bola Bronze (70 a 74) — ({bronzeBallCount})
+              </option>
+              <option value="BOLA_BRANCA" className="bg-[#111622]">
+                Bola Branca (69-) — ({whiteBallCount})
               </option>
             </select>
           </div>
@@ -395,10 +407,10 @@ export function PlayersCatalogClient({
               className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#4ade80] focus:outline-none cursor-pointer"
             >
               <option value="OVERALL_DESC" className="bg-[#111622]">
-                Overall: Maior → Menor (92 → 77)
+                Overall: Maior → Menor
               </option>
               <option value="OVERALL_ASC" className="bg-[#111622]">
-                Overall: Menor → Maior (77 → 92)
+                Overall: Menor → Maior
               </option>
               <option value="NAME_ASC" className="bg-[#111622]">
                 Ordem Alfabética: A → Z
@@ -410,87 +422,124 @@ export function PlayersCatalogClient({
           </div>
         </div>
 
-        {/* Botões Rápidos de Filtro Padronizados em Grid 3/6 Colunas */}
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2 pt-0.5">
+        {/* Botões Rápidos de Filtro por Cor de Bola e Disponibilidade */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
           <button
             type="button"
             onClick={() => {
               handleFilterChange(setBallFilter, "ALL");
               handleFilterChange(setAvailabilityFilter, "ALL");
             }}
-            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "ALL" && availabilityFilter === "ALL"
                 ? "bg-[#ffdc2b] text-[#0e1312]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
             }`}
           >
-            <span>Todos ({athletes.length})</span>
+            <span>Todas Bolas ({athletes.length})</span>
           </button>
 
+          {/* Bola Preta (85 a 96) */}
           <button
             type="button"
             onClick={() => handleFilterChange(setBallFilter, "BOLA_PRETA")}
-            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "BOLA_PRETA"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] hover:bg-[#161d2c] text-[#f4f6fb] border border-[#2c3852]"
+                ? "bg-black text-white border border-[#52525b] shadow-sm shadow-black"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#f4f6fb] border border-[#27272a]"
             }`}
           >
-            <span className="truncate">OVR 85+ ({blackBallCount})</span>
+            <span className="w-2 h-2 rounded-full bg-white border border-gray-400 shrink-0" />
+            <span>Bola Preta ({blackBallCount})</span>
           </button>
 
+          {/* Bola Ouro (80 a 84) */}
           <button
             type="button"
             onClick={() => handleFilterChange(setBallFilter, "BOLA_OURO")}
-            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "BOLA_OURO"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
+                ? "bg-[#eab308] text-[#090c12] border border-[#ca8a04]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#facc15] border border-[#eab308]/40"
             }`}
           >
-            <span className="truncate">OVR 80–84 ({goldBallCount})</span>
+            <span className="w-2 h-2 rounded-full bg-[#eab308] shrink-0" />
+            <span>Bola Ouro ({goldBallCount})</span>
           </button>
 
+          {/* Bola Prata (75 a 79) */}
           <button
             type="button"
             onClick={() => handleFilterChange(setBallFilter, "BOLA_PRATA")}
-            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
               ballFilter === "BOLA_PRATA"
-                ? "bg-[#ffdc2b] text-[#0e1312]"
-                : "bg-[#090c12] hover:bg-[#161d2c] text-[#9aa5b8] border border-[#222c40]"
+                ? "bg-[#cbd5e1] text-[#0f172a] border border-[#94a3b8]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#cbd5e1] border border-[#475569]"
             }`}
           >
-            <span className="truncate">OVR 77–79 ({silverBallCount})</span>
+            <span className="w-2 h-2 rounded-full bg-[#cbd5e1] shrink-0" />
+            <span>Bola Prata ({silverBallCount})</span>
           </button>
 
+          {/* Bola Bronze (70 a 74) */}
+          <button
+            type="button"
+            onClick={() => handleFilterChange(setBallFilter, "BOLA_BRONZE")}
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              ballFilter === "BOLA_BRONZE"
+                ? "bg-[#b45309] text-[#fef3c7] border border-[#92400e]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#d97706] border border-[#b45309]/40"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#b45309] shrink-0" />
+            <span>Bola Bronze ({bronzeBallCount})</span>
+          </button>
+
+          {/* Bola Branca (69 para baixo) */}
+          <button
+            type="button"
+            onClick={() => handleFilterChange(setBallFilter, "BOLA_BRANCA")}
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap ${
+              ballFilter === "BOLA_BRANCA"
+                ? "bg-[#ffffff] text-[#090c12] border border-[#e2e8f0]"
+                : "bg-[#090c12] hover:bg-[#161d2c] text-[#94a3b8] border border-[#334155]"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-white shrink-0" />
+            <span>Bola Branca ({whiteBallCount})</span>
+          </button>
+
+          {/* Divisor */}
+          <div className="hidden sm:block h-5 w-px bg-[#222c40] mx-1" />
+
+          {/* Livres */}
           <button
             type="button"
             onClick={() =>
               handleFilterChange(setAvailabilityFilter, "FREE_AGENTS")
             }
-            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               availabilityFilter === "FREE_AGENTS"
                 ? "bg-[#15a34a] text-[#090c12]"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#4ade80] border border-[#15a34a]/40"
             }`}
           >
-            <span className="truncate">
-              Livres ({athletes.length - contracts.length})
-            </span>
+            <span>Livres ({athletes.length - contracts.length})</span>
           </button>
 
+          {/* Em Clubes */}
           <button
             type="button"
             onClick={() =>
               handleFilterChange(setAvailabilityFilter, "CONTRACTED")
             }
-            className={`w-full h-8 sm:h-10 px-2 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
+            className={`h-8 sm:h-9 px-2.5 rounded-[4px] text-[10px] sm:text-[11px] font-extrabold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap ${
               availabilityFilter === "CONTRACTED"
                 ? "bg-[#dc2626] text-white"
                 : "bg-[#090c12] hover:bg-[#161d2c] text-[#f87171] border border-[#dc2626]/40"
             }`}
           >
-            <span className="truncate">Em Clubes ({contracts.length})</span>
+            <span>Em Clubes ({contracts.length})</span>
           </button>
         </div>
 
@@ -528,14 +577,14 @@ export function PlayersCatalogClient({
           const canAffordFreeAgent =
             currentClub && currentClub.balance >= freeAgentCost;
 
+          const ballMeta = getBallCategoryMeta(
+            getBallCategoryFromOverall(athlete.overall)
+          );
+
           return (
             <div
               key={athlete.id}
-              className={`bg-[#111622] border rounded-[4px] overflow-hidden flex flex-col justify-between transition-all hover:-translate-y-0.5 ${
-                isBlackBall
-                  ? "border-[#2c3852] hover:border-[#ffdc2b]/60"
-                  : "border-[#222c40]"
-              }`}
+              className={`bg-[#111622] border rounded-[4px] overflow-hidden flex flex-col justify-between transition-all hover:-translate-y-0.5 ${ballMeta.cardBorderClass}`}
             >
               {/* Topo Visual do Card */}
               <div className="relative p-3 sm:p-4 bg-gradient-to-b from-[#182236] to-[#111622] border-b border-[#1c2436] flex items-center gap-3">
@@ -549,13 +598,7 @@ export function PlayersCatalogClient({
                     className="w-14 h-14 sm:w-20 sm:h-20 rounded-[6px] bg-gradient-to-b from-[#0f172a] to-[#090c12] border border-[#ffdc2b]/40 object-contain object-bottom pt-1"
                   />
                   <span
-                    className={`absolute -top-1.5 -left-1.5 px-1.5 py-0.5 rounded-[3px] text-[11px] sm:text-xs font-extrabold tabular-nums shadow ${
-                      athlete.overall >= 88
-                        ? "bg-[#ffdc2b] text-[#0e1312]"
-                        : athlete.overall >= 84
-                        ? "bg-[#15a34a] text-[#090c12]"
-                        : "bg-[#38bdf8] text-[#090c12]"
-                    }`}
+                    className={`absolute -top-1.5 -left-1.5 px-1.5 py-0.5 rounded-[3px] text-[11px] sm:text-xs font-extrabold tabular-nums shadow ${ballMeta.overallBadgeClass}`}
                   >
                     {athlete.overall}
                   </span>
@@ -565,6 +608,15 @@ export function PlayersCatalogClient({
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded-[2px] bg-[#090c12] text-[#60a5fa] border border-[#222c40] text-[10px] font-extrabold">
                       {athlete.position}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-extrabold ${ballMeta.badgeBg} ${ballMeta.textColor} border ${ballMeta.borderClass}`}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: ballMeta.dotColor }}
+                      />
+                      <span>{ballMeta.label}</span>
                     </span>
                   </div>
 

@@ -22,7 +22,11 @@ import type {
   ContractRosterItemDTO,
   FinancialTransactionDTO,
 } from "@/lib/master-league-data";
-import { formatEscudos } from "@/lib/master-league-data";
+import {
+  formatEscudos,
+  getBallCategoryFromOverall,
+  getBallCategoryMeta,
+} from "@/lib/master-league-data";
 import {
   updateContractSalaryAction,
   listAthleteOnAuctionAction,
@@ -391,13 +395,7 @@ export function DashboardClient({
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span
-                          className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs tabular-nums ${
-                            item.overall >= 90
-                              ? "bg-[#ffdc2b] text-[#0e1312]"
-                              : item.overall >= 85
-                              ? "bg-[#15a34a]/25 text-[#4ade80] border border-[#15a34a]/40"
-                              : "bg-[#1d2639] text-[#f4f6fb]"
-                          }`}
+                          className={`inline-flex items-center justify-center min-w-[32px] h-7 px-1.5 rounded-[4px] font-extrabold text-xs tabular-nums ${getBallCategoryMeta(getBallCategoryFromOverall(item.overall)).overallBadgeClass}`}
                         >
                           {item.overall}
                         </span>

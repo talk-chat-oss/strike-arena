@@ -38,6 +38,8 @@ import type {
 import {
   formatEscudos,
   getFreeAgentSigningCost,
+  getBallCategoryFromOverall,
+  getBallCategoryMeta,
 } from "@/lib/master-league-data";
 import {
   payBuyoutClauseAction,
@@ -242,16 +244,26 @@ export function MarketClient({
 
   function matchesOvrRange(overall: number, range: string) {
     switch (range) {
-      case "89_PLUS":
-        return overall >= 89;
+      case "BOLA_PRETA":
       case "85_PLUS":
-        return overall >= 85;
-      case "85_88":
-        return overall >= 85 && overall <= 88;
+        return overall >= 85 && overall <= 96;
+      case "BOLA_OURO":
       case "80_84":
         return overall >= 80 && overall <= 84;
+      case "BOLA_PRATA":
+      case "75_79":
       case "77_79":
-        return overall >= 77 && overall <= 79;
+        return overall >= 75 && overall <= 79;
+      case "BOLA_BRONZE":
+      case "70_74":
+        return overall >= 70 && overall <= 74;
+      case "BOLA_BRANCA":
+      case "69_MINUS":
+        return overall <= 69;
+      case "89_PLUS":
+        return overall >= 89;
+      case "85_88":
+        return overall >= 85 && overall <= 88;
       case "80_PLUS":
         return overall >= 80;
       default:
@@ -1557,7 +1569,7 @@ export function MarketClient({
 
               <div className="h-9 sm:h-11 flex items-center gap-1.5 bg-[#090c12] border border-[#222c40] rounded-[4px] px-2.5 sm:px-3.5">
                 <span className="text-[10px] sm:text-[11px] text-[#78849e] font-semibold shrink-0">
-                  OVR:
+                  Bola / OVR:
                 </span>
                 <select
                   value={ovrRangeFilter}
@@ -1568,22 +1580,22 @@ export function MarketClient({
                   className="w-full bg-transparent text-[11px] sm:text-xs font-bold text-[#ffdc2b] focus:outline-none cursor-pointer"
                 >
                   <option value="ALL" className="bg-[#111622]">
-                    Todos (77 a 92 OVR)
+                    Todas as Bolas
                   </option>
-                  <option value="89_PLUS" className="bg-[#111622]">
-                    89+ OVR
+                  <option value="BOLA_PRETA" className="bg-[#111622]">
+                    Bola Preta (85 a 96 OVR)
                   </option>
-                  <option value="85_PLUS" className="bg-[#111622]">
-                    85+ OVR
+                  <option value="BOLA_OURO" className="bg-[#111622]">
+                    Bola Ouro (80 a 84 OVR)
                   </option>
-                  <option value="85_88" className="bg-[#111622]">
-                    85 a 88 OVR
+                  <option value="BOLA_PRATA" className="bg-[#111622]">
+                    Bola Prata (75 a 79 OVR)
                   </option>
-                  <option value="80_84" className="bg-[#111622]">
-                    80 a 84 OVR
+                  <option value="BOLA_BRONZE" className="bg-[#111622]">
+                    Bola Bronze (70 a 74 OVR)
                   </option>
-                  <option value="77_79" className="bg-[#111622]">
-                    77 a 79 OVR
+                  <option value="BOLA_BRANCA" className="bg-[#111622]">
+                    Bola Branca (69- OVR)
                   </option>
                 </select>
               </div>
@@ -1805,6 +1817,10 @@ export function MarketClient({
                         transferWindow.buyoutEnabled &&
                         canAfford;
 
+                      const bMeta = getBallCategoryMeta(
+                        getBallCategoryFromOverall(c.overall)
+                      );
+
                       return (
                         <div
                           key={c.id}
@@ -1820,13 +1836,7 @@ export function MarketClient({
                                 className="w-10 h-10 rounded-[5px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom pt-0.5"
                               />
                               <span
-                                className={`absolute -top-1 -left-1 px-1 rounded-[2px] font-extrabold text-[10px] leading-tight ${
-                                  c.overall >= 88
-                                    ? "bg-[#ffdc2b] text-[#0e1312]"
-                                    : c.overall >= 85
-                                    ? "bg-[#15a34a] text-[#090c12]"
-                                    : "bg-[#1d2639] text-[#f4f6fb] border border-[#2c3852]"
-                                }`}
+                                className={`absolute -top-1 -left-1 px-1 rounded-[2px] font-extrabold text-[10px] leading-tight ${bMeta.overallBadgeClass}`}
                               >
                                 {c.overall}
                               </span>
@@ -1957,11 +1967,7 @@ export function MarketClient({
 
                               <td className="py-3 px-3 text-center">
                                 <span
-                                  className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
-                                    c.overall >= 88
-                                      ? "bg-[#ffdc2b] text-[#0e1312]"
-                                      : "bg-[#1d2639] text-[#f4f6fb]"
-                                  }`}
+                                  className={`inline-flex items-center justify-center min-w-[32px] h-7 px-1.5 rounded-[4px] font-extrabold text-xs ${getBallCategoryMeta(getBallCategoryFromOverall(c.overall)).overallBadgeClass}`}
                                 >
                                   {c.overall}
                                 </span>
@@ -2048,6 +2054,10 @@ export function MarketClient({
                           getFreeAgentSigningCost(a.overall);
                         const canAfford = (currentClub?.balance ?? 0) >= cost;
 
+                        const bMeta = getBallCategoryMeta(
+                          getBallCategoryFromOverall(a.overall)
+                        );
+
                         return (
                           <div
                             key={a.id}
@@ -2063,13 +2073,7 @@ export function MarketClient({
                                   className="w-10 h-10 rounded-[5px] bg-gradient-to-b from-[#1e293b] to-[#090c12] border border-[#2c3852] object-contain object-bottom pt-0.5"
                                 />
                                 <span
-                                  className={`absolute -top-1 -left-1 px-1 rounded-[2px] font-extrabold text-[10px] leading-tight ${
-                                    a.overall >= 88
-                                      ? "bg-[#ffdc2b] text-[#0e1312]"
-                                      : a.overall >= 85
-                                      ? "bg-[#15a34a] text-[#090c12]"
-                                      : "bg-[#1d2639] text-[#f4f6fb] border border-[#2c3852]"
-                                  }`}
+                                  className={`absolute -top-1 -left-1 px-1 rounded-[2px] font-extrabold text-[10px] leading-tight ${bMeta.overallBadgeClass}`}
                                 >
                                   {a.overall}
                                 </span>
@@ -2193,11 +2197,7 @@ export function MarketClient({
 
                                 <td className="py-3 px-3 text-center">
                                   <span
-                                    className={`inline-flex items-center justify-center w-8 h-7 rounded-[4px] font-extrabold text-xs ${
-                                      a.overall >= 88
-                                        ? "bg-[#ffdc2b] text-[#0e1312]"
-                                        : "bg-[#1d2639] text-[#f4f6fb]"
-                                    }`}
+                                    className={`inline-flex items-center justify-center min-w-[32px] h-7 px-1.5 rounded-[4px] font-extrabold text-xs ${getBallCategoryMeta(getBallCategoryFromOverall(a.overall)).overallBadgeClass}`}
                                   >
                                     {a.overall}
                                   </span>

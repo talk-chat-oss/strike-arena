@@ -18,7 +18,98 @@ export type FinancialTxType =
   | "ESTORNO_LANCE"
   | "ARREMATE_LEILAO";
 
-export type BallCategory = "BOLA_PRETA" | "BOLA_OURO" | "BOLA_PRATA";
+export type BallCategory =
+  | "BOLA_PRETA"
+  | "BOLA_OURO"
+  | "BOLA_PRATA"
+  | "BOLA_BRONZE"
+  | "BOLA_BRANCA";
+
+export function getBallCategoryFromOverall(overall: number): BallCategory {
+  if (overall >= 85) return "BOLA_PRETA";
+  if (overall >= 80) return "BOLA_OURO";
+  if (overall >= 75) return "BOLA_PRATA";
+  if (overall >= 70) return "BOLA_BRONZE";
+  return "BOLA_BRANCA";
+}
+
+export interface BallCategoryMeta {
+  type: BallCategory;
+  label: string;
+  rangeLabel: string;
+  badgeBg: string;
+  textColor: string;
+  borderClass: string;
+  dotColor: string;
+  overallBadgeClass: string;
+  cardBorderClass: string;
+}
+
+export function getBallCategoryMeta(category: BallCategory): BallCategoryMeta {
+  switch (category) {
+    case "BOLA_PRETA":
+      return {
+        type: "BOLA_PRETA",
+        label: "Bola Preta",
+        rangeLabel: "85 a 96",
+        badgeBg: "bg-black",
+        textColor: "text-[#f4f4f5]",
+        borderClass: "border-[#52525b]",
+        dotColor: "#ffffff",
+        overallBadgeClass: "bg-[#18181b] text-white border border-[#52525b] shadow-sm",
+        cardBorderClass: "border-[#3f3f46] hover:border-[#ffdc2b]/80",
+      };
+    case "BOLA_OURO":
+      return {
+        type: "BOLA_OURO",
+        label: "Bola Ouro",
+        rangeLabel: "80 a 84",
+        badgeBg: "bg-[#eab308]",
+        textColor: "text-[#090c12]",
+        borderClass: "border-[#ca8a04]",
+        dotColor: "#ca8a04",
+        overallBadgeClass: "bg-[#eab308] text-[#090c12] font-black border border-[#ca8a04]",
+        cardBorderClass: "border-[#eab308]/40 hover:border-[#eab308]",
+      };
+    case "BOLA_PRATA":
+      return {
+        type: "BOLA_PRATA",
+        label: "Bola Prata",
+        rangeLabel: "75 a 79",
+        badgeBg: "bg-[#cbd5e1]",
+        textColor: "text-[#0f172a]",
+        borderClass: "border-[#94a3b8]",
+        dotColor: "#94a3b8",
+        overallBadgeClass: "bg-[#cbd5e1] text-[#0f172a] font-bold border border-[#94a3b8]",
+        cardBorderClass: "border-[#64748b]/40 hover:border-[#cbd5e1]",
+      };
+    case "BOLA_BRONZE":
+      return {
+        type: "BOLA_BRONZE",
+        label: "Bola Bronze",
+        rangeLabel: "70 a 74",
+        badgeBg: "bg-[#b45309]",
+        textColor: "text-[#fef3c7]",
+        borderClass: "border-[#92400e]",
+        dotColor: "#b45309",
+        overallBadgeClass: "bg-[#b45309] text-[#fef3c7] font-bold border border-[#92400e]",
+        cardBorderClass: "border-[#b45309]/40 hover:border-[#d97706]",
+      };
+    case "BOLA_BRANCA":
+    default:
+      return {
+        type: "BOLA_BRANCA",
+        label: "Bola Branca",
+        rangeLabel: "69-",
+        badgeBg: "bg-[#f8fafc]",
+        textColor: "text-[#090c12]",
+        borderClass: "border-[#e2e8f0]",
+        dotColor: "#e2e8f0",
+        overallBadgeClass: "bg-[#f8fafc] text-[#0f172a] font-bold border border-[#cbd5e1]",
+        cardBorderClass: "border-[#334155] hover:border-[#94a3b8]",
+      };
+  }
+}
 
 export interface AthleteDTO {
   id: string;
@@ -720,7 +811,7 @@ export async function getMasterLeagueOverviewData() {
             photoUrl: a.photo_url || "/players/mbappe.png",
             defaultTeam: a.default_team,
             ballType: (a.ball_type ||
-              (a.overall >= 85 ? "BOLA_PRETA" : "BOLA_OURO")) as BallCategory,
+              getBallCategoryFromOverall(a.overall)) as BallCategory,
           }))
         : MOCK_ATHLETES;
 
@@ -751,7 +842,7 @@ export async function getMasterLeagueOverviewData() {
               photoUrl: ath?.photo_url || "/players/mbappe.png",
               defaultTeam: ath?.default_team ?? "Livre",
               ballType: (ath?.ball_type ||
-                (ovr >= 85 ? "BOLA_PRETA" : "BOLA_OURO")) as BallCategory,
+                getBallCategoryFromOverall(ovr)) as BallCategory,
               salary: c.salary,
               buyoutClause: c.buyout_clause,
               acquiredAt: c.acquired_at,
@@ -841,7 +932,7 @@ export async function getMasterLeagueOverviewData() {
         photoUrl: ath?.photo_url || "/players/mbappe.png",
         defaultTeam: ath?.default_team ?? "Europa",
         ballType: (ath?.ball_type ||
-          (ovr >= 85 ? "BOLA_PRETA" : "BOLA_OURO")) as BallCategory,
+          getBallCategoryFromOverall(ovr)) as BallCategory,
         sellerClubId: auc.seller_club_id,
         sellerClubName: seller?.name ?? "Banco da Liga (Federação)",
         startingBid: auc.starting_bid ?? 100,
