@@ -59,30 +59,39 @@ export function AuthForm({ currentUser }: AuthFormProps) {
     e.preventDefault();
     setFeedback(null);
     startTransition(async () => {
-      const res = await registerUserAction({
-        nickname,
-        email,
-        password,
-        clubName,
-        accountType,
-        psnId,
-        xboxGamertag,
-        eaId,
-        konamiId,
-        discordHandle,
-      });
+      try {
+        const res = await registerUserAction({
+          nickname,
+          email,
+          password,
+          clubName,
+          accountType,
+          psnId,
+          xboxGamertag,
+          eaId,
+          konamiId,
+          discordHandle,
+        });
 
-      if (!res.ok) {
-        setFeedback({ type: "error", text: res.error ?? "Erro no cadastro." });
-        return;
+        if (!res.ok) {
+          setFeedback({ type: "error", text: res.error ?? "Erro no cadastro." });
+          return;
+        }
+
+        setFeedback({
+          type: "success",
+          text: res.message ?? "Conta criada com sucesso!",
+        });
+        router.push("/dashboard");
+        router.refresh();
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        if (errorMsg.includes("Server Action") || errorMsg.includes("UnrecognizedActionError")) {
+          window.location.reload();
+          return;
+        }
+        setFeedback({ type: "error", text: errorMsg || "Erro de conexão ao registrar." });
       }
-
-      setFeedback({
-        type: "success",
-        text: res.message ?? "Conta criada com sucesso!",
-      });
-      router.push("/dashboard");
-      router.refresh();
     });
   }
 
@@ -90,33 +99,51 @@ export function AuthForm({ currentUser }: AuthFormProps) {
     e.preventDefault();
     setFeedback(null);
     startTransition(async () => {
-      const res = await loginUserAction({
-        identifier,
-        password: loginPassword,
-      });
+      try {
+        const res = await loginUserAction({
+          identifier,
+          password: loginPassword,
+        });
 
-      if (!res.ok) {
-        setFeedback({ type: "error", text: res.error ?? "Erro no login." });
-        return;
+        if (!res.ok) {
+          setFeedback({ type: "error", text: res.error ?? "Erro no login." });
+          return;
+        }
+
+        setFeedback({
+          type: "success",
+          text: res.message ?? "Login realizado!",
+        });
+        router.push("/dashboard");
+        router.refresh();
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        if (errorMsg.includes("Server Action") || errorMsg.includes("UnrecognizedActionError")) {
+          window.location.reload();
+          return;
+        }
+        setFeedback({ type: "error", text: errorMsg || "Erro de conexão ao realizar login." });
       }
-
-      setFeedback({
-        type: "success",
-        text: res.message ?? "Login realizado!",
-      });
-      router.push("/dashboard");
-      router.refresh();
     });
   }
 
   function handleLogout() {
     startTransition(async () => {
-      await logoutAction();
-      setFeedback({
-        type: "success",
-        text: "Você saiu da conta.",
-      });
-      router.refresh();
+      try {
+        await logoutAction();
+        setFeedback({
+          type: "success",
+          text: "Você saiu da conta.",
+        });
+        router.refresh();
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        if (errorMsg.includes("Server Action") || errorMsg.includes("UnrecognizedActionError")) {
+          window.location.reload();
+          return;
+        }
+        setFeedback({ type: "error", text: errorMsg });
+      }
     });
   }
 
